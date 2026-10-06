@@ -1,0 +1,988 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F1EFEA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161B20" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Табель">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Табель</title>
+<style>
+:root{
+  box-sizing:border-box;
+  --bg:#F1EFEA; --surface:#FBFAF7; --ink:#1B2630; --muted:#5C6872; --line:#D8D4CA; --focus:#1B2630; --flash:#F6E7A8;
+  --work:#1F7A45; --work-bg:#DCEBE1;
+  --off:#3F6794;  --off-bg:#E0E8F0;
+  --sick:#B3441C; --sick-bg:#F3DDD2;
+  --pl:#6A4C9C;   --pl-bg:#E8E0F2;
+  --ul:#7F6120;   --ul-bg:#F0E6CC;
+  --ab:#A12641;   --ab-bg:#F4D9DF;
+  --work-t:#1F7A45; --off-t:#3F6794; --sick-t:#B3441C; --pl-t:#6A4C9C; --ul-t:#7F6120; --ab-t:#A12641;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#161B20; --surface:#1F262C; --ink:#E8E6E1; --muted:#9AA5AE; --line:#36404A; --focus:#E8E6E1; --flash:#5B5120;
+    --work:#2E8653; --work-bg:#233A2C; --work-t:#86D6A3;
+    --off:#4A74A3;  --off-bg:#222F3D;  --off-t:#9CBFE3;
+    --sick:#C4552B; --sick-bg:#3E2B22; --sick-t:#F0A27E;
+    --pl:#7E62B8;   --pl-bg:#2E2740;   --pl-t:#C3ADF0;
+    --ul:#9A7A2C;   --ul-bg:#3A3220;   --ul-t:#E4C97F;
+    --ab:#B53650;   --ab-bg:#40242B;   --ab-t:#F29AAE;
+  }
+}
+*,*::before,*::after{box-sizing:inherit}
+html{-webkit-text-size-adjust:100%;scroll-padding-top:120px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:var(--surface);border:1px solid var(--line);border-radius:8px;min-height:44px;padding:0 12px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+button:active{transform:translateY(1px)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+input[type=text],input[type=date],select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;min-height:46px;padding:8px 12px;width:100%}
+.primary{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:700}
+[hidden]{display:none!important}
+
+/* верхняя панель */
+#top{position:sticky;top:0;z-index:10;background:var(--bg);padding:calc(8px + env(safe-area-inset-top)) 10px 8px;border-bottom:1px solid var(--line)}
+.row1{display:flex;gap:8px;align-items:stretch}
+.books{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.books button{border:0;border-radius:0;min-width:56px;font-weight:700;font-size:17px;background:transparent;color:var(--muted)}
+.books button[aria-selected=true]{background:var(--ink);color:var(--bg)}
+#dateBtn{flex:1;min-width:0;padding:0 6px;font-weight:600;font-size:clamp(13px,3.9vw,16px);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#dateBtn.past{background:#F3D98B;border-color:#C9A63A;color:#2A2100}
+#menuBtn{width:48px;padding:0;font-size:22px}
+.row2{display:flex;gap:8px;margin-top:8px}
+.row2 input{flex:1;min-width:0;font-size:18px}
+#kb{width:54px;padding:0;font-weight:700}
+#go{min-width:96px}
+
+main{max-width:760px;margin:0 auto;padding:0 10px}
+.msg{min-height:0;margin:10px 0 0;padding:0;font-size:15px;border-radius:8px}
+.msg:not(:empty){padding:10px 12px;background:var(--surface);border:1px solid var(--line);border-left-width:6px}
+.msg.ok{border-left-color:var(--work)} .msg.bad{border-left-color:var(--sick)} .msg.warn{border-left-color:var(--ul)}
+.msg .u{float:right;min-height:34px;margin:-4px -6px 0 8px;padding:0 10px;font-weight:700}
+.syncbar{display:block;width:100%;margin:10px 0 0;min-height:38px;padding:6px 12px;text-align:left;font-size:13px;color:var(--muted);border-left:6px solid var(--line);border-radius:8px}
+.syncbar.ok{border-left-color:var(--work)} .syncbar.warn{border-left-color:var(--ul);color:var(--ink)} .syncbar.bad{border-left-color:var(--sick);color:var(--ink);font-weight:600}
+textarea.link{min-height:96px;font-size:13px;word-break:break-all}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0 8px}
+@media (max-width:340px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stats div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;border-top:4px solid var(--line)}
+.stats b{display:block;font-size:22px;line-height:1.1;font-variant-numeric:tabular-nums}
+.stats span{font-size:12px;color:var(--muted)}
+.stats .w{border-top-color:var(--work)} .stats .o{border-top-color:var(--off)} .stats .s{border-top-color:var(--sick)} .stats .u{border-top-color:var(--ink)}
+.stats2{font-size:13px;color:var(--muted);margin:0 2px 8px}
+.tabs{display:flex;gap:6px;margin:0 0 10px}
+.tabs button{flex:1;font-weight:600;font-size:clamp(13px,3.9vw,16px);padding:0 6px;white-space:nowrap}
+.tabs button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* список */
+#list{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.row{padding:12px 12px 12px 12px;border-bottom:1px solid var(--line);border-left:7px solid var(--line);background:var(--surface);scroll-margin-top:130px}
+.row:last-child{border-bottom:0}
+.row.s-work{border-left-color:var(--work)} .row.s-off{border-left-color:var(--off)} .row.s-sick{border-left-color:var(--sick)}
+.row.s-pl{border-left-color:var(--pl)} .row.s-ul{border-left-color:var(--ul)} .row.s-ab{border-left-color:var(--ab)}
+.row.flash{animation:flash 1.6s ease-out}
+@keyframes flash{from{background:var(--flash)}to{background:var(--surface)}}
+.who b{font-size:17px;font-weight:650;word-break:break-word}
+.who b .tn{display:inline;font-size:15px;font-variant-numeric:tabular-nums;color:var(--muted);font-weight:600;margin-right:7px}
+.who span{display:block;font-size:13px;color:var(--muted)}
+.plan{font-size:13px;color:var(--muted);margin-top:2px}
+.plan.po{color:var(--off-t);font-weight:600}
+.head{display:flex;gap:8px;align-items:flex-start}
+.head .who{flex:1;min-width:0}
+.head .more{flex:none;width:44px;min-height:44px;padding:0;font-size:22px;line-height:1;color:var(--muted);margin:-6px -6px 0 0}
+.btns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px}
+.btns button{min-height:52px;font-weight:700;font-size:clamp(13px,3.6vw,15.5px);padding:0 2px;min-width:0;white-space:nowrap}
+.btns button[aria-pressed=true]{color:#fff}
+.btns .work[aria-pressed=true]{background:var(--work);border-color:var(--work)}
+.btns .off[aria-pressed=true]{background:var(--off);border-color:var(--off)}
+.btns .sick[aria-pressed=true]{background:var(--sick);border-color:var(--sick)}
+.extra{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:6px}
+.extra button{min-height:46px;font-weight:600;font-size:14px}
+.extra button[aria-pressed=true]{color:#fff}
+.extra .pl[aria-pressed=true]{background:var(--pl);border-color:var(--pl)}
+.extra .ul[aria-pressed=true]{background:var(--ul);border-color:var(--ul)}
+.extra .ab[aria-pressed=true]{background:var(--ab);border-color:var(--ab)}
+.hours{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
+.hours .step{width:48px;padding:0;font-size:24px;font-weight:600}
+.hours .val{min-width:70px;text-align:center;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.hours .chips{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.hours .chips button{min-width:44px;padding:0 8px;font-variant-numeric:tabular-nums}
+.hours .chips button[aria-pressed=true]{background:var(--work-bg);border-color:var(--work);color:var(--work-t);font-weight:700}
+.empty{padding:26px 16px;text-align:center;background:var(--surface);border:1px dashed var(--line);border-radius:10px}
+.empty p{margin:0 0 12px}
+.empty .primary{margin:4px}
+
+/* окна */
+#sheetWrap{position:fixed;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center}
+.backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+#sheet{position:relative;width:100%;max-width:640px;max-height:92vh;overflow:auto;background:var(--bg);border-radius:16px 16px 0 0;padding:14px 14px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -6px 30px rgba(0,0,0,.25)}
+.sh{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.sh h2{margin:0;font-size:19px}
+.sh button{width:44px;padding:0;font-size:20px}
+.list2{display:flex;flex-direction:column;gap:8px}
+.list2 button{text-align:left;min-height:52px;font-weight:600;padding:8px 14px}
+.list2 button small{display:block;font-weight:400;color:var(--muted)}
+.fld{margin:0 0 12px} .fld label{display:block;font-size:14px;color:var(--muted);margin-bottom:4px}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px} .acts button{flex:1;min-width:120px}
+.note{font-size:14px;color:var(--muted)}
+.prow{display:flex;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.prow:last-child{border-bottom:0}
+.prow .t{flex:1;min-width:0} .prow .t b{display:block;font-weight:600} .prow .t span{font-size:13px;color:var(--muted)}
+.prow button{min-height:40px}
+.prow.arch{opacity:.65}
+textarea.rep{min-height:200px;font-size:14px;line-height:1.45;white-space:pre}
+.stepper{display:flex;align-items:center;gap:8px}
+.stepper button{width:48px;padding:0;font-size:22px} .stepper .val{min-width:70px;text-align:center;font-size:20px;font-weight:700}
+#toast{position:fixed;left:50%;transform:translate(-50%,8px);bottom:calc(20px + env(safe-area-inset-bottom));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:15px;z-index:40;max-width:calc(100% - 28px);text-align:center;opacity:0;pointer-events:none;transition:opacity .15s,transform .15s}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+.banner{background:var(--sick-bg);border-left:6px solid var(--sick);padding:10px 12px;border-radius:8px;margin:10px 0;font-size:14px}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}.row.flash{animation:none}button:active{transform:none}}
+</style>
+</head>
+<body>
+<header id="top">
+  <div class="row1">
+    <div class="books" role="tablist" aria-label="Табель">
+      <button role="tab" data-a="book" data-b="rf">РФ</button>
+      <button role="tab" data-a="book" data-b="are">АРЕ</button>
+    </div>
+    <button id="dateBtn" data-a="date" aria-label="Выбрать день"></button>
+    <button id="menuBtn" data-a="menu" aria-label="Меню">☰</button>
+  </div>
+  <div class="row2">
+    <input id="q" type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Табельный номер">
+    <button id="kb" data-a="kb" aria-label="Переключить клавиатуру: цифры или буквы">abc</button>
+    <button id="go" class="primary" data-a="go">Отметить</button>
+  </div>
+</header>
+<main>
+  <div id="banner"></div>
+  <button id="syncbar" class="syncbar" data-a="syncsheet" hidden></button>
+  <div id="msg" class="msg" role="status" aria-live="polite"></div>
+  <div id="stats"></div>
+  <div class="tabs" id="tabs"></div>
+  <ul id="list"></ul>
+</main>
+<div id="sheetWrap" hidden><div class="backdrop" data-a="close"></div><div id="sheet" role="dialog" aria-modal="true" aria-label="Окно"></div></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="file" accept=".json,application/json" hidden>
+
+<script>
+(function(){
+'use strict';
+
+var KEY='tabel-app-v1';
+var SEED=null;   /* __SEED__ */
+
+/* ------------------------------------------------------------- справочники */
+var BOOKS={rf:'РФ',are:'АРЕ'};
+var STAT=[['work','Пришёл'],['off','Выходной'],['sick','Больничный'],['pl','Отпуск'],['ul','Без ЗП'],['ab','Прогул']];
+var LBL={}; STAT.forEach(function(x){ LBL[x[0]]=x[1]; });
+var CELL={off:'В',sick:'Б',pl:'ОТ',ul:'БС',ab:'ПР'};
+var SCHEDS=[
+  {id:'',name:'График не задан',short:''},
+  {id:'std',name:'Обычный: вс–чт рабочие, выходные пт и сб',short:'Обычный график'},
+  {id:'w61',name:'6/1 · выходной только пятница',short:'График 6/1'},
+  {id:'g1',name:'№1 · 24/6, выходные 1–6 числа',short:'График №1',from:1,to:6},
+  {id:'g2',name:'№2 · 24/6, выходные 7–12 числа',short:'График №2',from:7,to:12},
+  {id:'g3',name:'№3 · 24/6, выходные 13–18 числа',short:'График №3',from:13,to:18},
+  {id:'g4',name:'№4 · 24/6, выходные 19–24 числа',short:'График №4',from:19,to:24},
+  {id:'g5',name:'№5 · 24/6, выходные 25–30 числа',short:'График №5',from:25,to:30}
+];
+var MONTHS_G=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+var MONTHS_N=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+var WD=['вс','пн','вт','ср','чт','пт','сб'];
+var WD_FULL=['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+var ST_OK={work:1,off:1,sick:1,pl:1,ul:1,ab:1};
+
+/* ------------------------------------------------------------- мелочи */
+function $(id){ return document.getElementById(id); }
+function pad(n){ return String(n).padStart(2,'0'); }
+function ymd(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function parseYmd(s){ var a=s.split('-').map(Number); return new Date(a[0],a[1]-1,a[2]); }
+function addDays(s,n){ var d=parseYmd(s); d.setDate(d.getDate()+n); return ymd(d); }
+function today(){ return ymd(new Date()); }
+function esc(s){ return String(s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function fmtH(h){ return String(h).replace('.',','); }
+function clampH(h){ h=Number(h); return isFinite(h)?Math.min(24,Math.max(0,Math.round(h*2)/2)):8; }
+function uid(){ return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function daysIn(m){ var a=m.split('-').map(Number); return new Date(a[0],a[1],0).getDate(); }
+function schedById(id){ return SCHEDS.filter(function(x){ return x.id===id; })[0]; }
+function validSched(v){ return schedById(v)?v:''; }
+function normNum(n){ n=String(n).trim().replace(/^0+/,''); return n||'0'; }
+var AR={}; for(var i=0;i<10;i++){ AR[String.fromCharCode(0x0660+i)]=String(i); AR[String.fromCharCode(0x06F0+i)]=String(i); }
+function latinDigits(s){ return String(s).replace(/[\u0660-\u0669\u06F0-\u06F9]/g,function(c){ return AR[c]; }); }
+
+function planOff(p,ds){
+  if(!p.sched) return null;
+  var d=parseYmd(ds);
+  if(p.sched==='std'){ var w=d.getDay(); return w===5||w===6; }
+  if(p.sched==='w61') return d.getDay()===5;
+  var g=schedById(p.sched); if(!g||!g.from) return null;
+  var n=d.getDate(); return n>=g.from&&n<=g.to;
+}
+
+/* ------------------------------------------------------------- данные */
+function blank(){ return {people:[],records:{},object:'',defH:8}; }
+function normalize(s){
+  var b=blank();
+  if(!s||typeof s!=='object') return b;
+  if(Array.isArray(s.people)){
+    var seen={};
+    s.people.forEach(function(p){
+      if(p&&typeof p.id==='string'&&typeof p.name==='string'&&p.name.trim()&&p.id!=='__proto__'&&!seen[p.id]){
+        seen[p.id]=1;
+        b.people.push({id:p.id,name:p.name.trim().slice(0,120),role:typeof p.role==='string'?p.role.slice(0,120):'',
+          num:typeof p.num==='string'?p.num.slice(0,20):(typeof p.num==='number'?String(p.num):''),sched:validSched(p.sched),archived:!!p.archived});
+      }
+    });
+  }
+  if(s.records&&typeof s.records==='object'){
+    Object.keys(s.records).forEach(function(d){
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(d)) return;
+      var day=s.records[d]; if(!day||typeof day!=='object') return;
+      var out={}, any=false;
+      Object.keys(day).forEach(function(id){
+        if(id==='__proto__') return;
+        var r=day[id];
+        if(r&&ST_OK[r.s]===1){ out[id]={s:r.s,h:r.s==='work'?clampH(r.h):0,t:Number(r.t)>0?Number(r.t):0}; any=true; }
+      });
+      if(any) b.records[d]=out;
+    });
+  }
+  if(typeof s.object==='string') b.object=s.object.slice(0,80);
+  var dh=Number(s.defH); if(dh>0&&dh<=24) b.defH=Math.round(dh*2)/2;
+  return b;
+}
+function blankRoot(){ return {v:2,cur:'rf',books:{rf:blank(),are:blank()}}; }
+function normalizeRoot(raw){
+  var r=blankRoot();
+  if(raw&&raw.books&&typeof raw.books==='object'){
+    r.books.rf=normalize(raw.books.rf); r.books.are=normalize(raw.books.are);
+    if(raw.cur==='are') r.cur='are';
+  } else if(raw&&Array.isArray(raw.people)){ r.books.rf=normalize(raw); }
+  return r;
+}
+var storageOK=true;
+function load(){
+  try{ var raw=localStorage.getItem(KEY); if(raw) return normalizeRoot(JSON.parse(raw)); }catch(e){}
+  return blankRoot();
+}
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(root)); }catch(e){ storageOK=false; renderBanner(); } }
+try{ localStorage.setItem(KEY+'-t','1'); localStorage.removeItem(KEY+'-t'); }catch(e){ storageOK=false; }
+
+var root=load();
+function hasPeople(r){ return r.books.rf.people.length+r.books.are.people.length>0; }
+if(SEED&&!hasPeople(root)){ root=normalizeRoot(SEED); save(); }
+function bk(){ return root.books[root.cur]; }
+function activePeople(){ return bk().people.filter(function(p){ return !p.archived; }); }
+function person(id){ return bk().people.filter(function(p){ return p.id===id; })[0]; }
+function dayRec(d){ return bk().records[d]||{}; }
+
+var ui={date:today(),follow:true,filter:'all',q:'',open:{},undo:null,numMode:true};
+
+/* ------------------------------------------------------------- синхронизация с Google Таблицей */
+var SYNC_KEY='tabel-app-sync-v1';
+var URL_RE=/^https:\/\/script\.google\.com\/(a\/[^\/]+\/)?macros\/s\/[\w-]+\/exec$/;
+var LOCAL_RE=/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//;
+function okUrl(u){ return URL_RE.test(u)||LOCAL_RE.test(u); }
+function loadSync(){
+  var d={url:'',code:'',who:'',queue:{},lastOk:0};
+  try{
+    var o=JSON.parse(localStorage.getItem(SYNC_KEY)||'null');
+    if(o&&typeof o==='object'){
+      d.url=typeof o.url==='string'?o.url:''; d.code=typeof o.code==='string'?o.code:''; d.who=typeof o.who==='string'?o.who.slice(0,60):'';
+      d.lastOk=Number(o.lastOk)||0; if(o.queue&&typeof o.queue==='object') d.queue=o.queue;
+    }
+  }catch(e){}
+  return d;
+}
+var sync=loadSync(), syncErr='', flushing=false, pulling=false, flushTimer=null;
+function saveSync(){ try{ localStorage.setItem(SYNC_KEY,JSON.stringify(sync)); }catch(e){} }
+function syncOn(){ return !!(sync.url&&sync.code&&okUrl(sync.url)); }
+function qn(){ return Object.keys(sync.queue).length; }
+function hhmm(ms){ var d=new Date(ms); return pad(d.getHours())+':'+pad(d.getMinutes()); }
+function b64u(str){ var a=new TextEncoder().encode(str), s=''; for(var i=0;i<a.length;i++) s+=String.fromCharCode(a[i]); return btoa(s); }
+function unb64u(b){ var t=atob(b), a=new Uint8Array(t.length); for(var i=0;i<t.length;i++) a[i]=t.charCodeAt(i); return new TextDecoder().decode(a); }
+
+function call(payload){
+  payload.code=sync.code;
+  var ctl=window.AbortController?new AbortController():null, to=setTimeout(function(){ if(ctl) ctl.abort(); },25000);
+  return fetch(sync.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),redirect:'follow',cache:'no-store',signal:ctl?ctl.signal:undefined})
+    .then(function(r){ return r.json(); })
+    .then(function(j){ clearTimeout(to); if(!j||j.ok!==true) throw new Error((j&&j.error)||'bad_response'); return j; },function(e){ clearTimeout(to); throw e; });
+}
+function syncFail(e){
+  var m=e&&e.message;
+  if(m==='bad_code'||m==='code_not_set') syncErr=m;
+  else if((e&&(e.name==='TypeError'||e.name==='AbortError'))||navigator.onLine===false) syncErr='net';
+  else syncErr='other';
+}
+function statusText(){
+  var n=qn();
+  if(syncErr==='bad_code') return ['bad','⚠ Неверный секретный код. Нажмите, чтобы исправить.'];
+  if(syncErr==='code_not_set') return ['bad','⚠ В таблице не задан секретный код.'];
+  if(syncErr==='net'||navigator.onLine===false) return ['warn','⚠ Нет связи. Отметки сохранены на телефоне'+(n?' ('+n+' ждут отправки)':'')+'.'];
+  if(syncErr) return ['warn','⚠ Таблица не отвечает'+(n?' ('+n+' ждут отправки)':'')+'. Попробую снова.'];
+  if(n) return ['warn','⏳ Отправляю отметки: '+n];
+  return ['ok','✓ Таблица подключена'+(sync.lastOk?', обновлено '+hhmm(sync.lastOk):'')];
+}
+function renderSyncBar(){
+  var el=$('syncbar'); if(!el) return;
+  if(!syncOn()){ el.hidden=true; return; }
+  var st=statusText(); el.hidden=false; el.className='syncbar '+st[0]; el.textContent=st[1];
+}
+/* после изменения отметки: запомнить в очереди и отправить, как только можно */
+function track(bookId,date,pid){
+  if(!syncOn()) return;
+  var b=root.books[bookId], p=b.people.filter(function(x){ return x.id===pid; })[0];
+  if(!p||!p.num) return;
+  var r=(b.records[date]||{})[pid];
+  sync.queue[bookId+'|'+date+'|'+p.num]={b:bookId,d:date,n:p.num,s:r?r.s:'',h:r?r.h:0,t:r&&r.t?r.t:Date.now()};
+  saveSync(); renderSyncBar(); scheduleFlush(700);
+}
+function scheduleFlush(ms){ clearTimeout(flushTimer); flushTimer=setTimeout(flush,ms||700); }
+function flush(){
+  if(!syncOn()||flushing) return;
+  var keys=Object.keys(sync.queue); if(!keys.length) return;
+  if(navigator.onLine===false){ syncErr='net'; renderSyncBar(); return; }
+  flushing=true;
+  var batch=keys.slice(0,200).map(function(k){ return sync.queue[k]; });
+  call({action:'push',who:sync.who,items:batch}).then(function(){
+    batch.forEach(function(it){ var k=it.b+'|'+it.d+'|'+it.n; if(sync.queue[k]&&sync.queue[k].t===it.t) delete sync.queue[k]; });
+    sync.lastOk=Date.now(); syncErr=''; saveSync(); flushing=false; renderSyncBar();
+    if(qn()) scheduleFlush(200); else pull();
+  }).catch(function(e){
+    flushing=false; syncFail(e); renderSyncBar();
+    if(syncErr!=='bad_code'&&syncErr!=='code_not_set') scheduleFlush(20000);
+  });
+}
+/* забрать отметки за открытый день; побеждает более поздняя запись */
+function mergePull(b,d,items){
+  var bb=root.books[b], byNum={}, changed=false;
+  bb.people.forEach(function(p){ if(p.num&&!p.archived) byNum[normNum(p.num)]=p; });
+  items.forEach(function(it){
+    var p=byNum[normNum(it.n)]; if(!p) return;
+    var t=Number(it.t)||0, q=sync.queue[b+'|'+d+'|'+p.num];
+    if(q&&q.t>=t) return;
+    var day=bb.records[d], loc=day&&day[p.id];
+    if(loc&&loc.t>=t) return;
+    if(it.s===''){ if(loc){ delete day[p.id]; if(!Object.keys(day).length) delete bb.records[d]; changed=true; } return; }
+    if(ST_OK[it.s]!==1) return;
+    if(!bb.records[d]) bb.records[d]={};
+    bb.records[d][p.id]={s:it.s,h:it.s==='work'?clampH(it.h):0,t:t}; changed=true;
+  });
+  if(changed) save();
+  return changed;
+}
+function pull(){
+  if(!syncOn()||pulling||navigator.onLine===false) return;
+  var b=root.cur, d=ui.date; pulling=true;
+  call({action:'pull',book:b,date:d}).then(function(j){
+    var changed=mergePull(b,d,j.items||[]);
+    sync.lastOk=Date.now(); syncErr=''; saveSync(); pulling=false; renderSyncBar();
+    if(changed&&root.cur===b&&ui.date===d){ renderStats(); renderList(); }
+  }).catch(function(e){ pulling=false; syncFail(e); renderSyncBar(); });
+}
+function syncNow(){ flush(); pull(); }
+function queueMonth(){
+  var ym=ui.date.slice(0,7), b=bk(), cnt=0, byId={};
+  b.people.forEach(function(p){ byId[p.id]=p; });
+  Object.keys(b.records).forEach(function(d){
+    if(d.indexOf(ym+'-')!==0) return;
+    Object.keys(b.records[d]).forEach(function(id){
+      var p=byId[id], r=b.records[d][id]; if(!p||!p.num) return;
+      sync.queue[root.cur+'|'+d+'|'+p.num]={b:root.cur,d:d,n:p.num,s:r.s,h:r.h,t:r.t||1}; cnt++;
+    });
+  });
+  saveSync(); renderSyncBar(); scheduleFlush(100); return cnt;
+}
+function connectLink(){ return location.origin+location.pathname+'#sync='+encodeURIComponent(b64u(JSON.stringify({u:sync.url,c:sync.code}))); }
+function applyConnectHash(){
+  var h=location.hash||''; if(h.indexOf('#sync=')!==0) return false;
+  var clean=function(){ try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} };
+  try{
+    var o=JSON.parse(unb64u(decodeURIComponent(h.slice(6))));
+    if(!o||typeof o.u!=='string'||typeof o.c!=='string'||!okUrl(o.u)||o.c.length<8) throw new Error('bad');
+    sync.url=o.u; sync.code=o.c; saveSync(); clean(); return true;
+  }catch(e){ clean(); setTimeout(function(){ toast('Ссылка для подключения не подошла'); },300); return false; }
+}
+
+/* ------------------------------------------------------------- сообщения */
+var tt;
+function toast(t){ var e=$('toast'); e.textContent=t; e.classList.add('on'); clearTimeout(tt); tt=setTimeout(function(){ e.classList.remove('on'); },2600); }
+var mt;
+function showMsg(html,kind,undo){
+  var e=$('msg'); ui.undo=undo||null;
+  e.className='msg '+(kind||'ok');
+  e.innerHTML=(undo?'<button class="u" data-a="undo">Отменить</button>':'')+html;
+  clearTimeout(mt); mt=setTimeout(function(){ e.innerHTML=''; e.className='msg'; ui.undo=null; },12000);
+}
+function clearMsg(){ clearTimeout(mt); var e=$('msg'); e.innerHTML=''; e.className='msg'; ui.undo=null; }
+function renderBanner(){
+  $('banner').innerHTML=storageOK?'':'<div class="banner">Браузер не сохраняет данные. Отметки пропадут при закрытии. Откройте приложение в обычном режиме (не в приватной вкладке).</div>';
+}
+
+/* ------------------------------------------------------------- отрисовка */
+function rowHtml(p){
+  var r=dayRec(ui.date)[p.id], st=r?r.s:'', id=esc(p.id);
+  var off=planOff(p,ui.date), plan='';
+  if(off!==null){
+    plan='<div class="plan'+(off?' po':'')+'">'+esc(schedById(p.sched).short)+': '+(off?'выходной':'рабочий день')+((off&&st==='work')?' · вышел в выходной':'')+'</div>';
+  }
+  function b(s,label){ return '<button class="'+s+'" data-a="set" data-id="'+id+'" data-s="'+s+'" aria-pressed="'+(st===s)+'">'+label+'</button>'; }
+  var open=ui.open[p.id]||st==='pl'||st==='ul'||st==='ab';
+  var hours='';
+  if(st==='work'){
+    hours='<div class="hours"><button class="step" data-a="hstep" data-id="'+id+'" data-d="-0.5" aria-label="Минус полчаса">−</button>'+
+      '<span class="val">'+fmtH(r.h)+' ч</span><button class="step" data-a="hstep" data-id="'+id+'" data-d="0.5" aria-label="Плюс полчаса">+</button>'+
+      '<div class="chips">'+[8,9,10,12,13].map(function(v){ return '<button data-a="hset" data-id="'+id+'" data-v="'+v+'" aria-pressed="'+(r.h===v)+'">'+v+'</button>'; }).join('')+'</div></div>';
+  }
+  return '<li class="row'+(st?' s-'+st:'')+'" data-id="'+id+'">'+
+    '<div class="head"><div class="who"><b>'+(p.num?'<span class="tn">'+esc(p.num)+'</span>':'')+esc(p.name)+'</b>'+(p.role?'<span>'+esc(p.role)+'</span>':'')+'</div>'+
+      '<button class="more" data-a="more" data-id="'+id+'" aria-label="Ещё: отпуск, без ЗП, прогул" aria-expanded="'+!!open+'">⋯</button></div>'+plan+
+    '<div class="btns">'+b('work','Пришёл')+b('off','Выходной')+b('sick','Больничный')+'</div>'+
+    (open?'<div class="extra">'+b('pl','Отпуск')+b('ul','Без ЗП')+b('ab','Прогул')+'</div>':'')+hours+'</li>';
+}
+function matches(p,q){
+  if(!q) return true;
+  var t=latinDigits(q).toLowerCase().trim(); if(!t) return true;
+  var toks=t.split(/[\s,;]+/).filter(Boolean);
+  if(toks.every(function(x){ return /^[№#]?\d+$/.test(x); })){
+    return toks.some(function(x){ return p.num&&normNum(p.num).indexOf(normNum(x.replace(/^[№#]/,'')))===0; });
+  }
+  return (p.name+' '+(p.role||'')+' '+(p.num||'')).toLowerCase().indexOf(t)>=0;
+}
+function stats(){
+  var ppl=activePeople(), day=dayRec(ui.date), c={work:0,off:0,sick:0,pl:0,ul:0,ab:0}, hrs=0, unm=0;
+  ppl.forEach(function(p){ var r=day[p.id]; if(!r){ unm++; return; } c[r.s]++; if(r.s==='work') hrs+=r.h; });
+  return {n:ppl.length,c:c,hrs:hrs,unm:unm};
+}
+function renderStats(){
+  var s=stats();
+  var h='<div class="stats"><div class="w"><b>'+s.c.work+'</b><span>пришли</span></div><div class="u"><b>'+fmtH(s.hrs)+'</b><span>часов</span></div>'+
+    '<div class="o"><b>'+s.c.off+'</b><span>выходной</span></div><div class="s"><b>'+s.c.sick+'</b><span>больничный</span></div></div>';
+  if(s.c.pl||s.c.ul||s.c.ab) h+='<p class="stats2">Отпуск: '+s.c.pl+' · без ЗП: '+s.c.ul+' · прогул: '+s.c.ab+'</p>';
+  $('stats').innerHTML=h;
+  $('tabs').innerHTML='<button data-a="flt" data-f="all" aria-pressed="'+(ui.filter==='all')+'">Все ('+s.n+')</button>'+
+    '<button data-a="flt" data-f="u" aria-pressed="'+(ui.filter==='u')+'">Без отметки ('+s.unm+')</button>';
+}
+function renderTop(){
+  Array.prototype.forEach.call(document.querySelectorAll('.books button'),function(b){ b.setAttribute('aria-selected',String(b.dataset.b===root.cur)); });
+  var d=parseYmd(ui.date), t=today();
+  var btn=$('dateBtn');
+  btn.textContent=WD[d.getDay()]+', '+d.getDate()+' '+MONTHS_G[d.getMonth()]+(ui.date===t?'':' ⚠');
+  btn.className=ui.date===t?'':'past';
+  btn.setAttribute('aria-label','День: '+d.getDate()+' '+MONTHS_G[d.getMonth()]+(ui.date===t?', сегодня':', не сегодня')+'. Выбрать другой день');
+  var q=$('q');
+  q.placeholder=ui.numMode?'Табельный №':'Фамилия или №';
+  $('kb').textContent=ui.numMode?'abc':'123';
+}
+function renderList(){
+  var ppl=activePeople(), day=dayRec(ui.date), L=$('list');
+  if(!hasPeople(root)||(!ppl.length&&!ui.q)){
+    var other=root.books[root.cur==='rf'?'are':'rf'].people.length;
+    L.outerHTML='<ul id="list"><li class="empty"><p><b>В табеле '+BOOKS[root.cur]+' пока нет людей.</b></p>'+
+      '<p class="note">Загрузите список с сайта по паролю, из файла или добавьте людей вручную.'+(other?' В табеле '+BOOKS[root.cur==='rf'?'are':'rf']+' люди есть: переключите вверху.':'')+'</p>'+
+      '<button class="primary" data-a="pwsheet">Загрузить список с сайта (по паролю)</button><button data-a="import">Загрузить из файла</button><button data-a="people">Добавить вручную</button></li></ul>';
+    return;
+  }
+  var items=ppl.filter(function(p){ return matches(p,ui.q)&&(ui.filter!=='u'||!day[p.id]); });
+  var html=items.map(rowHtml).join('');
+  if(!html) html='<li class="empty"><p>'+(ui.q?'Никого не найдено.':'Все отмечены.')+'</p></li>';
+  L.outerHTML='<ul id="list">'+html+'</ul>';
+}
+function render(){ renderTop(); renderBanner(); renderSyncBar(); renderStats(); renderList(); }
+function updateRow(id){
+  var li=document.querySelector('#list li[data-id="'+(window.CSS&&CSS.escape?CSS.escape(id):id)+'"]'), p=person(id);
+  if(li&&p) li.outerHTML=rowHtml(p);
+  renderStats();
+}
+
+/* ------------------------------------------------------------- отметки */
+function dayObj(d,create){
+  var r=bk().records;
+  if(!r[d]&&create) r[d]={};
+  return r[d]||{};
+}
+function dropEmpty(d){ var r=bk().records; if(r[d]&&!Object.keys(r[d]).length) delete r[d]; }
+function setStatus(id,s){
+  var day=dayObj(ui.date,true), cur=day[id];
+  if(cur&&cur.s===s) delete day[id];
+  else day[id]={s:s,h:s==='work'?(cur&&cur.s==='work'?cur.h:bk().defH):0,t:Date.now()};
+  dropEmpty(ui.date); save(); track(root.cur,ui.date,id); updateRow(id);
+}
+function setHours(id,h){
+  var day=dayObj(ui.date,false), r=day[id]; if(!r||r.s!=='work') return;
+  r.h=clampH(h); r.t=Date.now(); save(); track(root.cur,ui.date,id); updateRow(id);
+}
+function fillBySchedule(){
+  var day=dayObj(ui.date,true), nw=0, no=0, now=Date.now(), made=[];
+  activePeople().forEach(function(p){
+    if(day[p.id]) return;
+    if(planOff(p,ui.date)===true){ day[p.id]={s:'off',h:0,t:now}; no++; } else { day[p.id]={s:'work',h:bk().defH,t:now}; nw++; }
+    made.push(p.id);
+  });
+  dropEmpty(ui.date); save(); made.forEach(function(id){ track(root.cur,ui.date,id); }); render();
+  toast('Пришли: '+nw+(no?', выходной по графику: '+no:''));
+}
+
+function submitEntry(){
+  var q=$('q'), text=latinDigits(q.value).trim();
+  if(!text){ q.focus(); return; }
+  var toks=text.split(/[\s,;]+/).filter(Boolean).map(function(x){ return x.replace(/^[№#]/,''); });
+  var allNum=toks.length&&toks.every(function(x){ return /^\d+$/.test(x); });
+  var ppl=activePeople();
+  if(!allNum){
+    var found=ppl.filter(function(p){ return matches(p,text); });
+    if(found.length===1){ markPresent([found[0]],[],text); return; }
+    showMsg(found.length?'Найдено: '+found.length+'. Нажмите «Пришёл» у нужного человека в списке или введите табельный номер.':'Никого не найдено.',found.length?'warn':'bad');
+    return;
+  }
+  var by={}; ppl.forEach(function(p){ if(p.num) (by[normNum(p.num)]=by[normNum(p.num)]||[]).push(p); });
+  var seen={}, hit=[], unknown=[], dup=[];
+  toks.forEach(function(t){
+    var k=normNum(t); if(seen[k]) return; seen[k]=1;
+    var m=by[k];
+    if(!m) unknown.push(t); else if(m.length>1) dup.push(t); else hit.push(m[0]);
+  });
+  markPresent(hit,unknown,text,dup);
+}
+function markPresent(hit,unknown,text,dup){
+  var day=dayObj(ui.date,true), changes=[], done=[], same=[], conflict=[];
+  hit.forEach(function(p){
+    var cur=day[p.id];
+    if(cur&&cur.s==='work'){ same.push(p); return; }
+    if(cur){ conflict.push([p,cur]); return; }
+    day[p.id]={s:'work',h:bk().defH,t:Date.now()}; changes.push([p.id,null]); done.push(p);
+  });
+  dropEmpty(ui.date); save(); done.forEach(function(p){ track(root.cur,ui.date,p.id); });
+  var lines=[], one=hit.length===1&&!unknown.length&&!(dup&&dup.length);
+  if(one&&done.length){ lines.push('✅ <b>'+esc(done[0].num)+' '+esc(done[0].name)+'</b> — пришёл, '+fmtH(bk().defH)+' ч'); }
+  else if(done.length){ lines.push('✅ Отмечено: <b>'+done.length+'</b>'); }
+  same.forEach(function(p){ lines.push('• '+esc(p.num)+' '+esc(p.name)+' — уже отмечен как «Пришёл»'); });
+  conflict.forEach(function(c){ lines.push('⚠ '+esc(c[0].num)+' '+esc(c[0].name)+' — уже отмечен: '+LBL[c[1].s]+'. Не менял, исправьте в списке.'); });
+  (dup||[]).forEach(function(t){ lines.push('⚠ Номер '+esc(t)+' у нескольких человек. Отметьте в списке.'); });
+  if(unknown.length===1) lines.push('❌ '+esc(unknown[0])+' — работника с таким табельным номером нет в списке.');
+  else if(unknown.length) lines.push('❌ Работника с таким табельным номером нет в списке: '+esc(unknown.slice(0,20).join(', '))+(unknown.length>20?' и ещё '+(unknown.length-20):''));
+  var kind=unknown.length||conflict.length||(dup&&dup.length)?(done.length?'warn':'bad'):'ok';
+  if(!done.length&&!unknown.length&&!conflict.length&&!(dup&&dup.length)) kind='ok';
+  showMsg(lines.join('<br>'),kind,changes.length?{date:ui.date,book:root.cur,changes:changes}:null);
+  if(done.length||same.length||conflict.length){ $('q').value=''; ui.q=''; }
+  render();
+  if(one){ var li=document.querySelector('#list li[data-id="'+(window.CSS&&CSS.escape?CSS.escape(hit[0].id):hit[0].id)+'"]'); if(li){ li.scrollIntoView({block:'center'}); li.classList.add('flash'); } }
+  $('q').focus({preventScroll:true});
+}
+function undo(){
+  var u=ui.undo; if(!u) return;
+  var b=root.books[u.book], day=b.records[u.date]||(b.records[u.date]={});
+  u.changes.forEach(function(c){ if(c[1]===null) delete day[c[0]]; else day[c[0]]={s:c[1].s,h:c[1].h,t:Date.now()}; });
+  if(!Object.keys(day).length) delete b.records[u.date];
+  save(); u.changes.forEach(function(c){ track(u.book,u.date,c[0]); }); clearMsg(); render(); toast('Отменено');
+}
+
+/* ------------------------------------------------------------- отчёты и обмен файлами */
+function label(p){ return p.name+(p.num?' (таб. № '+p.num+')':''); }
+function reportText(){
+  var day=dayRec(ui.date), w=[],o=[],s=[],pl=[],ul=[],ab=[],u=[], hrs=0;
+  activePeople().forEach(function(p){
+    var r=day[p.id];
+    if(!r) u.push(label(p));
+    else if(r.s==='work'){ w.push(label(p)+' — '+fmtH(r.h)+' ч'); hrs+=r.h; }
+    else ({off:o,sick:s,pl:pl,ul:ul,ab:ab})[r.s].push(label(p));
+  });
+  var d=parseYmd(ui.date);
+  var L=['Табель '+BOOKS[root.cur]+' за '+pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.'+d.getFullYear()+(bk().object?', объект: '+bk().object:'')];
+  L.push('Вышли: '+w.length+' чел., '+fmtH(hrs)+' ч'); w.forEach(function(x){ L.push('• '+x); });
+  [['Выходной',o],['Больничный',s],['Отпуск',pl],['Отпуск без сохранения ЗП',ul],['Прогул',ab],['Без отметки',u]].forEach(function(g){
+    if(g[1].length){ L.push(g[0]+': '+g[1].length+' чел.'); g[1].forEach(function(x){ L.push('• '+x); }); }
+  });
+  return L.join('\n');
+}
+function cellText(r){ return !r?'':r.s==='work'?fmtH(r.h):CELL[r.s]; }
+function monthCsv(month){
+  var n=daysIn(month), rows=[], head=['Таб. №','ФИО','Должность'];
+  for(var i=1;i<=n;i++) head.push(String(i));
+  head.push('Дней','Часов'); rows.push(head);
+  var recs=bk().records, cnt=[]; for(var k=0;k<n;k++) cnt.push(0);
+  bk().people.filter(function(p){
+    if(!p.archived) return true;
+    return Object.keys(recs).some(function(d){ return d.indexOf(month+'-')===0&&recs[d][p.id]; });
+  }).forEach(function(p){
+    var row=[p.num||'',p.name,p.role||''], days=0, hrs=0;
+    for(var i=1;i<=n;i++){
+      var r=(recs[month+'-'+pad(i)]||{})[p.id];
+      row.push(cellText(r));
+      if(r&&r.s==='work'&&r.h>0){ days++; hrs+=r.h; cnt[i-1]++; }
+    }
+    row.push(days,fmtH(hrs)); rows.push(row);
+  });
+  var foot=['','Вышло, чел.','']; cnt.forEach(function(c){ foot.push(c||''); }); foot.push('',''); rows.push(foot);
+  function q(v,g){ v=String(v); if(g&&/^[=+\-@]/.test(v)) v="'"+v; return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
+  return '\uFEFF'+rows.map(function(r){ return r.map(function(v,i){ return q(v,i<3); }).join(';'); }).join('\r\n');
+}
+function shareText(text){
+  if(navigator.share){
+    return navigator.share({text:text}).then(function(){ return 'shared'; },function(e){ return e&&e.name==='AbortError'?'cancel':copy(text); });
+  }
+  return Promise.resolve(copy(text));
+}
+function copy(text){
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText) return navigator.clipboard.writeText(text).then(function(){ return 'copied'; },function(){ return legacyCopy(text); });
+  }catch(e){}
+  return Promise.resolve(legacyCopy(text));
+}
+function legacyCopy(t){
+  try{ var a=document.createElement('textarea'); a.value=t; a.style.position='fixed'; a.style.opacity='0'; document.body.appendChild(a); a.select(); var ok=document.execCommand('copy'); a.remove(); return ok?'copied':'fail'; }catch(e){ return 'fail'; }
+}
+function viaClaude(name,content){
+  try{
+    if(window.claude&&window.claude.use){
+      return window.claude.use('downloads').then(function(c){
+        if(!c) return null;
+        return c.save({filename:name,data:content}).then(function(){ return 'download'; },function(e){ return e&&e.code==='declined'?'cancel':null; });
+      },function(){ return null; });
+    }
+  }catch(e){}
+  return Promise.resolve(null);
+}
+function saveFile(name,mime,content){
+  return viaClaude(name,content).then(function(r){ return r||saveFile2(name,mime,content); });
+}
+function saveFile2(name,mime,content){
+  var file; try{ file=new File([content],name,{type:mime}); }catch(e){ file=null; }
+  if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
+    return navigator.share({files:[file],title:name}).then(function(){ return 'shared'; },function(e){ return e&&e.name==='AbortError'?'cancel':download(name,mime,content); });
+  }
+  return Promise.resolve(download(name,mime,content));
+}
+function download(name,mime,content){
+  try{
+    var url=URL.createObjectURL(new Blob([content],{type:mime}));
+    var a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); },3000);
+    return 'download';
+  }catch(e){ return 'fail'; }
+}
+function reportDone(r){ toast(r==='copied'?'Скопировано':r==='download'?'Файл сохранён':r==='shared'?'Готово':r==='cancel'?'':'Не получилось'); }
+
+/* ------------------------------------------------------------- окна */
+function openSheet(title,html,back){
+  $('sheet').innerHTML='<div class="sh"><h2>'+title+'</h2><button data-a="close" aria-label="Закрыть">✕</button></div>'+html;
+  $('sheetWrap').hidden=false; $('sheet').scrollTop=0;
+}
+function closeSheet(){ $('sheetWrap').hidden=true; $('sheet').innerHTML=''; }
+var deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); deferredPrompt=e; });
+
+function sheetMenu(){
+  var s=stats();
+  openSheet('Меню','<div class="list2">'+
+    '<button data-a="fill">Остальных отметить по графику<small>Рабочий день: «Пришёл», выходной по графику: «Выходной». Без отметки: '+s.unm+'</small></button>'+
+    '<button data-a="report">Отчёт за день<small>Текст, который можно отправить в мессенджер</small></button>'+
+    '<button data-a="month">Табель за месяц<small>Файл для Excel (CSV)</small></button>'+
+    '<button data-a="people">Люди<small>Добавить, изменить, убрать из списка</small></button>'+
+    '<button data-a="syncsheet">Синхронизация с таблицей<small>'+(syncOn()?esc(statusText()[1]):'Не подключена: отметки видны только на этом телефоне')+'</small></button>'+
+    '<button data-a="settings">Настройки<small>Часы по умолчанию, название объекта</small></button>'+
+    '<button data-a="backup">Резервная копия и загрузка списка<small>Сохранить данные или загрузить seed.json</small></button>'+
+    '<button data-a="install">Как установить на телефон</button></div>');
+}
+function sheetDate(){
+  openSheet('День',
+    '<div class="acts" style="margin-top:0"><button data-a="dshift" data-d="-1" aria-label="Предыдущий день">◀ Вчера</button><button data-a="dtoday" class="primary">Сегодня</button><button data-a="dshift" data-d="1" aria-label="Следующий день">Завтра ▶</button></div>'+
+    '<div class="fld" style="margin-top:12px"><label for="dpick">Выбрать дату</label><input type="date" id="dpick" value="'+ui.date+'"></div>'+
+    '<p class="note">Отметки ставятся за выбранный день. Если день не сегодняшний, кнопка с датой подсвечена и помечена значком ⚠.</p>');
+}
+function sheetReport(){
+  openSheet('Отчёт за день','<textarea class="rep" id="rep" readonly aria-label="Отчёт">'+esc(reportText())+'</textarea>'+
+    '<div class="acts"><button class="primary" data-a="rshare">Поделиться</button><button data-a="rcopy">Скопировать</button></div>');
+}
+function sheetMonth(m){
+  m=m||ui.date.slice(0,7);
+  var a=m.split('-').map(Number);
+  var prev=ymd(new Date(a[0],a[1]-2,1)).slice(0,7), next=ymd(new Date(a[0],a[1],1)).slice(0,7);
+  var recs=bk().records, days=Object.keys(recs).filter(function(d){ return d.indexOf(m+'-')===0; }).length;
+  openSheet('Табель за месяц','<div class="acts" style="margin-top:0"><button data-a="mshift" data-m="'+prev+'" aria-label="Предыдущий месяц">◀</button>'+
+    '<button style="flex:3" disabled><b>'+MONTHS_N[a[1]-1]+' '+a[0]+'</b></button><button data-a="mshift" data-m="'+next+'" aria-label="Следующий месяц">▶</button></div>'+
+    '<p class="note">Табель '+BOOKS[root.cur]+'. Дней с отметками: '+days+'.</p>'+
+    '<div class="acts"><button class="primary" data-a="mexport" data-m="'+m+'">Сохранить или отправить файл (Excel)</button></div>');
+}
+function sheetSync(note){
+  var on=syncOn();
+  openSheet('Синхронизация с таблицей',
+    '<p class="note">Отметки всех телефонов собираются в одной Google Таблице, и телефоны видят отметки друг друга. Без интернета отметки сохраняются на телефоне и уходят в таблицу сами, когда связь появится.</p>'+
+    (on?'<p id="sstat"><b>'+esc(statusText()[1])+'</b></p>':'')+
+    '<div class="fld"><label for="s_url">Адрес веб-приложения (из Google Apps Script)</label><input type="text" id="s_url" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" value="'+esc(sync.url)+'"></div>'+
+    '<div class="fld"><label for="s_code">Секретный код</label><input type="password" id="s_code" autocomplete="off" autocapitalize="off" spellcheck="false" value="'+esc(sync.code)+'"></div>'+
+    '<div class="fld"><label for="s_who">Ваше имя (кто отмечает)</label><input type="text" id="s_who" maxlength="60" autocomplete="off" placeholder="Например: Петров, прораб" value="'+esc(sync.who)+'"></div>'+
+    '<div class="acts" style="margin-top:0"><button class="primary" data-a="ssave">Сохранить и проверить связь</button></div>'+
+    '<p class="note" id="smsg" role="status" aria-live="polite">'+esc(note||'')+'</p>'+
+    (on?'<div class="list2" style="margin-top:10px">'+
+      '<button data-a="snow">Синхронизировать сейчас<small>Отправить неотправленное и загрузить свежие отметки</small></button>'+
+      '<button data-a="smonth">Отправить отметки за месяц<small>Один раз после подключения: старые отметки этого месяца попадут в таблицу</small></button>'+
+      '<button data-a="spl">Отправить список людей в таблицу<small>Нужен для готового табеля на компьютере. Фамилии попадут в вашу таблицу</small></button>'+
+      '<button data-a="slink">Ссылка для подключения другого телефона<small>Содержит секретный код: отправляйте только ответственным</small></button>'+
+      '<button data-a="soff">Отключить таблицу</button></div>':''));
+}
+function syncMsgFor(e){
+  var m=e&&e.message;
+  return m==='bad_code'?'Неверный секретный код.':
+    m==='code_not_set'?'В таблице ещё не задан секретный код. Задайте его в меню «Табель» → «Установить секретный код…».':
+    (e&&(e.name==='TypeError'||e.name==='AbortError'))?'Нет связи с таблицей. Проверьте адрес и интернет, а также что доступ к веб-приложению открыт для «Всех».':
+    'Таблица ответила не так, как ждали. Проверьте адрес: он должен заканчиваться на /exec.';
+}
+function saveSyncForm(){
+  var url=$('s_url').value.trim(), code=$('s_code').value.trim(), who=$('s_who').value.trim().slice(0,60), msg=$('smsg');
+  if(!okUrl(url)){ msg.textContent='Адрес должен начинаться с https://script.google.com/macros/s/ и заканчиваться на /exec.'; return; }
+  if(code.length<8){ msg.textContent='Введите секретный код (не короче 8 знаков).'; return; }
+  sync.url=url; sync.code=code; sync.who=who; saveSync(); syncErr=''; renderSyncBar();
+  msg.textContent='Проверяю связь…';
+  call({action:'ping'}).then(function(){
+    sync.lastOk=Date.now(); syncErr=''; saveSync(); renderSyncBar();
+    sheetSync('Связь с таблицей есть ✓'); syncNow();
+  }).catch(function(e){ syncFail(e); renderSyncBar(); if($('smsg')) $('smsg').textContent=syncMsgFor(e); });
+}
+function sheetSettings(){
+  openSheet('Настройки',
+    '<div class="fld"><label>Часы по умолчанию для «Пришёл» (табель '+BOOKS[root.cur]+')</label><div class="stepper"><button data-a="defh" data-d="-0.5" aria-label="Минус полчаса">−</button><span class="val" id="defv">'+fmtH(bk().defH)+' ч</span><button data-a="defh" data-d="0.5" aria-label="Плюс полчаса">+</button></div></div>'+
+    '<div class="fld"><label for="obj">Объект (попадает в отчёт)</label><input type="text" id="obj" maxlength="80" value="'+esc(bk().object)+'" autocomplete="off"></div>');
+}
+function sheetBackup(){
+  openSheet('Резервная копия',
+    '<p class="note">Данные хранятся только на этом телефоне. Время от времени сохраняйте копию. Файл копии и файл seed.json имеют один формат: их понимают и этот табель, и веб-табель, и Telegram-бот.</p>'+
+    '<div class="list2"><button data-a="pwsheet">Загрузить список с сайта<small>По паролю от администратора. Нужен интернет</small></button><button data-a="bsave">Сохранить копию (оба табеля)</button><button data-a="import">Загрузить список или копию из файла</button></div>');
+}
+function sheetInstall(){
+  var ios=/iphone|ipad|ipod/i.test(navigator.userAgent), standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone;
+  var h=standalone?'<p><b>Приложение уже установлено.</b></p>':'';
+  if(deferredPrompt&&!standalone) h+='<div class="acts" style="margin-top:0"><button class="primary" data-a="doinstall">Установить приложение</button></div>';
+  h+='<p><b>Android (Chrome):</b> меню ⋮ → «Установить приложение» (или «Добавить на главный экран»).</p>'+
+     '<p><b>iPhone (Safari):</b> кнопка «Поделиться» (квадрат со стрелкой) → «На экран “Домой”». Открывайте ссылку именно в Safari. Список людей загружайте уже в установленном приложении: на iPhone у приложения и у Safari данные раздельные.</p>'+
+     '<p class="note">После установки приложение открывается с главного экрана на весь экран и работает без интернета.</p>';
+  openSheet('Установка',h);
+}
+function formHtml(p){
+  p=p||{name:'',role:'',num:'',sched:''};
+  return '<div class="fld"><label for="f_name">Фамилия, имя, отчество</label><input type="text" id="f_name" maxlength="120" value="'+esc(p.name)+'" autocomplete="off"></div>'+
+    '<div class="fld"><label for="f_num">Табельный номер</label><input type="text" id="f_num" maxlength="20" inputmode="numeric" value="'+esc(p.num||'')+'" autocomplete="off"></div>'+
+    '<div class="fld"><label for="f_role">Профессия или должность</label><input type="text" id="f_role" maxlength="120" value="'+esc(p.role||'')+'" autocomplete="off"></div>'+
+    '<div class="fld"><label for="f_sched">График работы</label><select id="f_sched">'+SCHEDS.map(function(g){ return '<option value="'+g.id+'"'+(g.id===(p.sched||'')?' selected':'')+'>'+esc(g.name)+'</option>'; }).join('')+'</select></div>';
+}
+function sheetPeople(){
+  var all=bk().people, act=all.filter(function(p){ return !p.archived; }), arc=all.filter(function(p){ return p.archived; });
+  function row(p){ return '<div class="prow'+(p.archived?' arch':'')+'"><div class="t"><b>'+esc((p.num?p.num+' ':'')+p.name)+'</b><span>'+esc(p.role||'')+(p.sched?' · '+esc(schedById(p.sched).short):'')+'</span></div><button data-a="pedit" data-id="'+esc(p.id)+'">Изменить</button></div>'; }
+  openSheet('Люди · табель '+BOOKS[root.cur],'<div class="acts" style="margin-top:0"><button class="primary" data-a="padd">+ Добавить человека</button></div>'+
+    '<h3 style="margin:14px 0 0;font-size:16px">В списке ('+act.length+')</h3>'+(act.map(row).join('')||'<p class="note">Пока никого нет.</p>')+
+    (arc.length?'<h3 style="margin:14px 0 0;font-size:16px">Убраны из списка ('+arc.length+')</h3>'+arc.map(row).join(''):''));
+}
+var editId=null;
+function sheetPerson(id){
+  editId=id||null; var p=id?person(id):null;
+  openSheet(p?'Изменить':'Новый человек',formHtml(p)+'<div class="acts"><button class="primary" data-a="psave">Сохранить</button>'+
+    (p?'<button data-a="parch">'+(p.archived?'Вернуть в список':'Убрать из списка')+'</button>':'')+'<button data-a="people">Отмена</button></div>');
+}
+function readForm(){
+  var name=$('f_name').value.trim(); if(!name){ toast('Введите фамилию'); $('f_name').focus(); return null; }
+  return {name:name.slice(0,120),num:$('f_num').value.trim().slice(0,20),role:$('f_role').value.trim().slice(0,120),sched:validSched($('f_sched').value)};
+}
+function savePerson(){
+  var f=readForm(); if(!f) return;
+  var dup=f.num&&bk().people.some(function(p){ return p.id!==editId&&p.num===f.num&&!p.archived; });
+  if(editId){ var p=person(editId); if(p){ p.name=f.name; p.num=f.num; p.role=f.role; p.sched=f.sched; } }
+  else bk().people.push({id:uid(),name:f.name,num:f.num,role:f.role,sched:f.sched,archived:false});
+  save(); render(); sheetPeople();
+  if(dup) toast('Внимание: номер '+f.num+' уже есть у другого человека');
+}
+
+/* ------------------------------------------------------------- загрузка списка и копии */
+var pendingImport=null;
+function previewImport(raw){
+  if(!raw||typeof raw!=='object'||(!raw.books&&!Array.isArray(raw.people))) throw new Error('format');
+  pendingImport=normalizeRoot(raw);
+  var r=pendingImport, nm=0;
+  ['rf','are'].forEach(function(b){ Object.keys(r.books[b].records).forEach(function(d){ nm+=Object.keys(r.books[b].records[d]).length; }); });
+  openSheet('Загрузка списка','<p>В списке: РФ — <b>'+r.books.rf.people.length+'</b> чел., АРЕ — <b>'+r.books.are.people.length+'</b> чел., отметок — <b>'+nm+'</b>.</p>'+
+    '<div class="list2"><button data-a="imp" data-m="all">Заменить всё<small>Люди, графики и отметки на телефоне станут такими, как в списке</small></button>'+
+    '<button data-a="imp" data-m="people">Только людей и графики<small>Отметки на телефоне останутся</small></button>'+
+    '<button data-a="close">Отмена</button></div>');
+}
+function handleFile(file){
+  var fr=new FileReader();
+  fr.onload=function(){
+    try{ previewImport(JSON.parse(String(fr.result))); }
+    catch(e){ toast('Это не файл списка или копии табеля'); }
+  };
+  fr.onerror=function(){ toast('Не удалось прочитать файл'); };
+  fr.readAsText(file);
+}
+
+/* Зашифрованный список с сайта (файл people.enc): на сайте имён нет, пароль знают только свои */
+function b64d(str){ var t=atob(str), a=new Uint8Array(t.length); for(var i=0;i<t.length;i++) a[i]=t.charCodeAt(i); return a; }
+function decryptPack(pack,pass){
+  if(!window.crypto||!crypto.subtle) return Promise.reject(new Error('nocrypto'));
+  if(!pack||pack.v!==1||pack.kdf!=='PBKDF2-SHA256'||!(pack.iter>=100000&&pack.iter<=2000000)) return Promise.reject(new Error('format'));
+  return crypto.subtle.importKey('raw',new TextEncoder().encode(pass.normalize('NFC')),'PBKDF2',false,['deriveKey'])
+    .then(function(k){ return crypto.subtle.deriveKey({name:'PBKDF2',salt:b64d(pack.salt),iterations:pack.iter,hash:'SHA-256'},k,{name:'AES-GCM',length:256},false,['decrypt']); })
+    .then(function(key){ return crypto.subtle.decrypt({name:'AES-GCM',iv:b64d(pack.iv)},key,b64d(pack.data)); })
+    .then(function(buf){ return new TextDecoder().decode(buf); });
+}
+function sheetPassword(){
+  openSheet('Список с сайта','<p class="note">Список людей лежит на сайте в зашифрованном виде. Введите пароль, который вам дал администратор.</p>'+
+    '<div class="fld"><label for="pw">Пароль</label><input type="password" id="pw" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></div>'+
+    '<div class="acts" style="margin-top:0"><button class="primary" data-a="pwgo">Расшифровать и загрузить</button><button data-a="close">Отмена</button></div>'+
+    '<p class="note" id="pwmsg" role="status" aria-live="polite"></p>');
+  setTimeout(function(){ var e=$('pw'); if(e) e.focus(); },80);
+}
+function loadEncrypted(){
+  var pass=$('pw').value, msg=$('pwmsg');
+  if(!pass){ msg.textContent='Введите пароль.'; return; }
+  msg.textContent='Проверяю…';
+  fetch('people.enc',{cache:'no-store'})
+    .then(function(r){ if(!r.ok) throw new Error('nofile'); return r.json(); })
+    .then(function(pack){ return decryptPack(pack,pass); })
+    .then(function(text){ previewImport(JSON.parse(text)); })
+    .catch(function(e){
+      var m=e&&e.message;
+      msg.textContent=m==='nofile'?'На сайте нет файла people.enc. Его должен загрузить администратор рядом с index.html.':
+        m==='nocrypto'?'Нужен защищённый адрес сайта (https://).':
+        e&&e.name==='OperationError'?'Неверный пароль.':
+        e&&e.name==='TypeError'&&m!=='format'?'Нет связи с сайтом. Проверьте интернет.':'Не удалось прочитать список.';
+    });
+}
+function doImport(mode){
+  var src=pendingImport; pendingImport=null; if(!src) return;
+  if(mode==='all'){ root.books.rf=src.books.rf; root.books.are=src.books.are; }
+  else{
+    ['rf','are'].forEach(function(b){
+      var dst=root.books[b];
+      src.books[b].people.forEach(function(p){
+        var ex=p.num?dst.people.filter(function(x){ return x.num===p.num; })[0]:dst.people.filter(function(x){ return !x.num&&x.name===p.name; })[0];
+        if(ex){ ex.name=p.name; ex.role=p.role; ex.sched=p.sched; ex.archived=p.archived; }
+        else dst.people.push(p);
+      });
+      dst.object=src.books[b].object||dst.object; dst.defH=src.books[b].defH;
+    });
+  }
+  save(); closeSheet(); render(); toast('Готово');
+}
+
+/* ------------------------------------------------------------- события */
+document.addEventListener('click',function(e){
+  var el=e.target.closest?e.target.closest('[data-a]'):null; if(!el) return;
+  var a=el.dataset.a, id=el.dataset.id;
+  switch(a){
+    case 'book': if(root.cur!==el.dataset.b){ root.cur=el.dataset.b; save(); ui.q=''; $('q').value=''; ui.open={}; clearMsg(); render(); window.scrollTo(0,0); pull(); } break;
+    case 'date': sheetDate(); break;
+    case 'dshift': ui.date=addDays(ui.date,Number(el.dataset.d)); ui.follow=ui.date===today(); sheetDate(); render(); pull(); break;
+    case 'dtoday': ui.date=today(); ui.follow=true; closeSheet(); render(); pull(); break;
+    case 'menu': sheetMenu(); break;
+    case 'close': closeSheet(); break;
+    case 'kb': ui.numMode=!ui.numMode; var q=$('q'); q.inputMode=ui.numMode?'numeric':'text'; renderTop(); q.blur(); setTimeout(function(){ q.focus(); },60); break;
+    case 'go': submitEntry(); break;
+    case 'undo': undo(); break;
+    case 'flt': ui.filter=el.dataset.f; renderStats(); renderList(); break;
+    case 'set': setStatus(id,el.dataset.s); break;
+    case 'hstep': { var r=dayRec(ui.date)[id]; if(r) setHours(id,r.h+Number(el.dataset.d)); break; }
+    case 'hset': setHours(id,Number(el.dataset.v)); break;
+    case 'more': ui.open[id]=!ui.open[id]; updateRow(id); break;
+    case 'fill': {
+      var s=stats();
+      if(!s.unm){ toast('Все уже отмечены'); closeSheet(); break; }
+      openSheet('Отметить по графику','<p>Отметить <b>'+s.unm+'</b> чел. без отметки в табеле '+BOOKS[root.cur]+' за выбранный день?</p><p class="note">Рабочий день по графику: «Пришёл» ('+fmtH(bk().defH)+' ч). Выходной по графику: «Выходной». Кто без графика: «Пришёл».</p>'+
+        '<div class="acts"><button class="primary" data-a="fillok">Да, отметить</button><button data-a="close">Отмена</button></div>');
+      break;
+    }
+    case 'fillok': closeSheet(); fillBySchedule(); break;
+    case 'report': sheetReport(); break;
+    case 'rshare': shareText($('rep').value).then(reportDone); break;
+    case 'rcopy': copy($('rep').value).then(reportDone); break;
+    case 'month': sheetMonth(); break;
+    case 'mshift': sheetMonth(el.dataset.m); break;
+    case 'mexport': saveFile('tabel-'+root.cur+'-'+el.dataset.m+'.csv','text/csv;charset=utf-8',monthCsv(el.dataset.m)).then(reportDone); break;
+    case 'settings': sheetSettings(); break;
+    case 'syncsheet': sheetSync(); break;
+    case 'ssave': saveSyncForm(); break;
+    case 'snow': syncNow(); toast('Синхронизирую…'); break;
+    case 'smonth': { var cnt=queueMonth(); toast(cnt?'Отметок поставлено в очередь: '+cnt:'За этот месяц отметок нет'); break; }
+    case 'spl': {
+      var np=bk().people.filter(function(p){ return p.num&&!p.archived; }).length;
+      openSheet('Список людей в таблицу','<p>В таблицу будет отправлено людей: <b>'+np+'</b> (табель '+BOOKS[root.cur]+'): табельный номер, ФИО, должность, график.</p><p class="note">Фамилии попадут в лист «Люди» вашей Google Таблицы. Телефонам они не отдаются. Продолжайте, только если таблица закрыта от посторонних.</p>'+
+        '<div class="acts"><button class="primary" data-a="splok">Да, отправить</button><button data-a="syncsheet">Отмена</button></div><p class="note" id="plmsg"></p>');
+      break;
+    }
+    case 'splok': {
+      var plist=bk().people.filter(function(p){ return p.num&&!p.archived; }).map(function(p){ return {n:p.num,name:p.name,role:p.role,sched:p.sched}; });
+      $('plmsg').textContent='Отправляю…';
+      call({action:'people',book:root.cur,people:plist}).then(function(j){ $('plmsg').textContent='Готово: отправлено людей '+j.n+'.'; }).catch(function(e){ if($('plmsg')) $('plmsg').textContent=syncMsgFor(e); });
+      break;
+    }
+    case 'slink': {
+      var link=connectLink();
+      openSheet('Ссылка для подключения','<p class="note">Откройте эту ссылку на другом телефоне, и таблица подключится сама (останется ввести своё имя). В ссылке секретный код: отправляйте её только ответственным, в личном сообщении.</p>'+
+        '<textarea class="link" id="lnk" readonly aria-label="Ссылка">'+esc(link)+'</textarea><div class="acts"><button class="primary" data-a="lshare">Отправить</button><button data-a="lcopy">Скопировать</button><button data-a="syncsheet">Назад</button></div>');
+      break;
+    }
+    case 'lshare': shareText($('lnk').value).then(reportDone); break;
+    case 'lcopy': copy($('lnk').value).then(reportDone); break;
+    case 'soff':
+      openSheet('Отключить таблицу','<p>Телефон перестанет отправлять отметки в таблицу и получать их.'+(qn()?' <b>Не отправлено отметок: '+qn()+'.</b> В таблицу они не попадут.':'')+' Отметки на телефоне останутся.</p><div class="acts"><button class="primary" data-a="soffok">Отключить</button><button data-a="syncsheet">Отмена</button></div>');
+      break;
+    case 'soffok': sync={url:'',code:'',who:sync.who,queue:{},lastOk:0}; saveSync(); syncErr=''; closeSheet(); render(); toast('Таблица отключена'); break;
+    case 'defh': bk().defH=Math.min(24,Math.max(0.5,bk().defH+Number(el.dataset.d))); save(); $('defv').textContent=fmtH(bk().defH)+' ч'; break;
+    case 'backup': sheetBackup(); break;
+    case 'bsave': saveFile('tabel-kopiya-'+today()+'.json','application/json',JSON.stringify(root,null,1)).then(reportDone); break;
+    case 'pwsheet': sheetPassword(); break;
+    case 'pwgo': loadEncrypted(); break;
+    case 'import': closeSheet(); $('file').value=''; $('file').click(); break;
+    case 'imp': doImport(el.dataset.m); break;
+    case 'install': sheetInstall(); break;
+    case 'doinstall': if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt=null; closeSheet(); } break;
+    case 'people': sheetPeople(); break;
+    case 'padd': sheetPerson(null); break;
+    case 'pedit': sheetPerson(id); break;
+    case 'psave': savePerson(); break;
+    case 'parch': { var p=person(editId); if(p){ p.archived=!p.archived; save(); render(); sheetPeople(); } break; }
+  }
+});
+$('q').addEventListener('input',function(){ ui.q=this.value; renderList(); });
+$('q').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); submitEntry(); } });
+$('file').addEventListener('change',function(){ if(this.files&&this.files[0]) handleFile(this.files[0]); });
+document.addEventListener('change',function(e){
+  var t=e.target;
+  if(t.id==='dpick'&&/^\d{4}-\d{2}-\d{2}$/.test(t.value)){ ui.date=t.value; ui.follow=t.value===today(); closeSheet(); render(); pull(); }
+  if(t.id==='obj'){ bk().object=t.value.trim().slice(0,80); save(); }
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'&&!$('sheetWrap').hidden) closeSheet();
+  if(e.key==='Enter'&&e.target&&e.target.id==='pw'){ e.preventDefault(); loadEncrypted(); }
+});
+document.addEventListener('visibilitychange',function(){
+  if(!document.hidden&&ui.follow&&ui.date!==today()){ ui.date=today(); render(); }
+  if(!document.hidden) syncNow();
+});
+window.addEventListener('online',function(){ syncErr=''; renderSyncBar(); syncNow(); });
+window.addEventListener('offline',function(){ renderSyncBar(); });
+setInterval(function(){ if(!document.hidden&&syncOn()) syncNow(); },45000);
+
+$('q').inputMode='numeric';
+var linked=applyConnectHash();
+render();
+if(linked){ sheetSync('Таблица подключена. Введите своё имя и нажмите «Сохранить и проверить связь».'); }
+else if(syncOn()) syncNow();
+
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
+  window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+}
+})();
+</script>
+</body>
+</html>
