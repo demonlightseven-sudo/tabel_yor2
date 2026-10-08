@@ -248,7 +248,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='16';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='17';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1348,9 +1348,15 @@ function scanLoop(){
   scan.busy=true;
   scan.worker.recognize(c).then(function(r){
     scan.busy=false; if(!scan.on) return;
-    var toks=(latinDigits(r&&r.data&&r.data.text||'').match(/\d+/g)||[]).filter(function(x){ return x.length>=4&&x.length<=5; });
+    var all=latinDigits(r&&r.data&&r.data.text||'').match(/\d+/g)||[];
+    var toks=all.filter(function(x){ return x.length>=4&&x.length<=5; });
     var hit=null;
     toks.forEach(function(t){ if(!hit&&findByNum(root.cur,t)) hit=t; });
+    // к номеру могли прилипнуть лишние цифры (например, от надписи «Таб. №») — ищем внутри известный номер
+    all.forEach(function(x){
+      if(hit||x.length<=5) return;
+      for(var L=5;L>=4&&!hit;L--) for(var i=0;i+L<=x.length&&!hit;i++){ var sub=x.substr(i,L); if(findByNum(root.cur,sub)) hit=sub; }
+    });
     var n=hit||toks[0]||'';
     if(n&&n===scan.last) scan.lastN++; else { scan.last=n; scan.lastN=n?1:0; }
     if(n&&scan.lastN>=2) onScanned(n);   // одно и то же число прочитано два раза подряд — не ошибка распознавания
