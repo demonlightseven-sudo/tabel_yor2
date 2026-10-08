@@ -216,7 +216,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='8';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='9';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -278,7 +278,7 @@ function normalize(s){
       if(p&&typeof p.id==='string'&&typeof p.name==='string'&&p.name.trim()&&p.id!=='__proto__'&&!seen[p.id]){
         seen[p.id]=1;
         b.people.push({id:p.id,name:p.name.trim().slice(0,120),role:typeof p.role==='string'?p.role.slice(0,120):'',
-          num:typeof p.num==='string'?p.num.slice(0,20):(typeof p.num==='number'?String(p.num):''),sched:validSched(p.sched),archived:!!p.archived,added:Number(p.added)>0?Number(p.added):0});
+          num:typeof p.num==='string'?p.num.slice(0,20):(typeof p.num==='number'?String(p.num):''),sched:validSched(p.sched),archived:!!p.archived,added:Number(p.added)>0?Number(p.added):0,upd:Number(p.upd)>0?Number(p.upd):0});
       }
     });
   }
@@ -332,12 +332,12 @@ var URL_RE=/^https:\/\/script\.google\.com\/(a\/[^\/]+\/)?macros\/s\/[\w-]+\/exe
 var LOCAL_RE=/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//;
 function okUrl(u){ return URL_RE.test(u)||LOCAL_RE.test(u); }
 function loadSync(){
-  var d={url:'',code:'',who:'',queue:{},lastOk:0,rev:{},pq:[]};
+  var d={url:'',code:'',who:'',queue:{},lastOk:0,rev:{},pq:[],aq:[]};
   try{
     var o=JSON.parse(localStorage.getItem(SYNC_KEY)||'null');
     if(o&&typeof o==='object'){
       d.url=typeof o.url==='string'?o.url:''; d.code=typeof o.code==='string'?o.code:''; d.who=typeof o.who==='string'?o.who.slice(0,60):'';
-      d.lastOk=Number(o.lastOk)||0; if(o.queue&&typeof o.queue==='object') d.queue=o.queue; if(o.rev&&typeof o.rev==='object') d.rev=o.rev; if(Array.isArray(o.pq)) d.pq=o.pq.filter(function(x){ return x&&(x.b==='rf'||x.b==='are')&&Array.isArray(x.nums)&&x.nums.length; });
+      d.lastOk=Number(o.lastOk)||0; if(o.queue&&typeof o.queue==='object') d.queue=o.queue; if(o.rev&&typeof o.rev==='object') d.rev=o.rev; if(Array.isArray(o.aq)) d.aq=o.aq.filter(function(x){ return x&&(x.b==='rf'||x.b==='are')&&x.p&&x.p.n&&x.p.name; }); if(Array.isArray(o.pq)) d.pq=o.pq.filter(function(x){ return x&&(x.b==='rf'||x.b==='are')&&Array.isArray(x.nums)&&x.nums.length; });
     }
   }catch(e){}
   return d;
@@ -346,6 +346,7 @@ var sync=loadSync(), syncErr='', flushing=false, pulling=false, flushTimer=null;
 function saveSync(){ try{ localStorage.setItem(SYNC_KEY,JSON.stringify(sync)); }catch(e){} }
 function syncOn(){ return !!(sync.url&&sync.code&&okUrl(sync.url)); }
 function qn(){ return Object.keys(sync.queue).length; }
+function aqn(){ return (sync.aq||[]).length; }
 function pqn(){ var n=0; (sync.pq||[]).forEach(function(x){ n+=x.nums.length; }); return n; }
 function hhmm(ms){ var d=new Date(ms); return pad(d.getHours())+':'+pad(d.getMinutes()); }
 function b64u(str){ var a=new TextEncoder().encode(str), s=''; for(var i=0;i<a.length;i++) s+=String.fromCharCode(a[i]); return btoa(s); }
@@ -372,7 +373,8 @@ function statusText(){
   if(syncErr==='old') return ['bad','⚠ Скрипт в таблице устарел: удаление людей не работает. Сообщите администратору.'];
   var pn=pqn();
   if(pn&&!syncErr&&navigator.onLine!==false) return ['warn','⏳ Удаляю в таблице: '+pn+' чел.'];
-  if(syncErr==='net'||navigator.onLine===false) return ['warn','⚠ Нет связи. Отметки сохранены на телефоне'+(n?' ('+n+' ждут отправки)':'')+(pqn()?'. Удаление людей отправлю позже':'')+'.'];
+  if(aqn()&&!syncErr&&navigator.onLine!==false) return ['warn','⏳ Отправляю в таблицу новых людей: '+aqn()];
+  if(syncErr==='net'||navigator.onLine===false) return ['warn','⚠ Нет связи. Отметки сохранены на телефоне'+(n?' ('+n+' ждут отправки)':'')+(pqn()||aqn()?'. Изменения в списке людей отправлю позже':'')+'.'];
   if(syncErr) return ['warn','⚠ Таблица не отвечает'+(n?' ('+n+' ждут отправки)':'')+'. Попробую снова.'];
   if(n) return ['warn','⏳ Отправляю отметки: '+n];
   return ['ok','✓ Таблица подключена'+(sync.lastOk?', обновлено '+hhmm(sync.lastOk):'')];
@@ -395,12 +397,13 @@ function scheduleFlush(ms){ clearTimeout(flushTimer); flushTimer=setTimeout(flus
 function flush(){
   if(!syncOn()||flushing) return;
   if(sync.pq&&sync.pq.length) return flushPurge();
+  if(sync.aq&&sync.aq.length) return flushAdd();
   var keys=Object.keys(sync.queue); if(!keys.length) return;
   if(navigator.onLine===false){ syncErr='net'; renderSyncBar(); return; }
   flushing=true;
   var batch=keys.slice(0,200).map(function(k){ return sync.queue[k]; });
   call({action:'push',who:sync.who,items:batch}).then(function(j){
-    applyGone(j.gone);
+    applyServer(j);
     batch.forEach(function(it){ var k=it.b+'|'+it.d+'|'+it.n; if(sync.queue[k]&&sync.queue[k].t===it.t) delete sync.queue[k]; });
     sync.lastOk=Date.now(); syncErr=''; saveSync(); flushing=false; renderSyncBar();
     if(qn()) scheduleFlush(200); else pull();
@@ -417,7 +420,7 @@ function flushPurge(){
   var job=sync.pq[0];
   call({action:'purge',book:job.b,nums:job.nums,names:job.names||{},who:sync.who}).then(function(j){
     sync.pq.shift(); sync.lastOk=Date.now(); syncErr=''; saveSync(); flushing=false;
-    applyGone(j.gone); renderSyncBar();
+    applyServer(j); renderSyncBar();
     toast('Удалено и в таблице ('+job.nums.length+' чел.). На других телефонах удалится при синхронизации');
     scheduleFlush(200);
   }).catch(function(e){
@@ -425,6 +428,58 @@ function flushPurge(){
     if(syncErr!=='bad_code'&&syncErr!=='code_not_set') scheduleFlush(syncErr==='old'?120000:20000);
   });
 }
+/* добавленные и изменённые люди: уходят в таблицу, а через неё — на все телефоны */
+function queueAdd(bookId,p){
+  if(!syncOn()||!p||!p.num||!p.name) return false;
+  sync.aq=sync.aq||[];
+  sync.aq=sync.aq.filter(function(x){ return !(x.b===bookId&&normNum(x.p.n)===normNum(p.num)); });
+  sync.aq.push({b:bookId,p:{n:p.num,name:p.name,role:p.role||'',sched:p.sched||''}});
+  saveSync(); renderSyncBar(); scheduleFlush(500); return true;
+}
+function flushAdd(){
+  if(!syncOn()||flushing||!sync.aq.length) return;
+  if(navigator.onLine===false){ syncErr='net'; renderSyncBar(); return; }
+  flushing=true;
+  var b=sync.aq[0].b, batch=sync.aq.filter(function(x){ return x.b===b; }).slice(0,100);
+  call({action:'addp',book:b,people:batch.map(function(x){ return x.p; })}).then(function(j){
+    sync.aq=sync.aq.filter(function(x){ return batch.indexOf(x)<0; });
+    sync.lastOk=Date.now(); syncErr=''; saveSync(); flushing=false;
+    applyServer(j); renderSyncBar();
+    scheduleFlush(200);
+  }).catch(function(e){
+    flushing=false; syncFail(e); renderSyncBar();
+    if(syncErr!=='bad_code'&&syncErr!=='code_not_set') scheduleFlush(syncErr==='old'?120000:20000);
+  });
+}
+/* люди, добавленные или изменённые на других телефонах (список приходит из таблицы с каждым ответом) */
+function applyAdded(a){
+  if(!a||typeof a!=='object') return;
+  var added=[], cur=false;
+  ['rf','are'].forEach(function(b){
+    var list=a[b]; if(!Array.isArray(list)||!list.length) return;
+    var bb=root.books[b], byNum={}, skip={};
+    bb.people.forEach(function(p){ if(p.num) byNum[normNum(p.num)]=p; });
+    (sync.pq||[]).forEach(function(x){ if(x.b===b) x.nums.forEach(function(n){ skip[normNum(n)]=1; }); });   // удаляем — не возвращать
+    (sync.aq||[]).forEach(function(x){ if(x.b===b) skip[normNum(x.p.n)]=1; });                            // своё изменение ещё не отправлено
+    list.forEach(function(x){
+      if(!Array.isArray(x)||!x[0]||!x[1]) return;
+      var k=normNum(x[0]), t=Number(x[4])||0; if(skip[k]) return;
+      var p=byNum[k];
+      if(!p){
+        p={id:uid(),name:String(x[1]).slice(0,120),role:String(x[2]||'').slice(0,120),num:String(x[0]).slice(0,20),sched:validSched(x[3]),archived:false,added:t,upd:t};
+        bb.people.push(p); byNum[k]=p; added.push(p.name); if(b===root.cur) cur=true;
+      } else if(t>(p.upd||0)){
+        var ch=p.name!==x[1]||p.role!==(x[2]||'')||p.sched!==validSched(x[3]);
+        p.name=String(x[1]).slice(0,120); p.role=String(x[2]||'').slice(0,120); p.sched=validSched(x[3]); p.upd=t;
+        if(ch&&b===root.cur) cur=true;
+      }
+    });
+  });
+  if(!added.length&&!cur) return;
+  save(); if(cur) render();
+  if(added.length) toast('Добавлены из таблицы: '+(added.length>3?added.length+' чел.':added.join(', ')));
+}
+function applyServer(j){ if(!j) return; applyGone(j.gone); applyAdded(j.added); }
 /* список удалённых навсегда (приходит из таблицы с каждым ответом): удалить этих людей и на этом телефоне.
    Человека, добавленного на телефоне уже после удаления, не трогаем. */
 function applyGone(g){
@@ -470,7 +525,7 @@ function pullDay(){
   if(!syncOn()||pulling||navigator.onLine===false) return;
   var b=root.cur, d=ui.date; pulling=true;
   call({action:'pull',book:b,date:d}).then(function(j){
-    applyGone(j.gone);
+    applyServer(j);
     var changed=mergePull(b,d,j.items||[]);
     sync.lastOk=Date.now(); syncErr=''; saveSync(); pulling=false; renderSyncBar();
     if(changed&&root.cur===b&&ui.view==='day'&&ui.date===d){ renderStats(); renderList(); }
@@ -483,7 +538,7 @@ function pullMonth(){
   var b=root.cur, ym=ui.month, k=b+'|'+ym, since=(sync.rev&&sync.rev[k])||0; pulling=true;
   call({action:'pullm',book:b,ym:ym,since:since}).then(function(j){
     pulling=false;
-    applyGone(j.gone);
+    applyServer(j);
     if(since>0&&Number(j.rev)<since){ sync.rev[k]=0; saveSync(); return pullMonth(); }
     var changed=mergePull(b,ym+'-01',j.items||[]);
     sync.rev=sync.rev||{}; sync.rev[k]=Number(j.rev)||0;
@@ -924,7 +979,7 @@ function saveSyncForm(){
   sync.url=url; sync.code=code; sync.who=who; saveSync(); syncErr=''; renderSyncBar();
   msg.textContent='Проверяю связь…';
   call({action:'ping'}).then(function(j){
-    applyGone(j.gone);
+    applyServer(j);
     sync.lastOk=Date.now(); syncErr=''; saveSync(); renderSyncBar();
     sheetSync('Связь с таблицей есть ✓'); syncNow();
   }).catch(function(e){ syncFail(e); renderSyncBar(); if($('smsg')) $('smsg').textContent=syncMsgFor(e); });
@@ -1027,7 +1082,8 @@ function addBulk(){
     var a=line.split(',').map(function(x){ return x.trim(); });
     if(!a[0]) return;
     var num=(a[2]||'').slice(0,20); if(num&&taken[num]) dup++; if(num) taken[num]=1;
-    bk().people.push({id:uid(),name:a[0].slice(0,120),role:(a[1]||'').slice(0,120),num:num,sched:schedFromCode(a[3]),archived:false,added:Date.now()}); added++;
+    var np={id:uid(),name:a[0].slice(0,120),role:(a[1]||'').slice(0,120),num:num,sched:schedFromCode(a[3]),archived:false,added:Date.now(),upd:Date.now()};
+    bk().people.push(np); queueAdd(root.cur,np); added++;
   });
   if(!added){ $('bmsg').textContent='Список пустой: напишите хотя бы одну фамилию.'; return; }
   save(); render(); sheetPeople(); toast('Добавлено человек: '+added+(dup?'. Повторяются табельные номера: '+dup:''));
@@ -1053,10 +1109,14 @@ function readForm(){
 function savePerson(){
   var f=readForm(); if(!f) return;
   var dup=f.num&&bk().people.some(function(p){ return p.id!==editId&&p.num===f.num&&!p.archived; });
-  if(editId){ var p=person(editId); if(p){ if(p.num!==f.num) p.added=Date.now(); p.name=f.name; p.num=f.num; p.role=f.role; p.sched=f.sched; } }
-  else bk().people.push({id:uid(),name:f.name,num:f.num,role:f.role,sched:f.sched,archived:false,added:Date.now()});
+  var np;
+  if(editId){ np=person(editId); if(np){ if(np.num!==f.num) np.added=Date.now(); np.name=f.name; np.num=f.num; np.role=f.role; np.sched=f.sched; np.upd=Date.now(); } }
+  else{ np={id:uid(),name:f.name,num:f.num,role:f.role,sched:f.sched,archived:false,added:Date.now(),upd:Date.now()}; bk().people.push(np); }
+  var shared=queueAdd(root.cur,np);
   save(); render(); sheetPeople();
   if(dup) toast('Внимание: номер '+f.num+' уже есть у другого человека');
+  else if(syncOn()&&!f.num) toast('Без табельного номера человек есть только на этом телефоне');
+  else if(shared) toast('Сохранено. Появится на всех телефонах после синхронизации');
 }
 
 /* ------------------------------------------------------------- загрузка списка и копии */
@@ -1198,7 +1258,7 @@ document.addEventListener('click',function(e){
     case 'soff':
       openSheet('Отключить таблицу','<p>Телефон перестанет отправлять отметки в таблицу и получать их.'+(qn()?' <b>Не отправлено отметок: '+qn()+'.</b> В таблицу они не попадут.':'')+' Отметки на телефоне останутся.</p><div class="acts"><button class="primary" data-a="soffok">Отключить</button><button data-a="syncsheet">Отмена</button></div>');
       break;
-    case 'soffok': sync={url:'',code:'',who:sync.who,queue:{},lastOk:0,rev:{},pq:[]}; saveSync(); syncErr=''; closeSheet(); render(); toast('Таблица отключена'); break;
+    case 'soffok': sync={url:'',code:'',who:sync.who,queue:{},lastOk:0,rev:{},pq:[],aq:[]}; saveSync(); syncErr=''; closeSheet(); render(); toast('Таблица отключена'); break;
     case 'defh': bk().defH=Math.min(24,Math.max(0.5,bk().defH+Number(el.dataset.d))); save(); $('defv').textContent=fmtH(bk().defH)+' ч'; break;
     case 'backup': sheetBackup(); break;
     case 'bsave': saveFile('tabel-kopiya-'+today()+'.json','application/json',JSON.stringify(root,null,1)).then(reportDone); break;
