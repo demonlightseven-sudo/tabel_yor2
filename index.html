@@ -216,7 +216,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='9';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='10';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -337,7 +337,7 @@ function loadSync(){
     var o=JSON.parse(localStorage.getItem(SYNC_KEY)||'null');
     if(o&&typeof o==='object'){
       d.url=typeof o.url==='string'?o.url:''; d.code=typeof o.code==='string'?o.code:''; d.who=typeof o.who==='string'?o.who.slice(0,60):'';
-      d.lastOk=Number(o.lastOk)||0; if(o.queue&&typeof o.queue==='object') d.queue=o.queue; if(o.rev&&typeof o.rev==='object') d.rev=o.rev; if(Array.isArray(o.aq)) d.aq=o.aq.filter(function(x){ return x&&(x.b==='rf'||x.b==='are')&&x.p&&x.p.n&&x.p.name; }); if(Array.isArray(o.pq)) d.pq=o.pq.filter(function(x){ return x&&(x.b==='rf'||x.b==='are')&&Array.isArray(x.nums)&&x.nums.length; });
+      d.lastOk=Number(o.lastOk)||0; d.rosterAt=Number(o.rosterAt)||0; if(o.queue&&typeof o.queue==='object') d.queue=o.queue; if(o.rev&&typeof o.rev==='object') d.rev=o.rev; if(Array.isArray(o.aq)) d.aq=o.aq.filter(function(x){ return x&&(x.b==='rf'||x.b==='are')&&x.p&&x.p.n&&x.p.name; }); if(Array.isArray(o.pq)) d.pq=o.pq.filter(function(x){ return x&&(x.b==='rf'||x.b==='are')&&Array.isArray(x.nums)&&x.nums.length; });
     }
   }catch(e){}
   return d;
@@ -398,6 +398,7 @@ function flush(){
   if(!syncOn()||flushing) return;
   if(sync.pq&&sync.pq.length) return flushPurge();
   if(sync.aq&&sync.aq.length) return flushAdd();
+  if(Date.now()-(Number(sync.rosterAt)||0)>6*3600000) return flushRoster();
   var keys=Object.keys(sync.queue); if(!keys.length) return;
   if(navigator.onLine===false){ syncErr='net'; renderSyncBar(); return; }
   flushing=true;
@@ -451,6 +452,26 @@ function flushAdd(){
     if(syncErr!=='bad_code'&&syncErr!=='code_not_set') scheduleFlush(syncErr==='old'?120000:20000);
   });
 }
+/* сверка списков: раз в 6 часов телефон отправляет в таблицу всех своих людей;
+   кого нет в общем списке, таблица добавит и разошлёт на все телефоны */
+var rosterBook=null;
+function flushRoster(){
+  if(!syncOn()||flushing) return;
+  if(navigator.onLine===false){ syncErr='net'; renderSyncBar(); return; }
+  flushing=true;
+  var b=rosterBook==='rf'?'are':'rf';
+  var list=root.books[b].people.filter(function(p){ return p.num&&p.name&&!p.archived; })
+    .map(function(p){ return {n:p.num,name:p.name,role:p.role||'',sched:p.sched||'',a:p.added||0}; });
+  call({action:'roster',book:b,people:list}).then(function(j){
+    flushing=false; rosterBook=b; syncErr=''; sync.lastOk=Date.now();
+    if(b==='are'){ sync.rosterAt=Date.now(); rosterBook=null; }
+    saveSync(); applyServer(j); renderSyncBar(); scheduleFlush(200);
+  }).catch(function(e){
+    flushing=false; syncFail(e); renderSyncBar();
+    if(e&&e.message==='bad_action'){ sync.rosterAt=Date.now(); saveSync(); syncErr=''; scheduleFlush(200); return; }
+    if(syncErr!=='bad_code'&&syncErr!=='code_not_set') scheduleFlush(20000);
+  });
+}
 /* люди, добавленные или изменённые на других телефонах (список приходит из таблицы с каждым ответом) */
 function applyAdded(a){
   if(!a||typeof a!=='object') return;
@@ -468,7 +489,7 @@ function applyAdded(a){
       if(!p){
         p={id:uid(),name:String(x[1]).slice(0,120),role:String(x[2]||'').slice(0,120),num:String(x[0]).slice(0,20),sched:validSched(x[3]),archived:false,added:t,upd:t};
         bb.people.push(p); byNum[k]=p; added.push(p.name); if(b===root.cur) cur=true;
-      } else if(t>(p.upd||0)){
+      } else if(t>1&&t>(p.upd||0)){   // t=1 — запись из сверки: только добавляет, чужие правки не трогает
         var ch=p.name!==x[1]||p.role!==(x[2]||'')||p.sched!==validSched(x[3]);
         p.name=String(x[1]).slice(0,120); p.role=String(x[2]||'').slice(0,120); p.sched=validSched(x[3]); p.upd=t;
         if(ch&&b===root.cur) cur=true;
