@@ -216,6 +216,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
+var APP_VER='8';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -351,7 +352,7 @@ function b64u(str){ var a=new TextEncoder().encode(str), s=''; for(var i=0;i<a.l
 function unb64u(b){ var t=atob(b), a=new Uint8Array(t.length); for(var i=0;i<t.length;i++) a[i]=t.charCodeAt(i); return new TextDecoder().decode(a); }
 
 function call(payload){
-  payload.code=sync.code;
+  payload.code=sync.code; payload.app=APP_VER; if(!payload.who) payload.who=sync.who;
   var ctl=window.AbortController?new AbortController():null, to=setTimeout(function(){ if(ctl) ctl.abort(); },25000);
   return fetch(sync.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),redirect:'follow',cache:'no-store',signal:ctl?ctl.signal:undefined})
     .then(function(r){ return r.json(); })
@@ -868,7 +869,8 @@ function sheetMenu(){
     '<button data-a="syncsheet">Синхронизация с таблицей<small>'+(syncOn()?esc(statusText()[1]):'Не подключена: отметки видны только на этом телефоне')+'</small></button>'+
     '<button data-a="settings">Настройки<small>Часы по умолчанию, название объекта</small></button>'+
     '<button data-a="backup">Резервная копия и загрузка списка<small>Сохранить данные или загрузить seed.json</small></button>'+
-    '<button data-a="install">Как установить на телефон</button></div>');
+    '<button data-a="install">Как установить на телефон</button></div>'+
+    '<p class="note" style="text-align:center">Версия приложения: '+APP_VER+'</p>');
 }
 function sheetDate(){
   openSheet('День',
@@ -1251,6 +1253,23 @@ render();
 if(linked){ sheetSync('Таблица подключена. Введите своё имя и нажмите «Сохранить и проверить связь».'); }
 else if(syncOn()) syncNow();
 
+/* самообновление: телефон сам переходит на новую версию с сайта, даже если приложение не закрывали */
+var updChecking=false;
+function checkUpdate(){
+  if(updChecking||!/^https?:$/.test(location.protocol)||navigator.onLine===false) return;
+  updChecking=true;
+  fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.text():''; }).then(function(v){
+    updChecking=false; v=String(v||'').trim();
+    if(!/^\d+$/.test(v)||Number(v)<=Number(APP_VER)) return;
+    if(!$('sheetWrap').hidden||flushing||document.activeElement===$('q')){ setTimeout(checkUpdate,30000); return; }
+    try{ if(sessionStorage.getItem('tabel-upd-tried')===v) return; sessionStorage.setItem('tabel-upd-tried',v); sessionStorage.setItem('tabel-upd',v); }catch(e){ return; }   // не больше одной попытки на версию: без зацикливания
+    location.reload();
+  }).catch(function(){ updChecking=false; });
+}
+try{ if(sessionStorage.getItem('tabel-upd')){ sessionStorage.removeItem('tabel-upd'); setTimeout(function(){ toast('Приложение обновлено до версии '+APP_VER); },600); } }catch(e){}
+setTimeout(checkUpdate,3000);
+setInterval(function(){ if(!document.hidden) checkUpdate(); },5*60000);
+document.addEventListener('visibilitychange',function(){ if(!document.hidden) checkUpdate(); });
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
   window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
 }

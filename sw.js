@@ -1,6 +1,6 @@
 /* Служебный файл: хранит копию приложения на телефоне, чтобы оно открывалось без интернета.
    Когда интернет есть, приложение подтягивает обновления само. */
-const CACHE = 'tabel-app-v7';
+const CACHE = 'tabel-app-v8';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png',
                 './icon-maskable-512.png', './apple-touch-icon.png'];
 
@@ -20,7 +20,7 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
   e.respondWith(
-    fetch(req)
+    fetch(req,{cache:'no-cache'})
       .then(res => {
         if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
         return res;
