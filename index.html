@@ -62,6 +62,22 @@ input[type=text],input[type=date],select,textarea{background:var(--surface);bord
 .row2 input{flex:1;min-width:0;font-size:18px}
 #kb{width:54px;padding:0;font-weight:700}
 #go{min-width:96px}
+#scanBtn{width:54px;padding:0;font-size:22px}
+/* сканер карточек */
+body.scanning{overflow:hidden}
+#scan{position:fixed;inset:0;z-index:60;background:#000;color:#fff;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+#scan .schead{padding:10px 14px;display:flex;flex-direction:column;gap:2px}
+#scan .schead span{font-size:13px;opacity:.8}
+#scan .scview{position:relative;flex:1;min-height:0;overflow:hidden}
+#scan video{width:100%;height:100%;object-fit:cover;display:block}
+#scan .scframe{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+#scan .scframe i{display:block;width:78%;height:20%;max-height:140px;border:3px solid #fff;border-radius:12px;box-shadow:0 0 0 2000px rgba(0,0,0,.45)}
+#scan .scmsg{margin:0;padding:12px 14px;font-size:17px;font-weight:600;min-height:52px;background:#111}
+#scan .scmsg.ok{background:#1b5e20}
+#scan .scmsg.bad{background:#8e2a1c}
+#scan .scacts{display:flex;gap:10px;padding:10px 14px 14px;background:#111}
+#scan .scacts button{flex:1;min-height:52px;font-size:17px;font-weight:700}
+#scan #scTorch.on{background:#ffd54f;color:#000}
 
 main{max-width:760px;margin:0 auto;padding:0 10px}
 .msg{min-height:0;margin:10px 0 0;padding:0;font-size:15px;border-radius:8px}
@@ -209,6 +225,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
   <div class="row2">
     <input id="q" type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Табельный номер">
     <button id="kb" data-a="kb" aria-label="Переключить клавиатуру: цифры или буквы">abc</button>
+    <button id="scanBtn" data-a="scan" aria-label="Сканировать карточку камерой" title="Сканировать карточку">📷</button>
     <button id="go" class="primary" data-a="go">Отметить</button>
   </div>
 </header>
@@ -231,7 +248,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='15';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='16';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1253,6 +1270,124 @@ function doImport(mode){
   save(); closeSheet(); render(); toast('Готово');
 }
 
+/* ------------------------------------------------------------- сканер карточек: камера читает табельный номер */
+var SCAN_LIB='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+var scan={on:false,stream:null,worker:null,loading:null,busy:false,timer:null,last:'',lastN:0,cool:{},torch:false,count:0};
+function loadScript(src){
+  return new Promise(function(ok,bad){ var s=document.createElement('script'); s.src=src; s.async=true; s.onload=ok; s.onerror=function(){ bad(new Error('nolib')); }; document.head.appendChild(s); });
+}
+function scanEngine(){
+  if(scan.worker) return Promise.resolve(scan.worker);
+  if(scan.loading) return scan.loading;
+  scan.loading=(window.Tesseract?Promise.resolve():loadScript(SCAN_LIB))
+    .then(function(){ return Tesseract.createWorker('eng',1); })
+    .then(function(w){ return w.setParameters({tessedit_char_whitelist:'0123456789',tessedit_pageseg_mode:'7'}).then(function(){ scan.worker=w; return w; }); })
+    .catch(function(e){ scan.loading=null; throw e; });
+  return scan.loading;
+}
+function scanMsg(t,kind){ var e=$('scMsg'); if(e){ e.textContent=t; e.className='scmsg'+(kind?' '+kind:''); } }
+function openScan(){
+  if(ui.view!=='day') setView('day');
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ toast('Камера недоступна в этом браузере'); return; }
+  var d=parseYmd(ui.date);
+  var w=document.createElement('div'); w.id='scan'; w.setAttribute('role','dialog'); w.setAttribute('aria-label','Сканер карточек');
+  w.innerHTML='<div class="schead"><b>Сканер карточек · '+BOOKS[root.cur]+'</b><span>Отметка «Пришёл» '+fmtH(bk().defH)+' ч за '+d.getDate()+' '+MONTHS_G[d.getMonth()]+(ui.date===today()?' (сегодня)':' ⚠ не сегодня')+'</span></div>'+
+    '<div class="scview"><video id="scVid" playsinline muted autoplay></video><div class="scframe"><i></i></div></div>'+
+    '<p id="scMsg" class="scmsg">Включаю камеру…</p>'+
+    '<div class="scacts"><button data-a="sctorch" id="scTorch" hidden>Фонарик</button><button class="primary" data-a="scclose">Готово<span id="scCnt"></span></button></div>';
+  document.body.appendChild(w); document.body.classList.add('scanning');
+  scan.on=true; scan.last=''; scan.lastN=0; scan.count=0; scan.cool={};
+  navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}})
+    .then(function(st){
+      if(!scan.on){ st.getTracks().forEach(function(t){ t.stop(); }); return; }
+      scan.stream=st; var v=$('scVid'); v.srcObject=st; v.play().catch(function(){});
+      var tr=st.getVideoTracks()[0], caps=tr&&tr.getCapabilities?tr.getCapabilities():{};
+      if(caps.torch) $('scTorch').hidden=false;
+      if(caps.focusMode&&caps.focusMode.indexOf('continuous')>=0) tr.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(function(){});
+      scanMsg('Загружаю распознавание цифр…');
+      return scanEngine().then(function(){ if(scan.on){ scanMsg('Наведите камеру на номер карточки, чтобы он был в рамке'); scanLoop(); } });
+    })
+    .catch(function(e){
+      var m=e&&e.message==='nolib'?'Не удалось загрузить распознавание: нужен интернет при первом запуске.':
+        e&&(e.name==='NotAllowedError'||e.name==='SecurityError')?'Нет доступа к камере. Разрешите камеру для этого сайта в настройках браузера.':
+        e&&e.name==='NotFoundError'?'Камера не найдена.':'Не удалось включить камеру или распознавание.';
+      scanMsg(m,'bad');
+    });
+}
+function closeScan(){
+  scan.on=false; clearTimeout(scan.timer);
+  if(scan.stream){ scan.stream.getTracks().forEach(function(t){ t.stop(); }); scan.stream=null; }
+  var w=$('scan'); if(w) w.remove(); document.body.classList.remove('scanning');
+  render();
+  if(scan.count) toast('Отмечено по карточкам: '+scan.count);
+}
+function toggleTorch(){
+  var tr=scan.stream&&scan.stream.getVideoTracks()[0]; if(!tr) return;
+  scan.torch=!scan.torch; tr.applyConstraints({advanced:[{torch:scan.torch}]}).catch(function(){});
+  $('scTorch').classList.toggle('on',scan.torch);
+}
+/* вырезать из кадра полосу внутри рамки, сделать чёрно-белой и контрастной */
+function scanFrame(){
+  var v=$('scVid'); if(!v||!v.videoWidth) return null;
+  var vw=v.videoWidth, vh=v.videoHeight, box=v.getBoundingClientRect(), fr=document.querySelector('#scan .scframe i').getBoundingClientRect();
+  var k=Math.max(box.width/vw,box.height/vh), ox=(box.width-vw*k)/2, oy=(box.height-vh*k)/2;   // видео растянуто как object-fit:cover
+  var sx=Math.max(0,(fr.left-box.left-ox)/k), sy=Math.max(0,(fr.top-box.top-oy)/k), sw=Math.min(vw-sx,fr.width/k), sh=Math.min(vh-sy,fr.height/k);
+  if(sw<10||sh<10) return null;
+  var scale=Math.min(2,Math.max(1,120/sh)), c=document.createElement('canvas'); c.width=Math.round(sw*scale); c.height=Math.round(sh*scale);
+  var x=c.getContext('2d',{willReadFrequently:true}); x.drawImage(v,sx,sy,sw,sh,0,0,c.width,c.height);
+  var im=x.getImageData(0,0,c.width,c.height), p=im.data, mn=255, mx=0, i, g;
+  for(i=0;i<p.length;i+=4){ g=(p[i]*299+p[i+1]*587+p[i+2]*114)/1000; p[i]=g; if(g<mn) mn=g; if(g>mx) mx=g; }
+  var rg=Math.max(1,mx-mn);
+  for(i=0;i<p.length;i+=4){ g=(p[i]-mn)*255/rg; p[i]=p[i+1]=p[i+2]=g; }
+  x.putImageData(im,0,0); return c;
+}
+function scanLoop(){
+  if(!scan.on) return;
+  if(scan.busy||!scan.worker){ scan.timer=setTimeout(scanLoop,300); return; }
+  var c=scanFrame(); if(!c){ scan.timer=setTimeout(scanLoop,300); return; }
+  scan.busy=true;
+  scan.worker.recognize(c).then(function(r){
+    scan.busy=false; if(!scan.on) return;
+    var toks=(latinDigits(r&&r.data&&r.data.text||'').match(/\d+/g)||[]).filter(function(x){ return x.length>=4&&x.length<=5; });
+    var hit=null;
+    toks.forEach(function(t){ if(!hit&&findByNum(root.cur,t)) hit=t; });
+    var n=hit||toks[0]||'';
+    if(n&&n===scan.last) scan.lastN++; else { scan.last=n; scan.lastN=n?1:0; }
+    if(n&&scan.lastN>=2) onScanned(n);   // одно и то же число прочитано два раза подряд — не ошибка распознавания
+    scan.timer=setTimeout(scanLoop,150);
+  }).catch(function(){ scan.busy=false; scan.timer=setTimeout(scanLoop,600); });
+}
+function findByNum(bookId,n){
+  var k=normNum(n); return root.books[bookId].people.filter(function(p){ return p.num&&!p.archived&&normNum(p.num)===k; })[0]||null;
+}
+function scanBeep(ok){
+  try{ if(navigator.vibrate) navigator.vibrate(ok?80:[60,60,60]); }catch(e){}
+  try{
+    var A=window.AudioContext||window.webkitAudioContext; if(!A) return;
+    scan.ac=scan.ac||new A(); var o=scan.ac.createOscillator(), g=scan.ac.createGain();
+    o.frequency.value=ok?1320:330; g.gain.value=0.08; o.connect(g); g.connect(scan.ac.destination); o.start(); o.stop(scan.ac.currentTime+(ok?0.12:0.25));
+  }catch(e){}
+}
+function onScanned(n){
+  var k=normNum(n), now=Date.now();
+  if(scan.cool[k]&&now-scan.cool[k]<5000) return;   // эту карточку только что отметили
+  scan.cool[k]=now; scan.last=''; scan.lastN=0;
+  var p=findByNum(root.cur,n);
+  if(!p){
+    var other=findByNum(root.cur==='rf'?'are':'rf',n);
+    scanBeep(false);
+    scanMsg('№ '+n+' — нет в табеле '+BOOKS[root.cur]+(other?' (он в табеле '+BOOKS[root.cur==='rf'?'are':'rf']+')':''),'bad');
+    return;
+  }
+  var day=dayObj(ui.date,true), cur=day[p.id];
+  if(cur&&cur.s==='work'){ scanBeep(true); scanMsg('✓ '+p.num+' '+p.name+' — уже отмечен: пришёл, '+fmtH(cur.h)+' ч','ok'); return; }
+  day[p.id]={s:'work',h:bk().defH,t:now};
+  save(); track(root.cur,ui.date,p.id);
+  scan.count++; $('scCnt').textContent=' ('+scan.count+')';
+  scanBeep(true);
+  scanMsg('✓ '+p.num+' '+p.name+' — пришёл, '+fmtH(bk().defH)+' ч'+(cur?' (было: '+(LBL[cur.s]||cur.s)+')':''),'ok');
+}
+
 /* ------------------------------------------------------------- события */
 document.addEventListener('click',function(e){
   var el=e.target.closest?e.target.closest('[data-a]'):null; if(!el) return;
@@ -1275,6 +1410,9 @@ document.addEventListener('click',function(e){
     case 'dshift': ui.date=addDays(ui.date,Number(el.dataset.d)); ui.follow=ui.date===today(); sheetDate(); render(); pull(); break;
     case 'dtoday': ui.date=today(); ui.follow=true; closeSheet(); render(); pull(); break;
     case 'menu': sheetMenu(); break;
+    case 'scan': openScan(); break;
+    case 'scclose': closeScan(); break;
+    case 'sctorch': toggleTorch(); break;
     case 'close': closeSheet(); break;
     case 'kb': ui.numMode=!ui.numMode; var q=$('q'); q.inputMode=ui.numMode?'numeric':'text'; renderTop(); q.blur(); setTimeout(function(){ q.focus(); },60); break;
     case 'go': submitEntry(); break;
@@ -1361,6 +1499,7 @@ document.addEventListener('change',function(e){
   if(t.id==='obj'){ bk().object=t.value.trim().slice(0,80); save(); }
 });
 document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'&&scan.on){ closeScan(); return; }
   if(e.key==='Escape'&&!$('sheetWrap').hidden) closeSheet();
   if(e.key==='Enter'&&e.target&&e.target.id==='pw'){ e.preventDefault(); loadEncrypted(); }
 });
