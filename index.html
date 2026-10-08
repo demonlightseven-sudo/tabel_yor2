@@ -171,7 +171,22 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 .mt td{cursor:pointer;font-weight:700}
 .mt td.w{background:var(--work-bg);color:var(--work-t)} .mt td.o{background:var(--off-bg);color:var(--off-t)} .mt td.s{background:var(--sick-bg);color:var(--sick-t)}
 .mt td.p{background:var(--pl-bg);color:var(--pl-t)} .mt td.u{background:var(--ul-bg);color:var(--ul-t)} .mt td.a{background:var(--ab-bg);color:var(--ab-t)}
-.mt td.po{background-image:repeating-linear-gradient(135deg,transparent 0 4px,var(--line) 4px 5px)}
+.mt td.po{background-color:#FFF3E0;background-image:repeating-linear-gradient(135deg,transparent 0 4px,rgba(239,108,0,.6) 4px 6px)}
+.mt td.pm{background-image:repeating-linear-gradient(135deg,transparent 0 5px,rgba(239,108,0,.35) 5px 6px)}
+.mfull{display:none}
+/* компьютер: табель за месяц на весь экран, весь месяц без прокрутки вбок */
+@media (min-width:900px){
+  body.vmonth main{max-width:none;padding:0 16px}
+  body.vmonth .mfull{display:inline-flex;align-items:center;justify-content:center}
+  body.vmonth .mwrap{overflow-x:hidden;overflow-y:auto}
+  body.vmonth table.mt{width:100%;table-layout:fixed;font-size:12px}
+  body.vmonth .mt th,body.vmonth .mt td{min-width:0;height:30px}
+  body.vmonth .mt th.c0{width:clamp(170px,17vw,280px);min-width:0;max-width:none}
+  body.vmonth .mt .tot{width:42px;min-width:0}
+  body.vmonth .mt .dh{min-height:30px;font-size:12px}
+  body.vmonth .mt .dh small{font-size:9px}
+  body.vmonth .mt tfoot tr.f1 th,body.vmonth .mt tfoot tr.f1 td{bottom:30px}
+}
 .mt tfoot th,.mt tfoot td{position:sticky;background:var(--bg);font-weight:700;color:var(--muted);cursor:default}
 .mt tfoot tr.f1 th,.mt tfoot tr.f1 td{bottom:38px;z-index:1}
 .mt tfoot tr.f2 th,.mt tfoot tr.f2 td{bottom:0;z-index:1}
@@ -216,7 +231,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='11';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='12';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -699,8 +714,8 @@ var MCLS={work:'w',off:'o',sick:'s',pl:'p',ul:'u',ab:'a'};
 function renderMonth(){
   var m=ui.month, a=m.split('-').map(Number), n=daysIn(m), recs=bk().records, t=today(), ppl=peopleForMonth(m), i;
   var nav='<div class="mnav"><button data-a="mnav" data-d="-1" aria-label="Предыдущий месяц">◀</button><div class="mlabel">'+MONTHS_N[a[1]-1]+' '+a[0]+' · '+BOOKS[root.cur]+'</div>'+
-    '<button data-a="mnav" data-d="1" aria-label="Следующий месяц">▶</button><button data-a="mexp" aria-label="Сохранить файл для Excel" title="Файл для Excel">⬇</button></div>';
-  var leg='<p class="mleg">Число — часы · В — выходной · Б — больничный · ОТ — отпуск · БС — отпуск без ЗП · ПР — прогул · штриховка — выходной по графику. Нажмите на клетку, чтобы открыть этот день.</p>';
+    '<button data-a="mnav" data-d="1" aria-label="Следующий месяц">▶</button><button data-a="mexp" aria-label="Сохранить файл для Excel" title="Файл для Excel">⬇</button><button class="mfull" data-a="mfull" aria-label="Во весь экран" title="Во весь экран (F11)">⛶</button></div>';
+  var leg='<p class="mleg">Число — часы · В — выходной · Б — больничный · ОТ — отпуск · БС — отпуск без ЗП · ПР — прогул · оранжевая штриховка — выходной по графику. Нажмите на клетку, чтобы открыть этот день.</p>';
   var old=monthOld&&syncOn()?'<p class="moldhint">Чтобы здесь были отметки с других телефонов, обновите скрипт в таблице (файл Code.gs, «Новая версия» в «Управление развертываниями»).</p>':'';
   if(!ppl.length){
     $('month').innerHTML=nav+'<div class="empty"><p>В табеле '+BOOKS[root.cur]+' пока нет людей.</p><button class="primary" data-a="people">Добавить людей</button></div>'; return;
@@ -720,6 +735,7 @@ function renderMonth(){
         cls=MCLS[r.s];
         if(r.s==='work'&&r.h>0){ days++; hrs+=r.h; cnt[i-1]++; }
         if(r.s==='ab') abs[i-1]++;
+        if(planOff(p,ds)===true) cls+=' pm';
       } else if(planOff(p,ds)===true) cls='po';
       tds+='<td class="'+cls+'" data-a="mcell" data-d="'+ds+'" data-id="'+esc(p.id)+'">'+cellText(r)+'</td>';
     }
@@ -732,7 +748,7 @@ function renderMonth(){
   $('month').innerHTML=nav+leg+old+'<div class="mwrap" id="mwrap"><table class="mt"><thead>'+head+'</thead><tbody>'+body+'</tbody><tfoot>'+f1+f2+'</tfoot></table></div>';
   var w=$('mwrap'); w.scrollLeft=keepL; w.scrollTop=keepT;
   fitMonth();
-  if(!keepL&&ui.month===today().slice(0,7)){ var td=document.querySelector('.mt th.tdy'); if(td){ w.scrollLeft=Math.max(0,td.offsetLeft-190); } }
+  if(!keepL&&ui.month===today().slice(0,7)&&w.scrollWidth>w.clientWidth+4){ var td=document.querySelector('.mt th.tdy'); if(td){ w.scrollLeft=Math.max(0,td.offsetLeft-190); } }
 }
 function fitMonth(){
   var w=$('mwrap'); if(!w||ui.view!=='month') return;
@@ -1225,6 +1241,13 @@ document.addEventListener('click',function(e){
     case 'mnav': ui.month=shiftMonth(ui.month,Number(el.dataset.d)); renderMonth(); pull(); break;
     case 'mday': goDay(el.dataset.d,null); break;
     case 'mcell': goDay(el.dataset.d,id); break;
+    case 'mfull': {
+      var d=document;
+      if(d.fullscreenElement){ if(d.exitFullscreen) d.exitFullscreen(); }
+      else if(d.documentElement.requestFullscreen) d.documentElement.requestFullscreen().catch(function(){ toast('Нажмите F11, чтобы открыть во весь экран'); });
+      else toast('Нажмите F11, чтобы открыть во весь экран');
+      break;
+    }
     case 'mexp': saveFile('tabel-'+root.cur+'-'+ui.month+'.csv','text/csv;charset=utf-8',monthCsv(ui.month)).then(reportDone); break;
     case 'dshift': ui.date=addDays(ui.date,Number(el.dataset.d)); ui.follow=ui.date===today(); sheetDate(); render(); pull(); break;
     case 'dtoday': ui.date=today(); ui.follow=true; closeSheet(); render(); pull(); break;
@@ -1323,6 +1346,7 @@ document.addEventListener('visibilitychange',function(){
   if(!document.hidden) syncNow();
 });
 window.addEventListener('resize',fitMonth);
+document.addEventListener('fullscreenchange',function(){ setTimeout(fitMonth,100); });
 $('q').addEventListener('focus',function(){ document.body.classList.add('kb'); });
 $('q').addEventListener('blur',function(){ document.body.classList.remove('kb'); });
 window.addEventListener('online',function(){ syncErr=''; renderSyncBar(); syncNow(); });
