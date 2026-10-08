@@ -231,7 +231,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='12';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='13';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -516,7 +516,30 @@ function applyAdded(a){
   save(); if(cur) render();
   if(added.length) toast('Добавлены из таблицы: '+(added.length>3?added.length+' чел.':added.join(', ')));
 }
-function applyServer(j){ if(!j) return; applyGone(j.gone); applyAdded(j.added); }
+function applyServer(j){ if(!j) return; applyGone(j.gone); applyAdded(j.added); applyClears(j.clears); }
+/* стёртые в таблице периоды: удалить у себя отметки за эти дни, сделанные до стирания */
+function applyClears(list){
+  if(!Array.isArray(list)||!list.length) return;
+  var n=0, cur=false, re=/^\d{4}-\d{2}-\d{2}$/;
+  list.forEach(function(c){
+    if(!c||!re.test(c.from)||!re.test(c.to)) return;
+    var t=Number(c.t)||0;
+    ['rf','are'].forEach(function(b){
+      if(c.b!=='*'&&c.b!==b) return;
+      var recs=root.books[b].records;
+      Object.keys(recs).forEach(function(d){
+        if(d<c.from||d>c.to) return;
+        var day=recs[d];
+        Object.keys(day).forEach(function(id){ if((Number(day[id].t)||0)<=t){ delete day[id]; n++; if(b===root.cur) cur=true; } });
+        if(!Object.keys(day).length) delete recs[d];
+      });
+      Object.keys(sync.queue).forEach(function(k){ var it=sync.queue[k]; if(it&&it.b===b&&it.d>=c.from&&it.d<=c.to&&(Number(it.t)||0)<=t) delete sync.queue[k]; });
+    });
+  });
+  if(!n) return;
+  save(); saveSync(); renderSyncBar(); if(cur) render();
+  toast('Удалены отметки за стёртый в таблице период: '+n);
+}
 /* список удалённых навсегда (приходит из таблицы с каждым ответом): удалить этих людей и на этом телефоне.
    Человека, добавленного на телефоне уже после удаления, не трогаем. */
 function applyGone(g){
