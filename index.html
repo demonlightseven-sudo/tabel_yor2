@@ -216,7 +216,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='10';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='11';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -365,6 +365,7 @@ function syncFail(e){
   else if(m==='bad_action') syncErr='old';
   else if((e&&(e.name==='TypeError'||e.name==='AbortError'))||navigator.onLine===false) syncErr='net';
   else syncErr='other';
+  if(syncErr!=='bad_code'&&syncErr!=='code_not_set'&&navigator.onLine!==false) checkApi();   // вдруг адрес таблицы сменился
 }
 function statusText(){
   var n=qn();
@@ -1349,6 +1350,28 @@ function checkUpdate(){
 }
 try{ if(sessionStorage.getItem('tabel-upd')){ sessionStorage.removeItem('tabel-upd'); setTimeout(function(){ toast('Приложение обновлено до версии '+APP_VER); },600); } }catch(e){}
 setTimeout(checkUpdate,3000);
+/* основной адрес таблицы (веб-приложения Apps Script) лежит на сайте в api.json.
+   Если он сменился, телефон проверяет новый адрес своим секретным кодом и переходит на него сам. */
+var apiChecking=false, apiLast=0;
+function checkApi(force){
+  if(apiChecking||!sync.code||!/^https?:$/.test(location.protocol)||navigator.onLine===false) return;
+  if(!force&&Date.now()-apiLast<60000) return;
+  apiChecking=true; apiLast=Date.now();
+  fetch('api.json?t='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.json():null; }).then(function(o){
+    var u=o&&typeof o.url==='string'?o.url.trim():'';
+    if(!okUrl(u)||u===sync.url){ apiChecking=false; return; }
+    return fetch(u,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({code:sync.code,action:'ping',who:sync.who,app:APP_VER}),redirect:'follow',cache:'no-store'})
+      .then(function(r){ return r.json(); }).then(function(j){
+        apiChecking=false;
+        if(!j||j.ok!==true) return;
+        sync.url=u; sync.rev={}; saveSync(); syncErr=''; renderSyncBar();
+        toast('Адрес таблицы обновлён автоматически'); syncNow();
+      });
+  }).catch(function(){ apiChecking=false; });
+}
+setTimeout(function(){ checkApi(true); },2000);
+setInterval(function(){ if(!document.hidden) checkApi(); },5*60000);
+document.addEventListener('visibilitychange',function(){ if(!document.hidden) checkApi(); });
 setInterval(function(){ if(!document.hidden) checkUpdate(); },5*60000);
 document.addEventListener('visibilitychange',function(){ if(!document.hidden) checkUpdate(); });
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
