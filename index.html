@@ -268,7 +268,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='18';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='19';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1446,6 +1446,12 @@ function memoHdrPush(){
   clearTimeout(memoHdrTimer);
   memoHdrTimer=setTimeout(function(){ if(syncOn()) call({action:'memocfg',cfg:memoHdr()}).catch(function(){}); },1200);
 }
+/* ответственные за организацию, безопасность работ и табель — одни и те же для РФ и АРЕ.
+   На сайте только табельные номера; ФИО и должности берутся из списка людей табеля РФ на телефоне. */
+var MEMO_RESP_NUMS=['6036','6148','6721'];
+function memoResps(){
+  return MEMO_RESP_NUMS.map(function(n){ return root.books.rf.people.filter(function(p){ return p.num&&normNum(p.num)===normNum(n); })[0]; }).filter(Boolean);
+}
 var memoSel={};   // кто отмечен галочкой (ключ: табель|день|id)
 /* кто работал в выбранный день; сверх нормы — первыми */
 function memoPeople(){
@@ -1462,7 +1468,7 @@ function memoTimes(x,c){
 function renderDocs(){
   memoHdrFetch();
   var c=memoCfg(), list=memoPeople(), d=parseYmd(ui.date), n=memoNorm(root.cur);
-  var ppl=activePeople().slice().sort(function(a,b){ return a.name.localeCompare(b.name,'ru'); });
+  var ppl=memoResps();
   var rows=list.map(function(x){
     var t=memoTimes(x,c), on=memoChecked(x);
     return '<label class="mrow'+(on?' on':'')+'"><input type="checkbox" data-mk="'+esc(x.p.id)+'"'+(on?' checked':'')+'>'+
@@ -1480,7 +1486,7 @@ function renderDocs(){
     '<div class="fld"><label for="m_obj">Объект</label><input type="text" id="m_obj" maxlength="300" value="'+esc(c.obj)+'" placeholder="Центральный КПП №1 для пропуска персонала и посетителей (91UYE):"></div>'+
     '<div class="fld"><label for="m_works">Виды работ и объёмы — каждая строка отдельно</label><textarea id="m_works" rows="6" placeholder="Ось А:&#10;- Монтаж опалубки плиты перекрытия&#10;Ось 1&#10;- Монтаж лесов перекрытия усиления - 90 м²">'+esc(c.works)+'</textarea></div>'+
     '<div class="fld"><label for="m_rp">Ответственный за организацию, безопасность работ и ведение табеля</label><select id="m_rp"><option value="">Выбрать из списка…</option>'+
-      ppl.map(function(p){ return '<option value="'+esc(p.id)+'">'+esc(p.name+(p.role?' — '+p.role:''))+'</option>'; }).join('')+'</select>'+
+      ppl.map(function(p){ return '<option value="'+esc(p.id)+'">'+esc(p.name+(p.role?', '+p.role:''))+'</option>'; }).join('')+'</select>'+
       '<textarea id="m_resp" rows="2" style="margin-top:8px" placeholder="ФИО, должность, подразделение">'+esc(c.resp)+'</textarea></div>'+
     '<details class="mhdr"'+(MEMO_HDR_F.some(function(f){ return !memoHdr()[f[0]]; })?' open':'')+'><summary>Шапка и подписи</summary><p class="note">Хранятся в вашей Google Таблице и одинаковы на всех телефонах.</p>'+
       MEMO_HDR_F.map(function(f){ return '<div class="fld"><label for="mh_'+f[0]+'">'+f[1]+'</label><input type="text" id="mh_'+f[0]+'" data-mh="'+f[0]+'" maxlength="300" value="'+esc(memoHdr()[f[0]]||'')+'" placeholder="'+esc(f[2])+'"></div>'; }).join('')+'</details>'+
@@ -1662,7 +1668,7 @@ document.addEventListener('change',function(e){
   if(t.id==='obj'){ bk().object=t.value.trim().slice(0,80); save(); }
   if(t.dataset&&t.dataset.mk){ memoSel[root.cur+'|'+ui.date+'|'+t.dataset.mk]=t.checked; renderDocs(); }
   if(t.id==='m_to'||t.id==='m_from'){ if(/^\d\d:\d\d$/.test(t.value)){ memoSet(t.id==='m_to'?'to':'from',t.value); renderDocs(); } }
-  if(t.id==='m_rp'&&t.value){ var rp=person(t.value); if(rp){ var v=rp.name+(rp.role?', '+rp.role:'')+' '+MEMO_DEPT; memoSet('resp',v); $('m_resp').value=v; } t.value=''; }
+  if(t.id==='m_rp'&&t.value){ var rp=memoResps().filter(function(x){ return x.id===t.value; })[0]; if(rp){ var v=rp.name+(rp.role?', '+rp.role:'')+' '+(/участка\s*$/i.test(rp.role||'')?MEMO_DEPT.replace(/^участка\s+/,''):MEMO_DEPT); memoSet('resp',v); $('m_resp').value=v; } t.value=''; }
 });
 document.addEventListener('keydown',function(e){
   if(e.key==='Escape'&&scan.on){ closeScan(); return; }
