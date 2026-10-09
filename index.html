@@ -124,7 +124,7 @@ button.pl[aria-pressed=true]{background:var(--pl);border-color:var(--pl)}
 button.ul[aria-pressed=true]{background:var(--ul);border-color:var(--ul)}
 button.ab[aria-pressed=true]{background:var(--ab);border-color:var(--ab)}
 .extra{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:6px}
-.extra button{min-height:46px;font-weight:600;font-size:14px;white-space:normal;line-height:1.15;padding:4px 6px}
+.extra button{min-height:46px;font-weight:600;font-size:clamp(12px,3.7vw,14px);white-space:normal;line-height:1.15;padding:4px 4px;min-width:0;hyphens:auto;-webkit-hyphens:auto}
 .hours{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
 .hours .step{width:48px;padding:0;font-size:24px;font-weight:600}
 .hours .val{min-width:70px;text-align:center;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
@@ -161,7 +161,7 @@ textarea.rep{min-height:200px;font-size:14px;line-height:1.45;white-space:pre}
 .banner{background:var(--sick-bg);border-left:6px solid var(--sick);padding:10px 12px;border-radius:8px;margin:10px 0;font-size:14px}
 /* нижняя панель: День / Месяц */
 #tabbar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;background:var(--surface);border-top:1px solid var(--line);padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
-#tabbar button{flex:1;min-width:0;border:0;border-radius:0;min-height:54px;background:transparent;font-weight:700;font-size:clamp(12px,3.6vw,16px);padding:0 2px;color:var(--muted);border-top:3px solid transparent}
+#tabbar button{flex:1 1 auto;min-width:0;border:0;border-radius:0;min-height:54px;background:transparent;font-weight:700;font-size:clamp(12px,3.6vw,16px);padding:0 4px;white-space:nowrap;color:var(--muted);border-top:3px solid transparent}
 #tabbar button[aria-current=page]{color:var(--ink);border-top-color:var(--ink)}
 body.kb #tabbar{display:none}
 /* вкладка «Месяц» */
@@ -176,7 +176,7 @@ body.vdocs .row2,body.vdocs #stats,body.vdocs #tabs,body.vdocs #list,body.vdocs 
 body.vnd #nd{display:block}
 body.vnd .row2,body.vnd .books,body.vnd #dateBtn,body.vnd #stats,body.vnd #tabs,body.vnd #list,body.vnd #msg{display:none}
 body.vnd #menuBtn{margin-left:auto}
-.ndkinds button{min-height:44px;font-size:12px;line-height:1.15;padding:2px 3px}
+.ndkinds button{flex:1 1 0;min-width:0;min-height:44px;font-size:clamp(10px,3.2vw,12px);line-height:1.15;padding:2px 2px;hyphens:manual;-webkit-hyphens:manual}
 .ndkinds .ndlogt span{font-weight:400}
 .ndlogtools{display:flex;gap:8px;margin:0 0 10px}
 .ndlogtools input{flex:1;min-width:0}
@@ -204,7 +204,12 @@ body.vnd #menuBtn{margin-left:auto}
 .dwrap{padding:4px 0 90px}
 .dh2{font-size:20px;margin:12px 0 4px}
 .dh3{font-size:16px;margin:14px 0 6px}
-.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:end}
+.dgrid>.fld{min-width:0}
+/* поля даты и времени на iPhone: без собственной минимальной ширины, ровно по колонке */
+input[type=time],input[type=date],input[type=number]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;box-sizing:border-box;display:block}
+input[type=time]::-webkit-date-and-time-value,input[type=date]::-webkit-date-and-time-value{text-align:left;min-height:1.2em}
+input,select,textarea{min-width:0;max-width:100%;box-sizing:border-box}
 .dwrap textarea,.dwrap select,.dwrap input[type=text],.dwrap input[type=time],.dwrap input[type=date],.dwrap input[type=number],.dwrap input[type=search]{width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
 .mlist{border:1px solid var(--line);border-radius:10px;background:var(--surface);overflow:hidden}
 .mrow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--line);cursor:pointer}
@@ -306,7 +311,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='31';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='32';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1643,6 +1648,8 @@ function memoMake(){
 
 /* ------------------------------------------------------------- наряды-допуски */
 var ND_KINDS=[['hz','Опасные работы'],['fire','Огневые работы'],['lift','Подъёмные механизмы'],['conc','Бетонные работы']];
+/* подписи кнопок видов наряда с мягкими переносами — для узких экранов */
+var ND_KBTN={hz:'Опас&shy;ные работы',fire:'Огне&shy;вые работы',lift:'Подъём&shy;ные меха&shy;низмы',conc:'Бетон&shy;ные работы',log:'Жур&shy;нал на&shy;рядов'};
 var ND_SHORT={hz:'Опасные',fire:'Огневые',lift:'Подъёмные механизмы',conc:'Бетонные'};
 var ND_TITLE={hz:'Наряд-допуск на опасные работы',fire:'Наряд-допуск на огневые работы',lift:'Наряд-допуск на работу с подъёмными механизмами',conc:'Наряд-допуск на бетонные работы'};
 var ND_FILE={hz:'Опасные',fire:'Огневые',lift:'ПС',conc:'Бетонные'};
@@ -1762,7 +1769,7 @@ function ndDatalists(st,k){
 function renderNd(){
   ndFetch(false); ndFlush();
   var st=ndSt(), k=st.kind, tpl=ndTplC[k], el=$('nd'); if(!el) return;
-  var kinds='<div class="mtype ndkinds" role="tablist" aria-label="Вид наряда">'+ND_KINDS.concat([['log','Журнал нарядов']]).map(function(x){ return '<button role="tab" data-a="ndkind" data-k="'+x[0]+'" aria-selected="'+(x[0]===k)+'"'+(x[0]==='log'?' class="ndlogt"':'')+'>'+x[1]+(x[0]==='log'?' <span>('+ndAll(st,'').length+')</span>':'')+'</button>'; }).join('')+'</div>';
+  var kinds='<div class="mtype ndkinds" role="tablist" aria-label="Вид наряда">'+ND_KINDS.concat([['log','Журнал нарядов']]).map(function(x){ return '<button role="tab" data-a="ndkind" data-k="'+x[0]+'" aria-selected="'+(x[0]===k)+'"'+(x[0]==='log'?' class="ndlogt"':'')+'>'+(ND_KBTN[x[0]]||x[1])+(x[0]==='log'?' <span>('+ndAll(st,'').length+')</span>':'')+'</button>'; }).join('')+'</div>';
   if(k==='log'){ el.innerHTML='<div class="dwrap">'+kinds+ndLog(st)+'</div>'; return; }
   var ed=st.edit&&st.edit.kind===k?ndFind(st,st.edit.id):null;
   var head='<h2 class="dh2">'+(ed?'Изменение наряда № '+esc(ed.no):ND_TITLE[k])+'</h2>'+(ed?'<p class="ndedit">'+esc(ND_TITLE[k])+', оформлен '+esc(ed.d1||'')+(ed.who?' ('+esc(ed.who)+')':'')+'. Поправьте поля и сохраните — запись в журнале и в таблице обновится. <button data-a="ndcancel">Отменить изменение</button></p>':'');
