@@ -271,7 +271,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='20';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='21';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -531,7 +531,7 @@ function flushRoster(){
 /* люди, добавленные или изменённые на других телефонах (список приходит из таблицы с каждым ответом) */
 function applyAdded(a){
   if(!a||typeof a!=='object') return;
-  var added=[], cur=false;
+  var added=[], cur=false, edited=false;
   ['rf','are'].forEach(function(b){
     var list=a[b]; if(!Array.isArray(list)||!list.length) return;
     var bb=root.books[b], byNum={}, skip={};
@@ -548,11 +548,11 @@ function applyAdded(a){
       } else if(t>1&&t>(p.upd||0)){   // t=1 — запись из сверки: только добавляет, чужие правки не трогает
         var ch=p.name!==x[1]||p.role!==(x[2]||'')||p.sched!==validSched(x[3]);
         p.name=String(x[1]).slice(0,120); p.role=String(x[2]||'').slice(0,120); p.sched=validSched(x[3]); p.upd=t;
-        if(ch&&b===root.cur) cur=true;
+        if(ch){ edited=true; if(b===root.cur) cur=true; }
       }
     });
   });
-  if(!added.length&&!cur) return;
+  if(!added.length&&!edited) return;
   save(); if(cur) render();
   if(added.length) toast('Добавлены из таблицы: '+(added.length>3?added.length+' чел.':added.join(', ')));
 }
