@@ -186,6 +186,9 @@ body.vdocs .row2,body.vdocs #stats,body.vdocs #tabs,body.vdocs #list,body.vdocs 
 .mrow .mf small,.mrow .mh small{color:var(--muted);font-size:12px}
 .mrow .mh{text-align:right;font-size:13px;display:flex;flex-direction:column}
 .mrow:not(.on){opacity:.6}
+.mobj{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:0 0 10px;background:var(--surface)}
+.mobjh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.mobjh button{min-height:36px;font-size:14px}
 .mhdr{margin:12px 0;border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--surface)}
 .mhdr summary{font-weight:700;cursor:pointer;padding:4px 0}
 .mnav{display:flex;gap:6px;align-items:center;margin:10px 0 6px}
@@ -268,7 +271,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='19';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='20';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1422,7 +1425,9 @@ function memoLoad(){ try{ return JSON.parse(localStorage.getItem(MEMO_KEY)||'{}'
 function memoSaveAll(o){ try{ localStorage.setItem(MEMO_KEY,JSON.stringify(o)); }catch(e){} }
 function memoCfg(){
   var all=memoLoad(), c=all[root.cur]||{};
-  return {obj:typeof c.obj==='string'?c.obj:'',works:typeof c.works==='string'?c.works:'',resp:typeof c.resp==='string'?c.resp:'',
+  var objs=Array.isArray(c.objs)?c.objs.filter(function(o){ return o&&typeof o==='object'; }).map(function(o){ return {obj:String(o.obj||''),works:String(o.works||'')}; }):null;
+  if(!objs||!objs.length) objs=[{obj:typeof c.obj==='string'?c.obj:'',works:typeof c.works==='string'?c.works:''}];   // записка прошлой версии: один объект
+  return {objs:objs,resp:typeof c.resp==='string'?c.resp:'',
     to:/^\d\d:\d\d$/.test(c.to)?c.to:'21:00',from:/^\d\d:\d\d$/.test(c.from)?c.from:(root.cur==='are'?'17:00':'16:00')};
 }
 function memoSet(k,v){ var all=memoLoad(); all[root.cur]=all[root.cur]||{}; all[root.cur][k]=v; memoSaveAll(all); }
@@ -1483,8 +1488,11 @@ function renderDocs(){
     '<div class="fld"><label for="m_from">Начало сверхурочной (для тех, у кого в табеле норма)</label><input type="time" id="m_from" value="'+c.from+'"></div></div>'+
     '<h3 class="dh3">Работники ('+sel+' из '+list.length+')</h3>'+
     (list.length?'<div class="mlist">'+rows+'</div>':'<p class="note">В этот день в табеле '+BOOKS[root.cur]+' нет отметок «Пришёл». Сначала отметьте явку.</p>')+
-    '<div class="fld"><label for="m_obj">Объект</label><input type="text" id="m_obj" maxlength="300" value="'+esc(c.obj)+'" placeholder="Центральный КПП №1 для пропуска персонала и посетителей (91UYE):"></div>'+
-    '<div class="fld"><label for="m_works">Виды работ и объёмы — каждая строка отдельно</label><textarea id="m_works" rows="6" placeholder="Ось А:&#10;- Монтаж опалубки плиты перекрытия&#10;Ось 1&#10;- Монтаж лесов перекрытия усиления - 90 м²">'+esc(c.works)+'</textarea></div>'+
+    '<h3 class="dh3">Объекты и работы</h3>'+c.objs.map(function(o,k){
+      return '<div class="mobj"><div class="mobjh"><b>Объект '+(k+1)+'</b>'+(c.objs.length>1?'<button data-a="mobjdel" data-k="'+k+'" aria-label="Убрать объект '+(k+1)+'">Убрать</button>':'')+'</div>'+
+        '<div class="fld"><label for="m_obj'+k+'">Название объекта</label><input type="text" id="m_obj'+k+'" data-mo="'+k+'" data-mf="obj" maxlength="300" value="'+esc(o.obj)+'" placeholder="Центральный КПП №1 для пропуска персонала и посетителей (91UYE):"></div>'+
+        '<div class="fld"><label for="m_works'+k+'">Виды работ и объёмы — каждая строка отдельно</label><textarea id="m_works'+k+'" data-mo="'+k+'" data-mf="works" rows="5" placeholder="Ось А:&#10;- Монтаж опалубки плиты перекрытия&#10;Ось 1&#10;- Монтаж лесов перекрытия усиления - 90 м²">'+esc(o.works)+'</textarea></div></div>';
+    }).join('')+'<div class="acts" style="margin-top:0"><button data-a="mobjadd">+ Добавить объект</button></div>'+
     '<div class="fld"><label for="m_rp">Ответственный за организацию, безопасность работ и ведение табеля</label><select id="m_rp"><option value="">Выбрать из списка…</option>'+
       ppl.map(function(p){ return '<option value="'+esc(p.id)+'">'+esc(p.name+(p.role?', '+p.role:''))+'</option>'; }).join('')+'</select>'+
       '<textarea id="m_resp" rows="2" style="margin-top:8px" placeholder="ФИО, должность, подразделение">'+esc(c.resp)+'</textarea></div>'+
@@ -1529,8 +1537,10 @@ function memoBuild(tpl,data){
     return tpl.row.replace('{{TN}}',xesc(x.num)).replace('{{FIO}}',xesc(x.name)).replace('{{ROLE}}',xesc(x.role)).replace('{{DATE}}',xesc(data.date))
       .replace('{{FROM}}',x.from).replace('{{TO}}',x.to).replace('{{BF}}','-').replace('{{BT}}','-').replace('{{H}}',xesc(fmtH(x.h)));
   }).join('');
-  var works=(data.obj?tpl.pobj.replace('{{TEXT}}',xesc(data.obj)):'')+
-    data.works.split(/\r?\n/).filter(function(l){ return l.trim(); }).map(function(l){ return tpl.pline.replace('{{TEXT}}',xesc(l.trim())); }).join('');
+  var works=data.objs.map(function(o){
+    return (o.obj?tpl.pobj.replace('{{TEXT}}',xesc(o.obj)):'')+
+      o.works.split(/\r?\n/).filter(function(l){ return l.trim(); }).map(function(l){ return tpl.pline.replace('{{TEXT}}',xesc(l.trim())); }).join('');
+  }).join('');
   var hd=data.hdr||{};
   ['addr','fromName','s1','s2','s3'].forEach(function(k){ var ph={addr:'{{ADDR}}',fromName:'{{FROMNAME}}',s1:'{{S1}}',s2:'{{S2}}',s3:'{{S3}}'}[k]; doc=doc.split(ph).join(xesc(hd[k]||'')); });
   doc=doc.replace('<!--ROWS-->',function(){ return rows; }).replace('<!--WORKS-->',function(){ return works; }).replace('{{RESP}}',function(){ return xesc(data.resp); });
@@ -1540,7 +1550,9 @@ function memoBuild(tpl,data){
 function memoMake(){
   var c=memoCfg(), msg=$('m_msg'), list=memoPeople().filter(memoChecked);
   if(!list.length){ msg.textContent='Отметьте хотя бы одного работника.'; return; }
-  if(!c.works.trim()){ msg.textContent='Заполните виды работ и объёмы.'; $('m_works').focus(); return; }
+  var objs=c.objs.map(function(o){ return {obj:o.obj.trim(),works:o.works}; }).filter(function(o){ return o.obj||o.works.trim(); });
+  if(!objs.length||objs.some(function(o){ return !o.works.trim(); })){ msg.textContent='Заполните виды работ и объёмы у каждого объекта.'; return; }
+  if(objs.some(function(o){ return !o.obj; })){ msg.textContent='Укажите название у каждого объекта.'; return; }
   if(!c.resp.trim()){ msg.textContent='Укажите ответственного.'; $('m_resp').focus(); return; }
   var hdr=memoHdr(), miss=MEMO_HDR_F.filter(function(f){ return !String(hdr[f[0]]||'').trim(); });
   if(miss.length){ msg.textContent='Заполните «Шапка и подписи»: '+miss.map(function(f){ return f[1]; }).join(', ')+'.'; var dd=document.querySelector('.mhdr'); if(dd) dd.open=true; return; }
@@ -1549,7 +1561,7 @@ function memoMake(){
   if(people.some(function(x){ return !(x.h>0); })){ msg.textContent='Проверьте время: у кого-то получилось 0 часов.'; return; }
   msg.textContent='Готовлю файл…';
   memoTemplate().then(function(tpl){
-    var blob=memoBuild(tpl,{hdr:hdr,date:date,people:people,obj:c.obj.trim(),works:c.works,resp:c.resp.trim()});
+    var blob=memoBuild(tpl,{hdr:hdr,date:date,people:people,objs:objs,resp:c.resp.trim()});
     var name='Сверхурочная_работа_'+a[2]+'_'+a[1]+'_'+a[0].slice(2)+(root.cur==='are'?'_АРЕ':'')+'.docx';
     return saveFile(name,blob.type,blob).then(function(r){ if($('m_msg')) $('m_msg').textContent=r==='cancel'?'':'Готово: '+name+' ('+people.length+' чел.)'; reportDone(r); });
   }).catch(function(){ if($('m_msg')) $('m_msg').textContent='Не удалось загрузить образец записки. Нужен интернет при первом запуске.'; });
@@ -1579,6 +1591,8 @@ document.addEventListener('click',function(e){
     case 'menu': sheetMenu(); break;
     case 'scan': openScan(); break;
     case 'memodoc': memoMake(); break;
+    case 'mobjadd': { var os=memoCfg().objs; os.push({obj:'',works:''}); memoSet('objs',os); renderDocs(); var f=$('m_obj'+(os.length-1)); if(f) f.focus(); break; }
+    case 'mobjdel': { var os2=memoCfg().objs; os2.splice(Number(el.dataset.k),1); memoSet('objs',os2.length?os2:[{obj:'',works:''}]); renderDocs(); break; }
     case 'scclose': closeScan(); break;
     case 'sctorch': toggleTorch(); break;
     case 'close': closeSheet(); break;
@@ -1659,7 +1673,7 @@ document.addEventListener('click',function(e){
   }
 });
 $('q').addEventListener('input',function(){ ui.q=this.value; renderList(); });
-document.addEventListener('input',function(e){ var t=e.target; if(t.id==='m_obj') memoSet('obj',t.value); if(t.id==='m_works') memoSet('works',t.value); if(t.id==='m_resp') memoSet('resp',t.value); if(t.dataset&&t.dataset.mh){ var h=memoHdr(); h[t.dataset.mh]=t.value; memoHdrSave(h); memoHdrPush(); } });
+document.addEventListener('input',function(e){ var t=e.target; if(t.dataset&&t.dataset.mo!=null){ var os=memoCfg().objs, k=Number(t.dataset.mo); if(os[k]){ os[k][t.dataset.mf]=t.value; memoSet('objs',os); } } if(t.id==='m_resp') memoSet('resp',t.value); if(t.dataset&&t.dataset.mh){ var h=memoHdr(); h[t.dataset.mh]=t.value; memoHdrSave(h); memoHdrPush(); } });
 $('q').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); submitEntry(); } });
 $('file').addEventListener('change',function(){ if(this.files&&this.files[0]) handleFile(this.files[0]); });
 document.addEventListener('change',function(e){
