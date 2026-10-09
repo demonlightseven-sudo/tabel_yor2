@@ -306,7 +306,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='30';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='31';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1646,12 +1646,12 @@ var ND_KINDS=[['hz','Опасные работы'],['fire','Огневые ра�
 var ND_SHORT={hz:'Опасные',fire:'Огневые',lift:'Подъёмные механизмы',conc:'Бетонные'};
 var ND_TITLE={hz:'Наряд-допуск на опасные работы',fire:'Наряд-допуск на огневые работы',lift:'Наряд-допуск на работу с подъёмными механизмами',conc:'Наряд-допуск на бетонные работы'};
 var ND_FILE={hz:'Опасные',fire:'Огневые',lift:'ПС',conc:'Бетонные'};
-var ND_TPL={hz:'nd-hz.json',fire:'nd-fire.json'};   // для каких нарядов уже есть бланк
+var ND_TPL={hz:'nd-hz.json',fire:'nd-fire.json',lift:'nd-lift.json'};   // для каких нарядов уже есть бланк
 var ND_KEY='tabel-nd-v1';
 var ND_BASE={t1:'07:00',t2:'21:00',days:'15',comb:'нет',h1:'No',h2:'No',h3:'No',h4:'No'};
-var ND_BASEK={fire:{t2:'19:00'}};
+var ND_BASEK={fire:{t2:'19:00'},lift:{t2:'19:00'}};
 var ND_CFGK=['company','code','head','exec','prep','hse','issuer','ir','in','works','doc','tech','comb','t1','t2','days','h1','h2','h3','h4'];
-var ND_GROUPS={hz:[['att','Приложения'],['haz','Вредные и опасные факторы'],['eq','Оборудование и инструмент'],['ppe','СИЗ, меры безопасности']],fire:[['pre','Мероприятия до начала работ']]};
+var ND_GROUPS={hz:[['att','Приложения'],['haz','Вредные и опасные факторы'],['eq','Оборудование и инструмент'],['ppe','СИЗ, меры безопасности']],fire:[['pre','Мероприятия до начала работ']],lift:[['haz','Опасности и риски'],['safe','Меры безопасности']]};
 var ndTplC={}, ndTplErr={}, ndBusy=false, ndFetchAt=0, ndShowAll=false, ndQ='', ndMsg='', ndLogQ='', ndLogK='';
 function ndSt(){
   var o={}; try{ o=JSON.parse(localStorage.getItem(ND_KEY)||'{}')||{}; }catch(e){ o={}; }
@@ -1777,7 +1777,7 @@ function renderNd(){
   var groups=(ND_GROUPS[k]||[]).map(function(g){
     var items=tpl.cb.map(function(c,i){ return {c:c,i:i}; }).filter(function(x){ return x.c.g===g[0]&&x.c.t; });
     var n=items.filter(function(x){ return on[x.i]; }).length;
-    return '<details class="mhdr ndgrp"'+(k==='fire'?' open':'')+'><summary>'+g[1]+' <span class="ndcnt" id="ndc_'+g[0]+'">(отмечено '+n+')</span></summary><div class="ndcbs">'+items.map(function(x){
+    return '<details class="mhdr ndgrp"'+(k!=='hz'?' open':'')+'><summary>'+g[1]+' <span class="ndcnt" id="ndc_'+g[0]+'">(отмечено '+n+')</span></summary><div class="ndcbs">'+items.map(function(x){
       var t=x.c.t, m=/^(.*?[А-Яа-яЁёA-Z)\.:])\s*\/\s*([A-Za-z].*)$/.exec(t), ru=m?m[1]:t, en=m?m[2]:'';
       if(/^[А-ЯЁ]{4,}/.test(ru)){ ru=ru.charAt(0)+ru.slice(1).toLowerCase(); en=en.charAt(0)+en.slice(1).toLowerCase(); }
       return '<label class="ndcb'+(x.c.other?' oth':'')+'"><input type="checkbox" data-ndc="'+x.i+'" data-g="'+g[0]+'"'+(on[x.i]?' checked':'')+'><span>'+esc(ru)+(en?'<small>'+esc(en)+'</small>':'')+'</span>'+
@@ -1800,6 +1800,19 @@ function renderNd(){
     ndField(st,k,'exec','Ответственный за проведение огневых работ','Site Foreman …','exec')+
     ndField(st,k,'hse','Специалист по ОТ (регистрирует наряд)','Engineer of HSE Department …','hse')+
     '<div class="dgrid">'+ndField(st,k,'ir','Инструктаж провёл: должность','Мастер участка','ir')+ndField(st,k,'in','ФИО (Фамилия И.О.)','Фамилия И.О.','in')+'</div>';
+  else if(k==='lift') form=
+    '<div class="dgrid">'+noF+ndField(st,k,'code','Место работ (код объекта)','91UYE/91UYF','code')+'</div>'+
+    '<div class="dgrid"><div class="fld"><label for="nd_d1">Начало работ</label><input type="date" id="nd_d1" data-nd="d1" value="'+esc(d1)+'"></div>'+ndField(st,k,'t1','Время начала','','','time')+'</div>'+
+    '<div class="dgrid"><div class="fld"><label for="nd_days">Срок, дней</label><input type="number" min="1" max="366" id="nd_days" data-nd="days" value="'+esc(ndV(st,k,'days'))+'"></div>'+ndField(st,k,'t2','Время окончания','','','time')+'</div>'+
+    '<p class="note" id="nd_until">Окончание работ: <b>'+esc(ndDmy(d2))+'</b> · строки ежедневного допуска — на каждый день</p>'+
+    ndField(st,k,'works','Поручается: описание работы','Loading and unloading operations …','works')+
+    ndField(st,k,'tech','Вид, марка и рег. № подъёмного сооружения','Mobile Telescopic Crane …','tech')+
+    '<div class="fld"><label for="nd_doc">ППР / ТК — каждый документ с новой строки</label><textarea id="nd_doc" data-nd="doc" rows="3" maxlength="400" placeholder="ED.A.…">'+esc(ndV(st,k,'doc'))+'</textarea></div>'+
+    '<h3 class="dh3">Ответственные</h3>'+
+    ndField(st,k,'issuer','Выдающий наряд-допуск','Head of the site …','issuer')+
+    ndField(st,k,'head','Руководитель работ (ответственный за безопасное производство работ с ПС)','Site Foreman …','head')+
+    ndField(st,k,'exec','Ответственный производитель работ','Installer of … category …','exec')+
+    ndField(st,k,'in','Инструктаж бригаде провёл (ФИО полностью)','Фамилия Имя Отчество','in');
   else form=
     '<div class="dgrid">'+noF+
       ndField(st,k,'code','Объект (код)','11UZU(13UXP)','code')+'</div>'+
@@ -1866,17 +1879,24 @@ function ndBuild(tpl,e){
     return tpl.row.replace('{{TN}}',function(){ return xesc(t.num||''); }).replace('{{FIO}}',function(){ return xesc(t.name||''); }).replace('{{ROLE}}',function(){ return xesc(t.role||''); })
       .replace('{{IR}}',function(){ return xesc(e.ir||''); }).replace('{{IN}}',function(){ return xesc(e['in']||''); });
   }).join('');
-  var map={CODE:e.code,NO:e.no,D1:e.d1,T1:e.t1,DAYS:e.days,D2:e.d2,T2:e.t2,HEAD:e.head,EXEC:e.exec,HSE:e.hse,WORKS:e.works,DOC:e.doc,TECH:e.tech,
+  var drows='';
+  if(tpl.drow&&ndIso(e.d1)&&ndIso(e.d2)){ var dh=ndShortEn(e.head), de=ndShortEn(e.exec); for(var dd=ndIso(e.d1), guard=0; dd<=ndIso(e.d2)&&guard<400; dd=addDays(dd,1), guard++){ drows+=tpl.drow.replace('{{DD}}',ndDmy(dd)).replace('{{DH}}',function(){ return xesc(dh); }).replace('{{DE}}',function(){ return xesc(de); }); } }
+  doc=doc.replace('<!--DROWS-->',function(){ return drows; });
+  var map={CODE:e.code,NO:e.no,D1:e.d1,T1:e.t1,DAYS:e.days,DAYSW:e.days+' '+ndDaysWord(e.days),D2:e.d2,T2:e.t2,HEAD:e.head,EXEC:e.exec,HSE:e.hse,WORKS:e.works,DOC:e.doc,TECH:e.tech,
     H1:e.h1,H2:e.h2,H3:e.h3,H4:e.h4,ISSUER:e.issuer,COMB:e.comb,COMPANY:e.company,PREP:e.prep,REL:e.rel};
   doc=doc.replace('<!--ROWS-->',function(){ return rows; }).replace(/\{\{([A-Z]+\d*)\}\}/g,function(m,key){
     if(/^C\d+$/.test(key)) return on[key.slice(1)]?(tpl.on!=null?tpl.on:'ü'):(tpl.off!=null?tpl.off:'o');
-    if(/^O\d+$/.test(key)) return o[key.slice(1)]?xesc((tpl.oPre||'')+o[key.slice(1)]):'';
+    if(/^O\d+$/.test(key)) return o[key.slice(1)]?xesc((tpl.oPre||'')+o[key.slice(1)]):(tpl.oEmpty||'');
+    if(key==='DOC') return xesc(String(map.DOC||'').trim()).split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean).join('</w:t><w:br /><w:t xml:space="preserve">');
     return xesc(map[key]==null?'':map[key]);
   });
   var files={}; Object.keys(tpl.files).forEach(function(n){ files[n]=tpl.files[n]; }); files['word/document.xml']=doc;
   Object.keys(tpl.bin||{}).forEach(function(n){ var s=atob(tpl.bin[n]), a=new Uint8Array(s.length); for(var i=0;i<s.length;i++) a[i]=s.charCodeAt(i); files[n]=a; });
   return zipStore(files);
 }
+function ndDaysWord(n){ n=Math.abs(parseInt(n,10)||0); var a=n%100, b=n%10; return a>10&&a<20?'дней':b===1?'день':b>=2&&b<=4?'дня':'дней'; }
+/* «Site Foreman Borodin M. K.» -> «Borodin M.K.» */
+function ndShortEn(s){ s=String(s||'').trim(); var m=/([A-Za-zА-Яа-яЁё'’-]+)\s+([A-ZА-ЯЁ])\.\s*([A-ZА-ЯЁ])\.?\s*$/.exec(s); return m?m[1]+' '+m[2]+'.'+m[3]+'.':s; }
 function ndFileName(e){ return 'Наряд-допуск_'+String(e.no).replace(/[^\wА-Яа-яЁё-]/g,'')+'_'+String(e.code||'').split('(')[0].replace(/[^\wА-Яа-яЁё-]/g,'')+'_'+(ND_FILE[e.kind]||'')+'.docx'; }
 function ndDownload(e,after){
   return ndTemplate(e.kind).then(function(tpl){ var b=ndBuild(tpl,e), name=ndFileName(e); return saveFile(name,b.type,b).then(function(r){ if(after) after(r,name); reportDone(r); }); });
@@ -1895,7 +1915,8 @@ function ndMake(mode){
   e.team=ndPeople().filter(function(x){ return sel[x.key]; }).map(function(x){ return {num:x.p.num||'',name:x.p.name,role:x.p.role||'',b:x.b}; }).concat((d.teamX||[]).map(function(x){ return {num:x.num||'',name:x.name,role:x.role||'',b:x.b||''}; }))
     .sort(function(a,b){ return byNum(a,b); });
   if(!e.no){ msg.textContent='Укажите номер наряда.'; $('nd_no').focus(); return; }
-  var miss=(k==='fire'?[['works','описание работ'],['code','место проведения работ'],['issuer','кто выдал наряд'],['prep','ответственный за подготовку'],['exec','ответственный за проведение']]
+  var miss=(k==='lift'?[['works','описание работы'],['issuer','выдающий наряд-допуск'],['head','руководитель работ'],['exec','ответственный производитель работ'],['tech','подъёмное сооружение']]
+    :k==='fire'?[['works','описание работ'],['code','место проведения работ'],['issuer','кто выдал наряд'],['prep','ответственный за подготовку'],['exec','ответственный за проведение']]
     :[['works','наименование работ'],['head','руководитель работ'],['exec','ответственный исполнитель'],['issuer','кто выдал наряд']]).filter(function(x){ return !e[x[0]]; });
   if(miss.length){ msg.textContent='Заполните: '+miss.map(function(x){ return x[1]; }).join(', ')+'.'; var f=$('nd_'+miss[0][0]); if(f) f.focus(); return; }
   if(!e.team.length){ msg.textContent='Отметьте людей в составе бригады.'; return; }
@@ -1969,7 +1990,7 @@ function ndInput(t){
   if(t.dataset.nd){
     var f=t.dataset.nd; d[f]=t.value; ndSave(st);
     if(k==='fire'&&(f==='d1'||f==='rel'||f==='d2')){ var dt=ndDates(st,k); if(f!=='d2'&&$('nd_d2')) $('nd_d2').value=dt.d2; if($('nd_par')) $('nd_par').innerHTML=ndParText(dt); }
-    if(f==='d1'||f==='days'){ var u=$('nd_until'); if(u) u.innerHTML='Действителен до: <b>'+esc(ndDmy(ndUntil(ndV(st,k,'d1')||today(),ndV(st,k,'days'))))+'</b>'; }
+    if(f==='d1'||f==='days'){ var u=$('nd_until'); if(u) u.innerHTML=(k==='lift'?'Окончание работ: ':'Действителен до: ')+'<b>'+esc(ndDmy(ndUntil(ndV(st,k,'d1')||today(),ndV(st,k,'days'))))+'</b>'+(k==='lift'?' · строки ежедневного допуска — на каждый день':''); }
     if(f==='d1') ndTeamRefresh();
     return true;
   }

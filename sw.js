@@ -1,8 +1,8 @@
 /* Служебный файл: хранит копию приложения на телефоне, чтобы оно открывалось без интернета.
    Когда интернет есть, приложение подтягивает обновления само. */
-const CACHE = 'tabel-app-v30';
+const CACHE = 'tabel-app-v31';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png',
-                './icon-maskable-512.png', './apple-touch-icon.png', './memo-template.json', './memo-rvd.json', './nd-hz.json', './nd-fire.json'];
+                './icon-maskable-512.png', './apple-touch-icon.png', './memo-template.json', './memo-rvd.json', './nd-hz.json', './nd-fire.json', './nd-lift.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
