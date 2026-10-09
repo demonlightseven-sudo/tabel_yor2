@@ -274,7 +274,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='22';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='23';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -371,10 +371,18 @@ function load(){
   try{ var raw=localStorage.getItem(KEY); if(raw) return normalizeRoot(JSON.parse(raw)); }catch(e){}
   return blankRoot();
 }
-function save(){ try{ localStorage.setItem(KEY,JSON.stringify(root)); }catch(e){ storageOK=false; renderBanner(); } }
+/* во всех списках — по возрастанию табельного номера; без номера — в конце, по алфавиту */
+function numKey(n){ var d=String(n==null?'':n).replace(/\D/g,''); return d?Number(d):Infinity; }
+function byNum(a,b){
+  var x=numKey(a.num), y=numKey(b.num);
+  if(x!==y) return x<y?-1:1;
+  return String(a.name||'').localeCompare(String(b.name||''),'ru');
+}
+function sortPeople(r){ ['rf','are'].forEach(function(k){ if(r&&r.books&&r.books[k]&&Array.isArray(r.books[k].people)) r.books[k].people.sort(byNum); }); }
+function save(){ sortPeople(root); try{ localStorage.setItem(KEY,JSON.stringify(root)); }catch(e){ storageOK=false; renderBanner(); } }
 try{ localStorage.setItem(KEY+'-t','1'); localStorage.removeItem(KEY+'-t'); }catch(e){ storageOK=false; }
 
-var root=load();
+var root=load(); sortPeople(root);
 function hasPeople(r){ return r.books.rf.people.length+r.books.are.people.length>0; }
 if(SEED&&!hasPeople(root)){ root=normalizeRoot(SEED); save(); }
 function bk(){ return root.books[root.cur]; }
@@ -1472,7 +1480,7 @@ var memoSel={};   // кто отмечен галочкой (ключ: табе�
 function memoPeople(){
   var day=dayRec(ui.date), n=memoNorm(root.cur);
   return activePeople().map(function(p){ var r=day[p.id]; return r&&r.s==='work'?{p:p,h:r.h,over:r.h>n}:null; }).filter(Boolean)
-    .sort(function(a,b){ return (b.over-a.over)||(String(a.p.num).localeCompare(String(b.p.num),'ru',{numeric:true})); });
+    .sort(function(a,b){ return byNum(a.p,b.p); });
 }
 function memoChecked(x){
   var t=memoType(), k=t+'|'+root.cur+'|'+ui.date+'|'+x.p.id;
