@@ -243,6 +243,8 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 .mt td.p{background:var(--pl-bg);color:var(--pl-t)} .mt td.u{background:var(--ul-bg);color:var(--ul-t)} .mt td.a{background:var(--ab-bg);color:var(--ab-t)}
 .mt td.po{background-image:repeating-linear-gradient(135deg,transparent 0 5px,rgba(239,108,0,.75) 5px 6px)}
 .mt td.pm{background-image:repeating-linear-gradient(135deg,transparent 0 5px,rgba(239,108,0,.35) 5px 6px)}
+.mt td.ph{background-image:repeating-linear-gradient(135deg,transparent 0 5px,rgba(211,47,47,.8) 5px 6px)}
+.mt td.phm{background-image:repeating-linear-gradient(135deg,transparent 0 5px,rgba(211,47,47,.4) 5px 6px)}
 .mfull{display:none}
 /* компьютер: табель за месяц на весь экран, весь месяц без прокрутки вбок */
 @media (min-width:900px){
@@ -304,7 +306,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='29';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='30';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -316,11 +318,11 @@ var SCHEDS=[
   {id:'',name:'График не задан',short:''},
   {id:'std',name:'Обычный: вс–чт рабочие, выходные пт и сб',short:'Обычный график'},
   {id:'w61',name:'6/1 · выходной только пятница',short:'График 6/1'},
-  {id:'g1',name:'№1 · 24/6, выходные 1–6 числа',short:'График №1',from:1,to:6},
-  {id:'g2',name:'№2 · 24/6, выходные 7–12 числа',short:'График №2',from:7,to:12},
-  {id:'g3',name:'№3 · 24/6, выходные 13–18 числа',short:'График №3',from:13,to:18},
-  {id:'g4',name:'№4 · 24/6, выходные 19–24 числа',short:'График №4',from:19,to:24},
-  {id:'g5',name:'№5 · 24/6, выходные 25–30 числа',short:'График №5',from:25,to:30}
+  {id:'g1',name:'№1 · 24/6 (день) ПК АРЕ',short:'График №1',from:1,to:6},
+  {id:'g2',name:'№2 · 24/6 (день) ПК АРЕ',short:'График №2',from:7,to:12},
+  {id:'g3',name:'№3 · 24/6 (день) ПК АРЕ',short:'График №3',from:13,to:18},
+  {id:'g4',name:'№4 · 24/6 (день) ПК АРЕ',short:'График №4',from:19,to:24},
+  {id:'g5',name:'№5 · 24/6 (день) ПК АРЕ',short:'График №5',from:25,to:30}
 ];
 var MONTHS_G=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 var MONTHS_N=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
@@ -346,8 +348,15 @@ function normNum(n){ n=String(n).trim().replace(/^0+/,''); return n||'0'; }
 var AR={}; for(var i=0;i<10;i++){ AR[String.fromCharCode(0x0660+i)]=String(i); AR[String.fromCharCode(0x06F0+i)]=String(i); }
 function latinDigits(s){ return String(s).replace(/[\u0660-\u0669\u06F0-\u06F9]/g,function(c){ return AR[c]; }); }
 
+/* графики 24/6 №1–5 (день) ПК АРЕ — по файлу «Графики Филиал 2026» (правки от 01.07.2026).
+   По дню: В — выходной, П — нерабочий праздничный день, цифра — часы работы. */
+var SCHED_CAL={g1:{'2026-10':'ВВВВВВ8П9999999В9999999999999В9','2026-11':'ВВВВВВ9999999999999В9999999999','2026-12':'ВВВВВВ99999999999В999999999999В'},g2:{'2026-10':'9В9999ВПВВВВ9999999999В99999999','2026-11':'999999ВВВВВВ99999999999999В999','2026-12':'999999ВВВВВВ999999999999В99999В'},g3:{'2026-10':'9В99998П9999ВВВВВВ99999999999В9','2026-11':'999999999999ВВВВВВ99999999В999','2026-12':'999999999999ВВВВВВ999999999999В'},g4:{'2026-10':'9999998ПВ999999999ВВВВВВ9999999','2026-11':'99999В999999999999ВВВВВВ999999','2026-12':'999В999999В9999999ВВВВВВ999999В'},g5:{'2026-10':'9999998ПВ999999999999999ВВВВВВВ','2026-11':'999999999999В99999999999ВВВВВВ','2026-12':'9999999999В999999В999999ВВВВВВВ'}};
+function planCode(p,ds){ var c=SCHED_CAL[p.sched], s=c&&c[ds.slice(0,7)]; if(!s) return ''; return s.charAt(Number(ds.slice(8,10))-1)||''; }
+function planHol(p,ds){ return planCode(p,ds)==='П'; }
+function planHours(p,ds){ var c=planCode(p,ds); return /^\d$/.test(c)?Number(c):0; }
 function planOff(p,ds){
   if(!p.sched) return null;
+  var pc=planCode(p,ds); if(pc) return pc==='В'||pc==='П';
   var d=parseYmd(ds);
   if(p.sched==='std'){ var w=d.getDay(); return w===5||w===6; }
   if(p.sched==='w61') return d.getDay()===5;
@@ -737,7 +746,8 @@ function rowHtml(p){
   var r=dayRec(ui.date)[p.id], st=r?r.s:'', id=esc(p.id);
   var off=planOff(p,ui.date), plan='';
   if(off!==null){
-    plan='<div class="plan'+(off?' po':'')+'">'+esc(schedById(p.sched).short)+': '+(off?'выходной':'рабочий день')+((off&&st==='work')?' · вышел в выходной':'')+'</div>';
+    var hol=planHol(p,ui.date), ph=planHours(p,ui.date);
+    plan='<div class="plan'+(off?' po':'')+'">'+esc(schedById(p.sched).short)+': '+(hol?'праздничный день':off?'выходной':'рабочий день'+(ph&&ph!==bk().defH?' ('+ph+' ч)':''))+((off&&st==='work')?' · вышел в '+(hol?'праздник':'выходной'):'')+'</div>';
   }
   function b(s,label){ return '<button class="'+s+'" data-a="set" data-id="'+id+'" data-s="'+s+'" aria-pressed="'+(st===s)+'">'+label+'</button>'; }
   var open=ui.open[p.id]||st==='pl'||st==='ul'||st==='sick';
@@ -822,7 +832,7 @@ function renderMonth(){
   var m=ui.month, a=m.split('-').map(Number), n=daysIn(m), recs=bk().records, t=today(), ppl=peopleForMonth(m), i;
   var nav='<div class="mnav"><button data-a="mnav" data-d="-1" aria-label="Предыдущий месяц">◀</button><div class="mlabel">'+MONTHS_N[a[1]-1]+' '+a[0]+' · '+BOOKS[root.cur]+'</div>'+
     '<button data-a="mnav" data-d="1" aria-label="Следующий месяц">▶</button><button data-a="mexp" aria-label="Сохранить файл для Excel" title="Файл для Excel">⬇</button><button class="mfull" data-a="mfull" aria-label="Во весь экран" title="Во весь экран (F11)">⛶</button></div>';
-  var leg='<p class="mleg">Число — часы · В — выходной · Б — больничный · ОТ — отпуск · БС — отпуск без ЗП · ПР — прогул · оранжевая штриховка — выходной по графику. Нажмите на клетку, чтобы открыть этот день.</p>';
+  var leg='<p class="mleg">Число — часы · В — выходной · Б — больничный · ОТ — отпуск · БС — отпуск без ЗП · ПР — прогул · оранжевая штриховка — выходной по графику, красная — праздничный день. Нажмите на клетку, чтобы открыть этот день.</p>';
   var old=monthOld&&syncOn()?'<p class="moldhint">Чтобы здесь были отметки с других телефонов, обновите скрипт в таблице (файл Code.gs, «Новая версия» в «Управление развертываниями»).</p>':'';
   if(!ppl.length){
     $('month').innerHTML=nav+'<div class="empty"><p>В табеле '+BOOKS[root.cur]+' пока нет людей.</p><button class="primary" data-a="people">Добавить людей</button></div>'; return;
@@ -842,8 +852,8 @@ function renderMonth(){
         cls=MCLS[r.s];
         if(r.s==='work'&&r.h>0){ days++; hrs+=r.h; cnt[i-1]++; }
         if(r.s==='ab') abs[i-1]++;
-        if(planOff(p,ds)===true) cls+=' pm';
-      } else if(planOff(p,ds)===true) cls='po';
+        if(planOff(p,ds)===true) cls+=planHol(p,ds)?' phm':' pm';
+      } else if(planOff(p,ds)===true) cls=planHol(p,ds)?'ph':'po';
       tds+='<td class="'+cls+'" data-a="mcell" data-d="'+ds+'" data-id="'+esc(p.id)+'">'+cellText(r)+'</td>';
     }
     return '<tr><th class="c0" scope="row" title="'+esc((p.num?p.num+' ':'')+p.name)+'">'+(p.num?'<span class="tn">'+esc(p.num)+'</span>':'')+esc(p.name)+'</th>'+tds+'<td class="tot">'+days+'</td><td class="tot">'+fmtH(hrs)+'</td></tr>';
@@ -903,7 +913,7 @@ function fillBySchedule(){
   var day=dayObj(ui.date,true), nw=0, no=0, now=Date.now(), made=[];
   activePeople().forEach(function(p){
     if(day[p.id]) return;
-    if(planOff(p,ui.date)===true){ day[p.id]={s:'off',h:0,t:now}; no++; } else { day[p.id]={s:'work',h:bk().defH,t:now}; nw++; }
+    if(planOff(p,ui.date)===true){ day[p.id]={s:'off',h:0,t:now}; no++; } else { day[p.id]={s:'work',h:planHours(p,ui.date)||bk().defH,t:now}; nw++; }
     made.push(p.id);
   });
   dropEmpty(ui.date); save(); made.forEach(function(id){ track(root.cur,ui.date,id); }); render();
@@ -2036,7 +2046,7 @@ document.addEventListener('click',function(e){
     case 'fill': {
       var s=stats();
       if(!s.unm){ toast('Все уже отмечены'); closeSheet(); break; }
-      openSheet('Отметить по графику','<p>Отметить <b>'+s.unm+'</b> чел. без отметки в табеле '+BOOKS[root.cur]+' за выбранный день?</p><p class="note">Рабочий день по графику: «Пришёл» ('+fmtH(bk().defH)+' ч). Выходной по графику: «Выходной». Кто без графика: «Пришёл».</p>'+
+      openSheet('Отметить по графику','<p>Отметить <b>'+s.unm+'</b> чел. без отметки в табеле '+BOOKS[root.cur]+' за выбранный день?</p><p class="note">Рабочий день по графику: «Пришёл» ('+fmtH(bk().defH)+' ч; у графиков 24/6 — часы из графика). Выходной или праздничный день по графику: «Выходной». Кто без графика: «Пришёл».</p>'+
         '<div class="acts"><button class="primary" data-a="fillok">Да, отметить</button><button data-a="close">Отмена</button></div>');
       break;
     }
