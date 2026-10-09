@@ -176,7 +176,13 @@ body.vdocs .row2,body.vdocs #stats,body.vdocs #tabs,body.vdocs #list,body.vdocs 
 body.vnd #nd{display:block}
 body.vnd .row2,body.vnd .books,body.vnd #dateBtn,body.vnd #stats,body.vnd #tabs,body.vnd #list,body.vnd #msg{display:none}
 body.vnd #menuBtn{margin-left:auto}
-.ndkinds button{min-height:44px;font-size:13px;line-height:1.15;padding:2px 4px}
+.ndkinds button{min-height:44px;font-size:12px;line-height:1.15;padding:2px 3px}
+.ndkinds .ndlogt span{font-weight:400}
+.ndlogtools{display:flex;gap:8px;margin:0 0 10px}
+.ndlogtools input{flex:1;min-width:0}
+.ndlogtools select{width:auto;flex:none;max-width:45%}
+.ndedit{background:var(--surface);border-left:6px solid var(--ul);border-radius:6px;padding:8px 10px;font-size:14px;margin:6px 0 10px}
+.ndedit button{min-height:34px;font-size:13px;margin-top:6px}
 .ndteamtools{display:flex;flex-direction:column;gap:6px;margin:0 0 8px}
 .ndonly{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
 .ndonly input{width:20px;height:20px}
@@ -187,14 +193,14 @@ body.vnd #menuBtn{margin-left:auto}
 .ndcb span{flex:1;min-width:0;display:flex;flex-direction:column}
 .ndcb small{color:var(--muted);font-size:12px}
 .ndcb.oth input[type=text]{flex:1 1 100%;margin-left:30px;width:calc(100% - 30px)}
-.ndj{display:flex;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line)}
+.ndj{display:flex;gap:6px 8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .ndj:last-child{border-bottom:0}
 .ndjt{flex:1;min-width:0;display:flex;flex-direction:column;font-size:14px}
 .ndjt small{color:var(--muted);font-size:12px}
 .ndjt .ndwarn{color:var(--sick-t)}
 .ndon{font-size:12px;font-weight:700;color:var(--work-t,inherit)}
-.ndjb{display:flex;flex-direction:column;gap:4px}
-.ndjb button{min-height:34px;font-size:13px;padding:0 10px}
+.ndjb{display:flex;gap:6px;flex:1 1 100%;flex-wrap:wrap}
+.ndjb button{min-height:36px;font-size:13px;padding:0 6px;flex:1;white-space:nowrap}
 .dwrap{padding:4px 0 90px}
 .dh2{font-size:20px;margin:12px 0 4px}
 .dh3{font-size:16px;margin:14px 0 6px}
@@ -298,7 +304,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='26';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='27';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1627,6 +1633,7 @@ function memoMake(){
 
 /* ------------------------------------------------------------- наряды-допуски */
 var ND_KINDS=[['hz','Опасные работы'],['fire','Огневые работы'],['lift','Подъёмные механизмы'],['conc','Бетонные работы']];
+var ND_SHORT={hz:'Опасные',fire:'Огневые',lift:'Подъёмные механизмы',conc:'Бетонные'};
 var ND_TITLE={hz:'Наряд-допуск на опасные работы',fire:'Наряд-допуск на огневые работы',lift:'Наряд-допуск на работу с подъёмными механизмами',conc:'Наряд-допуск на бетонные работы'};
 var ND_FILE={hz:'Опасные',fire:'Огневые',lift:'ПС',conc:'Бетонные'};
 var ND_TPL={hz:'nd-hz.json',fire:'nd-fire.json'};   // для каких нарядов уже есть бланк
@@ -1635,10 +1642,11 @@ var ND_BASE={t1:'07:00',t2:'21:00',days:'15',comb:'нет',h1:'No',h2:'No',h3:'N
 var ND_BASEK={fire:{t2:'19:00'}};
 var ND_CFGK=['company','code','head','exec','prep','hse','issuer','ir','in','works','doc','tech','comb','t1','t2','days','h1','h2','h3','h4'];
 var ND_GROUPS={hz:[['att','Приложения'],['haz','Вредные и опасные факторы'],['eq','Оборудование и инструмент'],['ppe','СИЗ, меры безопасности']],fire:[['pre','Мероприятия до начала работ']]};
-var ndTplC={}, ndTplErr={}, ndBusy=false, ndFetchAt=0, ndShowAll=false, ndQ='', ndMsg='';
+var ndTplC={}, ndTplErr={}, ndBusy=false, ndFetchAt=0, ndShowAll=false, ndQ='', ndMsg='', ndLogQ='', ndLogK='';
 function ndSt(){
   var o={}; try{ o=JSON.parse(localStorage.getItem(ND_KEY)||'{}')||{}; }catch(e){ o={}; }
-  if(!ND_TITLE[o.kind]) o.kind='hz';
+  if(!ND_TITLE[o.kind]&&o.kind!=='log') o.kind='hz';
+  if(o.edit&&(!o.edit.id||!ND_TITLE[o.edit.kind])) o.edit=null;
   ['draft','cfg'].forEach(function(k){ if(!o[k]||typeof o[k]!=='object') o[k]={}; });
   ['list','q'].forEach(function(k){ if(!Array.isArray(o[k])) o[k]=[]; });
   return o;
@@ -1659,7 +1667,8 @@ function ndDates(st,k){
   return {d1:d1,d2:p2&&p2>=d1?p2:addDays(d1,14),par:par};
 }
 function ndUntil(d1,days){ var n=Math.max(1,Math.min(366,parseInt(days,10)||1)); return /^\d{4}-\d\d-\d\d$/.test(d1)?addDays(d1,n-1):''; }
-function ndAll(st,k){ var seen={}, out=[]; st.q.concat(st.list).forEach(function(e){ if(e&&e.kind===k&&!seen[e.id]){ seen[e.id]=1; out.push(e); } }); return out.sort(function(a,b){ return (b.at||0)-(a.at||0); }); }
+function ndAll(st,k){ var seen={}, out=[]; st.q.concat(st.list).forEach(function(e){ if(!e||seen[e.id]) return; seen[e.id]=1; if(e._del) return; if(!k||e.kind===k) out.push(e); }); return out.sort(function(a,b){ return (b.at||0)-(a.at||0); }); }
+function ndFind(st,id){ return ndAll(st,'').filter(function(x){ return x.id===id; })[0]||null; }
 function ndNext(st,k){ var m=0; ndAll(st,k).forEach(function(e){ var n=parseInt(String(e.no).replace(/\D/g,''),10); if(n>m) m=n; }); return m?String(m+1):''; }
 function ndTemplate(k){
   if(ndTplC[k]) return Promise.resolve(ndTplC[k]);
@@ -1683,7 +1692,7 @@ function ndFetch(force){
   if(!syncOn()) return;
   if(!force&&Date.now()-ndFetchAt<60000) return; ndFetchAt=Date.now();
   var k=ndKind();
-  call({action:'ndcfg',kind:k}).then(function(j){ var st=ndSt(); st.cfg[j.kind||k]=j.cfg||{}; ndSave(st); if(ui.view==='nd') renderNd(); }).catch(function(){});
+  if(ND_TITLE[k]) call({action:'ndcfg',kind:k}).then(function(j){ var st=ndSt(); st.cfg[j.kind||k]=j.cfg||{}; ndSave(st); if(ui.view==='nd') renderNd(); }).catch(function(){});
   call({action:'ndlist'}).then(function(j){ var st=ndSt(); st.list=Array.isArray(j.list)?j.list:[]; ndSave(st); if(ui.view==='nd') renderNd(); }).catch(function(){});
 }
 function ndFlush(){
@@ -1691,9 +1700,9 @@ function ndFlush(){
   var st=ndSt(); if(!st.q.length) return;
   ndBusy=true;
   var e=st.q[0];
-  call({action:'ndadd',e:e}).then(function(j){
-    var s2=ndSt(); s2.q=s2.q.filter(function(x){ return x.id!==e.id; }); e.dup=!!j.dup;
-    s2.list=[e].concat(s2.list.filter(function(x){ return x.id!==e.id; })); ndSave(s2); ndBusy=false;
+  call(e._del?{action:'nddel',id:e.id}:{action:'ndadd',e:e}).then(function(j){
+    var s2=ndSt(); s2.q=s2.q.filter(function(x){ return x!==e&&!(x.id===e.id&&x.at===e.at&&!!x._del===!!e._del&&x.upd===e.upd); }); e.dup=!!j.dup;
+    s2.list=s2.list.filter(function(x){ return x.id!==e.id; }); if(!e._del) s2.list.unshift(e); ndSave(s2); ndBusy=false;
     if(j.dup) toast('⚠ Наряд № '+e.no+' уже был в журнале — проверьте номер');
     if(s2.q.length) ndFlush(); else { ndFetchAt=0; ndFetch(true); }
     if(ui.view==='nd') renderNd();
@@ -1722,9 +1731,11 @@ function ndTeamList(st,k){
       '<span class="mn">'+esc(x.p.num||'')+'</span><span class="mf"><b>'+esc(x.p.name)+'</b><small>'+esc(x.p.role||'')+'</small></span>'+
       '<span class="mh">'+BOOKS[x.b]+(ndCame(x,t.d1)?'<small>пришёл</small>':'')+'</span></label>';
   }).join('');
+  rows=(t.d.teamX||[]).map(function(x,i){ return '<label class="mrow on"><input type="checkbox" data-ndx="'+i+'" checked><span class="mn">'+esc(x.num||'')+'</span><span class="mf"><b>'+esc(x.name)+'</b><small>'+esc(x.role||'')+' · нет в табеле, есть в наряде</small></span><span class="mh">'+(BOOKS[x.b]||'')+'</span></label>'; }).join('')+rows;
   return rows?'<div class="mlist">'+rows+'</div>':'<p class="note">'+(q?'Никого не найдено.':'В табелях нет людей.')+'</p>';
 }
-function ndTeamRefresh(){ var st=ndSt(), k=st.kind, t=ndTeamState(st,k); if($('ndteam')) $('ndteam').innerHTML=ndTeamList(st,k); if($('ndonlyl')) $('ndonlyl').textContent=ndDmy(t.d1)+' ('+t.came+')'; if($('nd_nsel')) $('nd_nsel').textContent='('+(t.d.team||[]).length+' чел.)'; }
+function ndTeamRefresh(){ var st=ndSt(), k=st.kind, t=ndTeamState(st,k); if($('ndteam')) $('ndteam').innerHTML=ndTeamList(st,k); if($('ndonlyl')) $('ndonlyl').textContent=ndDmy(t.d1)+' ('+t.came+')'; if($('nd_nsel')) $('nd_nsel').textContent='('+ndTeamN(t.d)+' чел.)'; }
+function ndTeamN(d){ return (d.team||[]).length+(d.teamX||[]).length; }
 function ndField(st,k,f,label,ph,list,type){
   var v=ndV(st,k,f);
   return '<div class="fld"><label for="nd_'+f+'">'+label+'</label><input type="'+(type||'text')+'" id="nd_'+f+'" data-nd="'+f+'" maxlength="400" value="'+esc(v)+'"'+(ph?' placeholder="'+esc(ph)+'"':'')+(list?' list="ndl_'+f+'"':'')+'></div>';
@@ -1741,11 +1752,13 @@ function ndDatalists(st,k){
 function renderNd(){
   ndFetch(false); ndFlush();
   var st=ndSt(), k=st.kind, tpl=ndTplC[k], el=$('nd'); if(!el) return;
-  var kinds='<div class="mtype ndkinds" role="tablist" aria-label="Вид наряда">'+ND_KINDS.map(function(x){ return '<button role="tab" data-a="ndkind" data-k="'+x[0]+'" aria-selected="'+(x[0]===k)+'">'+x[1]+'</button>'; }).join('')+'</div>';
-  var head='<h2 class="dh2">'+ND_TITLE[k]+'</h2>';
-  if(!ND_TPL[k]){ el.innerHTML='<div class="dwrap">'+kinds+head+'<p class="note">Для этого наряда ещё нет бланка. Пришлите образец в Word — и здесь появится заполнение, как для наряда на опасные работы.</p>'+ndJournal(st,k)+'</div>'; return; }
+  var kinds='<div class="mtype ndkinds" role="tablist" aria-label="Вид наряда">'+ND_KINDS.concat([['log','Журнал нарядов']]).map(function(x){ return '<button role="tab" data-a="ndkind" data-k="'+x[0]+'" aria-selected="'+(x[0]===k)+'"'+(x[0]==='log'?' class="ndlogt"':'')+'>'+x[1]+(x[0]==='log'?' <span>('+ndAll(st,'').length+')</span>':'')+'</button>'; }).join('')+'</div>';
+  if(k==='log'){ el.innerHTML='<div class="dwrap">'+kinds+ndLog(st)+'</div>'; return; }
+  var ed=st.edit&&st.edit.kind===k?ndFind(st,st.edit.id):null;
+  var head='<h2 class="dh2">'+(ed?'Изменение наряда № '+esc(ed.no):ND_TITLE[k])+'</h2>'+(ed?'<p class="ndedit">'+esc(ND_TITLE[k])+', оформлен '+esc(ed.d1||'')+(ed.who?' ('+esc(ed.who)+')':'')+'. Поправьте поля и сохраните — запись в журнале и в таблице обновится. <button data-a="ndcancel">Отменить изменение</button></p>':'');
+  if(!ND_TPL[k]){ el.innerHTML='<div class="dwrap">'+kinds+head+'<p class="note">Для этого наряда ещё нет бланка. Пришлите образец в Word — и здесь появится заполнение, как для наряда на опасные работы.</p></div>'; return; }
   if(!tpl){
-    el.innerHTML='<div class="dwrap">'+kinds+head+'<p class="note">'+(ndTplErr[k]?'Не удалось загрузить бланк. Нужен интернет при первом открытии. <button data-a="ndretry">Повторить</button>':'Загружаю бланк…')+'</p>'+ndJournal(st,k)+'</div>';
+    el.innerHTML='<div class="dwrap">'+kinds+head+'<p class="note">'+(ndTplErr[k]?'Не удалось загрузить бланк. Нужен интернет при первом открытии. <button data-a="ndretry">Повторить</button>':'Загружаю бланк…')+'</p></div>';
     if(!ndTplErr[k]) ndTemplate(k).then(function(){ if(ui.view==='nd') renderNd(); },function(){ ndTplErr[k]=1; if(ui.view==='nd') renderNd(); });
     return;
   }
@@ -1761,7 +1774,7 @@ function renderNd(){
         (x.c.other?'<input type="text" data-ndo="'+x.i+'" maxlength="200" value="'+esc(oo[x.i]||'')+'" placeholder="что именно" aria-label="Иное: что именно">':'')+'</label>';
     }).join('')+'</div></details>';
   }).join('');
-  var nsel=(d.team||[]).length;
+  var nsel=ndTeamN(d);
   var noF='<div class="fld"><label for="nd_no">Номер наряда</label><input type="text" inputmode="numeric" id="nd_no" data-nd="no" maxlength="20" value="'+esc(no)+'" placeholder="'+(k==='fire'?'например, 157':'например, 141')+'"></div>';
   var form;
   if(k==='fire') form=
@@ -1802,26 +1815,38 @@ function renderNd(){
     (k!=='hz'?'':'<details class="mhdr"><summary>Системы для работы на высоте</summary>'+
       ndField(st,k,'h1','Удерживающие системы','No')+ndField(st,k,'h2','Системы позиционирования','No')+ndField(st,k,'h3','Страховочные системы','No')+ndField(st,k,'h4','Эвакуационные и спасательные системы','No')+'</details>'+
     '<details class="mhdr"><summary>Наименование организации</summary>'+ndField(st,k,'company','Как в бланке (рус. / англ.)','')+'</details>')+
-    '<div class="acts"><button class="primary" data-a="nddoc">Скачать наряд (Word) и записать в журнал</button></div>'+
-    '<p class="note" id="nd_msg" role="status" aria-live="polite">'+esc(ndMsg)+'</p>'+ndJournal(st,k)+'</div>';
+    (ed?'<div class="acts"><button class="primary" data-a="ndsave" data-dl="1">Сохранить и скачать Word</button><button data-a="ndsave">Сохранить без файла</button><button data-a="ndcancel">Отмена</button></div>'
+      :'<div class="acts"><button class="primary" data-a="nddoc">Скачать наряд (Word) и записать в журнал</button></div>')+
+    '<p class="note" id="nd_msg" role="status" aria-live="polite">'+esc(ndMsg)+'</p></div>';
 }
 function ndParText(dt){
   if(dt.par) return 'Основной наряд № '+esc(dt.par.no)+': '+esc(dt.par.d1||'')+'–'+esc(dt.par.d2||'')+(dt.par.works?' · '+esc(dt.par.works):'')+(dt.set?'':'. Окончание огневых работ — по его сроку.');
   return 'Если основной наряд оформлен в приложении, выберите его номер — срок подставится сам.';
 }
-function ndJournal(st,k){
-  var all=ndAll(st,k), qid={}, t=today();
-  st.q.forEach(function(e){ qid[e.id]=1; });
-  if(!all.length) return '<h3 class="dh3">Журнал нарядов</h3><p class="note">'+(syncOn()?'Пока пусто. Наряды, оформленные на любом телефоне, появятся здесь и на листе «Наряды» в таблице.':'Пока пусто. Подключите таблицу, чтобы журнал был общим для всех телефонов.')+'</p>';
-  var show=ndShowAll?all:all.slice(0,15);
-  return '<h3 class="dh3">Журнал нарядов ('+all.length+')</h3><div class="mlist">'+show.map(function(e){
-    var a=String(e.d2||'').split('.'), until=a.length===3?a[2]+'-'+a[1]+'-'+a[0]:'', act=until&&until>=t;
-    return '<div class="ndj"><div class="ndjt"><b>№ '+esc(e.no)+'</b> · '+esc(e.d1||'')+'–'+esc(e.d2||'')+(act?' <span class="ndon">действует</span>':'')+
-      '<small>'+esc([e.works,e.code,(e.team||[]).length+' чел.',e.who].filter(Boolean).join(' · '))+'</small>'+
+function ndLog(st){
+  var all=ndAll(st,''), qid={}, t=today(), q=ndLogQ.trim().toLowerCase();
+  st.q.forEach(function(e){ if(!e._del) qid[e.id]=1; });
+  var list=all.filter(function(e){
+    if(ndLogK&&e.kind!==ndLogK) return false;
+    if(!q) return true;
+    var hay=[e.no,e.works,e.code,e.d1,e.d2,e.who,e.rel].concat((e.team||[]).map(function(x){ return x.num+' '+x.name; })).join(' ').toLowerCase();
+    return hay.indexOf(q)>=0;
+  });
+  var show=ndShowAll?list:list.slice(0,30);
+  var head='<h2 class="dh2">Журнал нарядов</h2><p class="note">Общий для всех видов нарядов и для всех телефонов, копия — на листе «Наряды» в таблице. «Изменить» — поправить наряд и пересохранить файл.</p>'+
+    '<div class="ndlogtools"><input type="search" id="ndlq" placeholder="Найти: №, работы, место, фамилия" value="'+esc(ndLogQ)+'" aria-label="Поиск по журналу">'+
+    '<select id="ndlk" aria-label="Вид наряда"><option value="">Все виды</option>'+ND_KINDS.map(function(x){ return '<option value="'+x[0]+'"'+(ndLogK===x[0]?' selected':'')+'>'+x[1]+'</option>'; }).join('')+'</select></div>';
+  if(!all.length) return head+'<p class="note">'+(syncOn()?'Пока пусто. Наряды, оформленные на любом телефоне, появятся здесь.':'Пока пусто. Подключите таблицу, чтобы журнал был общим для всех телефонов.')+'</p>';
+  if(!list.length) return head+'<p class="note">Ничего не найдено.</p>';
+  return head+'<div class="mlist" id="ndlog">'+show.map(function(e){
+    var until=ndIso(e.d2), act=until&&until>=t;
+    return '<div class="ndj"><div class="ndjt"><b>№ '+esc(e.no)+' · '+esc(ND_SHORT[e.kind]||'')+'</b><span>'+esc(e.d1||'')+'–'+esc(e.d2||'')+(act?' <span class="ndon">действует</span>':'')+'</span>'+
+      '<small>'+esc([e.works,e.code,(e.team||[]).length+' чел.',e.rel?'к наряду № '+e.rel:'',e.who].filter(Boolean).join(' · '))+(e.upd?' · изменён '+esc(new Date(e.upd).toLocaleDateString('ru-RU'))+(e.ed?' ('+esc(e.ed)+')':''):'')+'</small>'+
       (qid[e.id]?'<small class="ndwarn">⏳ ещё не записан в таблицу'+(syncOn()?'':' — таблица не подключена')+'</small>':'')+
       (e.dup?'<small class="ndwarn">⚠ такой номер уже есть в журнале</small>':'')+'</div>'+
-      '<div class="ndjb"><button data-a="ndget" data-id="'+esc(e.id)+'" aria-label="Скачать наряд № '+esc(e.no)+'">Word</button><button data-a="nduse" data-id="'+esc(e.id)+'" aria-label="Взять наряд № '+esc(e.no)+' за основу">За основу</button></div></div>';
-  }).join('')+'</div>'+(all.length>show.length?'<div class="acts"><button data-a="ndall">Показать все ('+all.length+')</button></div>':'');
+      '<div class="ndjb"><button data-a="ndget" data-id="'+esc(e.id)+'" aria-label="Скачать наряд № '+esc(e.no)+'">Word</button><button data-a="ndedit" data-id="'+esc(e.id)+'" aria-label="Изменить наряд № '+esc(e.no)+'">Изменить</button>'+
+      '<button data-a="nduse" data-id="'+esc(e.id)+'" aria-label="Новый наряд на основе № '+esc(e.no)+'">За основу</button><button class="danger" data-a="nddel" data-id="'+esc(e.id)+'" aria-label="Удалить наряд № '+esc(e.no)+'">Удалить</button></div></div>';
+  }).join('')+'</div>'+(list.length>show.length?'<div class="acts"><button data-a="ndall">Показать все ('+list.length+')</button></div>':'');
 }
 /* сборка .docx по записи журнала */
 function ndBuild(tpl,e){
@@ -1846,9 +1871,10 @@ function ndFileName(e){ return 'Наряд-допуск_'+String(e.no).replace(/
 function ndDownload(e,after){
   return ndTemplate(e.kind).then(function(tpl){ var b=ndBuild(tpl,e), name=ndFileName(e); return saveFile(name,b.type,b).then(function(r){ if(after) after(r,name); reportDone(r); }); });
 }
-function ndMake(){
+function ndMake(mode){
   var st=ndSt(), k=st.kind, tpl=ndTplC[k], msg=$('nd_msg'), d=ndDraft(st,k); if(!tpl) return;
-  var e={id:Date.now().toString(36)+Math.random().toString(36).slice(2,8),kind:k,who:sync.who||'',at:Date.now()};
+  var ed=st.edit&&st.edit.kind===k?ndFind(st,st.edit.id):null;
+  var e=ed?{id:ed.id,kind:k,who:ed.who||'',at:ed.at||Date.now(),upd:Date.now(),ed:sync.who||''}:{id:Date.now().toString(36)+Math.random().toString(36).slice(2,8),kind:k,who:sync.who||'',at:Date.now()};
   ND_CFGK.forEach(function(f){ e[f]=ndV(st,k,f).trim(); });
   e.no=String(typeof d.no==='string'&&d.no?d.no:ndNext(st,k)).trim();
   e.days=String(Math.max(1,Math.min(366,parseInt(e.days,10)||1)));
@@ -1856,15 +1882,27 @@ function ndMake(){
   if(dt.d2<dt.d1){ msg.textContent='Дата окончания раньше даты выдачи.'; return; }
   e.cb=ndCb(st,k,tpl).slice(); e.o={}; var oo=ndO(st,k); Object.keys(oo).forEach(function(i){ if(String(oo[i]).trim()) e.o[i]=String(oo[i]).trim(); });
   var sel={}; (d.team||[]).forEach(function(x){ sel[x]=1; });
-  e.team=ndPeople().filter(function(x){ return sel[x.key]; }).map(function(x){ return {num:x.p.num||'',name:x.p.name,role:x.p.role||'',b:x.b}; });
+  e.team=ndPeople().filter(function(x){ return sel[x.key]; }).map(function(x){ return {num:x.p.num||'',name:x.p.name,role:x.p.role||'',b:x.b}; }).concat((d.teamX||[]).map(function(x){ return {num:x.num||'',name:x.name,role:x.role||'',b:x.b||''}; }))
+    .sort(function(a,b){ return byNum(a,b); });
   if(!e.no){ msg.textContent='Укажите номер наряда.'; $('nd_no').focus(); return; }
   var miss=(k==='fire'?[['works','описание работ'],['code','место проведения работ'],['issuer','кто выдал наряд'],['prep','ответственный за подготовку'],['exec','ответственный за проведение']]
     :[['works','наименование работ'],['head','руководитель работ'],['exec','ответственный исполнитель'],['issuer','кто выдал наряд']]).filter(function(x){ return !e[x[0]]; });
   if(miss.length){ msg.textContent='Заполните: '+miss.map(function(x){ return x[1]; }).join(', ')+'.'; var f=$('nd_'+miss[0][0]); if(f) f.focus(); return; }
   if(!e.team.length){ msg.textContent='Отметьте людей в составе бригады.'; return; }
-  var dupe=ndAll(st,k).filter(function(x){ return String(x.no).trim()===e.no; })[0];
+  var dupe=ndAll(st,k).filter(function(x){ return String(x.no).trim()===e.no&&x.id!==e.id; })[0];
   if(dupe&&ndMake.ok!==e.no){ msg.textContent='Наряд № '+e.no+' уже есть в журнале ('+(dupe.d1||'')+'). Нажмите кнопку ещё раз, если номер верный.'; ndMake.ok=e.no; return; }
   ndMake.ok=null;
+  if(ed){
+    var fin=function(name){
+      var s=ndSt(); s.q=s.q.filter(function(x){ return x.id!==e.id||x._del; }); s.q.push(e);
+      s.list=s.list.filter(function(x){ return x.id!==e.id; }); ndEndEdit(s,k); s.kind='log'; ndSave(s); ndFlush();
+      ndMsg=''; renderNd(); window.scrollTo(0,0); toast('Наряд № '+e.no+' изменён'+(name?', файл '+name:''));
+    };
+    if(mode!=='dl'){ fin(''); return; }
+    msg.textContent='Готовлю файл…';
+    ndDownload(e,function(r,name){ if(r!=='cancel') fin(name); else if($('nd_msg')) $('nd_msg').textContent=''; }).catch(function(){ if($('nd_msg')) $('nd_msg').textContent='Не удалось загрузить бланк.'; });
+    return;
+  }
   ndMsg=''; msg.textContent='Готовлю файл…';
   ndDownload(e,function(r,name){
     if(r==='cancel'){ if($('nd_msg')) $('nd_msg').textContent=''; return; }
@@ -1877,15 +1915,46 @@ function ndMake(){
     ndMsg='Готово: '+name+' ('+e.team.length+' чел.). Наряд № '+e.no+' записан в журнал.'; if($('nd_msg')) $('nd_msg').textContent=ndMsg;
   }).catch(function(){ if($('nd_msg')) $('nd_msg').textContent='Не удалось загрузить бланк. Нужен интернет при первом запуске.'; });
 }
+function ndFromEntry(e,full){
+  var d={}; ND_CFGK.forEach(function(f){ if(typeof e[f]==='string') d[f]=e[f]; });
+  d.cb=(e.cb||[]).slice(); d.o=JSON.parse(JSON.stringify(e.o||{})); if(e.rel) d.rel=e.rel;
+  var keys={}; ndPeople().forEach(function(x){ keys[x.b+'|'+normNum(x.p.num||'')+'|'+x.p.name]=x.key; keys['n|'+x.b+'|'+normNum(x.p.num||'')]=keys['n|'+x.b+'|'+normNum(x.p.num||'')]||x.key; });
+  d.team=[]; d.teamX=[];
+  (e.team||[]).forEach(function(t){ var k=keys[t.b+'|'+normNum(t.num||'')+'|'+t.name]||(t.num?keys['n|'+t.b+'|'+normNum(t.num)]:''); if(k) d.team.push(k); else if(full) d.teamX.push({num:t.num||'',name:t.name,role:t.role||'',b:t.b||''}); });
+  if(full){ d.no=String(e.no||''); d.d1=ndIso(e.d1); if(e.kind==='fire') d.d2=ndIso(e.d2); }
+  d.only=false; return d;
+}
+function ndEdit(id){
+  var st=ndSt(), e=ndFind(st,id); if(!e) return;
+  if(!ndTemplateOk(e.kind)) return;
+  st.bak=st.bak||{}; if(!(st.edit&&st.edit.kind===e.kind)) st.bak[e.kind]=st.draft[e.kind]||{};
+  st.draft[e.kind]=ndFromEntry(e,true); st.edit={id:e.id,kind:e.kind}; st.kind=e.kind; ndSave(st);
+  ndQ=''; ndMsg=''; renderNd(); window.scrollTo(0,0);
+  var x=st.draft[e.kind].teamX.length; if(x) toast('В наряде '+x+' чел., которых сейчас нет в табеле — они останутся в наряде');
+}
+function ndTemplateOk(k){ if(ND_TPL[k]) return true; toast('Для этого вида наряда ещё нет бланка'); return false; }
+function ndEndEdit(st,k){ st.draft[k]=(st.bak&&st.bak[k])||{}; if(st.bak) delete st.bak[k]; st.edit=null; }
+function ndDel(id){
+  var st=ndSt(), e=ndFind(st,id); if(!e) return;
+  openSheet('Удалить наряд','<p>Удалить из журнала наряд № <b>'+esc(e.no)+'</b> ('+esc(ND_TITLE[e.kind]||'')+', '+esc(e.d1||'')+')?</p><p class="note">Он пропадёт из журнала на всех телефонах и из листа «Наряды» в таблице. Уже скачанные файлы Word останутся.</p>'+
+    '<div class="acts"><button class="primary danger" data-a="nddelok" data-id="'+esc(id)+'">Удалить</button><button data-a="close">Отмена</button></div>');
+}
+function ndDelOk(id){
+  var st=ndSt(), e=ndFind(st,id); closeSheet(); if(!e) return;
+  var queued=st.q.some(function(x){ return x.id===id&&!x._del; });
+  st.q=st.q.filter(function(x){ return x.id!==id; });
+  var onServer=st.list.some(function(x){ return x.id===id; })||!queued;
+  if(onServer) st.q.push({id:id,kind:e.kind,_del:1,at:Date.now()});
+  if(st.edit&&st.edit.id===id) ndEndEdit(st,st.edit.kind);
+  ndSave(st); ndFlush(); renderNd(); toast('Наряд № '+e.no+' удалён');
+}
 function ndUse(id){
-  var st=ndSt(), e=ndAll(st,st.kind).filter(function(x){ return x.id===id; })[0]; if(!e) return;
-  var d=ndDraft(st,st.kind); ND_CFGK.forEach(function(f){ if(typeof e[f]==='string') d[f]=e[f]; });
-  d.cb=(e.cb||[]).slice(); d.o=e.o||{}; delete d.no; delete d.d1; delete d.d2; if(e.rel) d.rel=e.rel;
-  var keys={}; ndPeople().forEach(function(x){ keys[x.b+'|'+normNum(x.p.num||'')+'|'+x.p.name]=x.key; });
-  d.team=(e.team||[]).map(function(t){ return keys[t.b+'|'+normNum(t.num||'')+'|'+t.name]; }).filter(Boolean);
-  d.only=false; ndSave(st); renderNd(); window.scrollTo(0,0); toast('Взято за основу: № '+e.no+'. Номер и дата — новые.');
+  var st=ndSt(), e=ndFind(st,id); if(!e||!ndTemplateOk(e.kind)) return;
+  if(st.edit&&st.edit.kind===e.kind) ndEndEdit(st,e.kind);
+  st.draft[e.kind]=ndFromEntry(e,false); st.kind=e.kind; ndSave(st); ndQ=''; ndMsg=''; renderNd(); window.scrollTo(0,0); toast('Взято за основу: № '+e.no+'. Номер и дата — новые.');
 }
 function ndInput(t){
+  if(t.id==='ndlq'){ ndLogQ=t.value; var st0=ndSt(), h=document.createElement('div'); h.innerHTML=ndLog(st0); var nl=h.querySelector('#ndlog'), ol=$('ndlog'); if(ol&&nl) ol.outerHTML=nl.outerHTML; else renderNd(); return true; }
   var st=ndSt(), k=st.kind, d=ndDraft(st,k);
   if(t.dataset.nd){
     var f=t.dataset.nd; d[f]=t.value; ndSave(st);
@@ -1899,12 +1968,14 @@ function ndInput(t){
   return false;
 }
 function ndChange(t){
+  if(t.id==='ndlk'){ ndLogK=t.value; renderNd(); return true; }
   var st=ndSt(), k=st.kind, d=ndDraft(st,k);
   if(t.dataset.ndt){
     var team=(d.team||[]).filter(function(x){ return x!==t.dataset.ndt; }); if(t.checked) team.push(t.dataset.ndt); d.team=team; ndSave(st);
     var row=t.closest('.mrow'); if(row) row.classList.toggle('on',t.checked);
-    if($('nd_nsel')) $('nd_nsel').textContent='('+team.length+' чел.)'; return true;
+    if($('nd_nsel')) $('nd_nsel').textContent='('+ndTeamN(d)+' чел.)'; return true;
   }
+  if(t.dataset.ndx!=null&&!t.checked){ (d.teamX||[]).splice(Number(t.dataset.ndx),1); ndSave(st); ndTeamRefresh(); return true; }
   if(t.id==='ndonly'){ d.only=t.checked; ndSave(st); ndTeamRefresh(); return true; }
   if(t.dataset.ndc!=null){
     var i=Number(t.dataset.ndc), cb=ndCb(st,k,ndTplC[k]).filter(function(x){ return x!==i; }); if(t.checked) cb.push(i); d.cb=cb.sort(function(a,b){ return a-b; }); ndSave(st);
@@ -1938,11 +2009,16 @@ document.addEventListener('click',function(e){
     case 'scan': openScan(); break;
     case 'memodoc': memoMake(); break;
     case 'ndkind': { var ns=ndSt(); ns.kind=el.dataset.k; ndSave(ns); ndQ=''; ndMsg=''; ndShowAll=false; ndFetchAt=0; renderNd(); break; }
+    case 'ndedit': ndEdit(el.dataset.id); break;
+    case 'ndsave': ndMake(el.dataset.dl?'dl':'save'); break;
+    case 'ndcancel': { var cs=ndSt(); if(cs.edit){ var ck=cs.edit.kind; ndEndEdit(cs,ck); cs.kind='log'; ndSave(cs); } ndMsg=''; renderNd(); window.scrollTo(0,0); break; }
+    case 'nddel': ndDel(el.dataset.id); break;
+    case 'nddelok': ndDelOk(el.dataset.id); break;
     case 'ndretry': delete ndTplErr[ndKind()]; renderNd(); break;
     case 'nddoc': ndMake(); break;
     case 'ndall': ndShowAll=true; renderNd(); break;
     case 'nduse': ndUse(el.dataset.id); break;
-    case 'ndget': { var ge=ndAll(ndSt(),ndKind()).filter(function(x){ return x.id===el.dataset.id; })[0]; if(ge) ndDownload(ge).catch(function(){ toast('Не удалось загрузить бланк'); }); break; }
+    case 'ndget': { var ge=ndFind(ndSt(),el.dataset.id); if(ge&&!ndTemplateOk(ge.kind)) break; if(ge) ndDownload(ge).catch(function(){ toast('Не удалось загрузить бланк'); }); break; }
     case 'mtype': setMemoType(el.dataset.t); renderDocs(); break;
     case 'mobjadd': { var os=memoCfg().objs; os.push({obj:'',works:''}); memoSet('objs',os); renderDocs(); var f=$('m_obj'+(os.length-1)); if(f) f.focus(); break; }
     case 'mobjdel': { var os2=memoCfg().objs; os2.splice(Number(el.dataset.k),1); memoSet('objs',os2.length?os2:[{obj:'',works:''}]); renderDocs(); break; }
