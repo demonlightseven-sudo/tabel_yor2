@@ -320,7 +320,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='39';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='40';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -786,8 +786,8 @@ function matches(p,q){
   }
   return (p.name+' '+(p.role||'')+' '+(p.num||'')).toLowerCase().indexOf(t)>=0;
 }
-/* АРЕ: у кого день выходной по графику и нет отметки — не в явке (не нужно отмечать) */
-function planHidden(p,day){ return root.cur==='are'&&!day[p.id]&&planOff(p,ui.date)===true; }
+/* у кого день выходной по графику и нет отметки — не в явке (не нужно отмечать) */
+function planHidden(p,day){ return !day[p.id]&&planOff(p,ui.date)===true; }
 function stats(){
   var ppl=activePeople(), day=dayRec(ui.date), c={work:0,off:0,sick:0,pl:0,ul:0,ab:0}, hrs=0, unm=0, plan=0;
   ppl.forEach(function(p){ var r=day[p.id]; if(!r){ if(planHidden(p,day)){ plan++; return; } unm++; return; } c[r.s]++; if(r.s==='work') hrs+=r.h; });
@@ -853,7 +853,7 @@ function renderMonth(){
   var m=ui.month, a=m.split('-').map(Number), n=daysIn(m), recs=bk().records, t=today(), ppl=peopleForMonth(m), i;
   var nav='<div class="mnav"><button data-a="mnav" data-d="-1" aria-label="Предыдущий месяц">◀</button><div class="mlabel">'+MONTHS_N[a[1]-1]+' '+a[0]+' · '+BOOKS[root.cur]+'</div>'+
     '<button data-a="mnav" data-d="1" aria-label="Следующий месяц">▶</button><button data-a="mexp" aria-label="Сохранить файл для Excel" title="Файл для Excel">⬇</button><button class="mfull" data-a="mfull" aria-label="Во весь экран" title="Во весь экран (F11)">⛶</button></div>';
-  var leg='<p class="mleg">'+(root.cur==='are'?'UL — Отпуск без сохранения зар. платы · PL — Оплачиваемый отпуск · SL — Больничный · AB — Прогул · <span class="dob">DO</span> — Выходной по графику · число — часы':'Число — часы · В — выходной · Б — больничный · ОТ — отпуск · БС — отпуск без ЗП · ПР — прогул')+(root.cur==='are'?' · бледно-жёлтая клетка с часами — вышел в свой выходной · красная штриховка — праздничный день':' · оранжевая штриховка — выходной по графику, красная — праздничный день')+'. Нажмите на клетку, чтобы открыть этот день.</p>';
+  var leg='<p class="mleg">'+(true?'UL — Отпуск без сохранения зар. платы · PL — Оплачиваемый отпуск · SL — Больничный · AB — Прогул · <span class="dob">DO</span> — Выходной по графику · число — часы':'Число — часы · В — выходной · Б — больничный · ОТ — отпуск · БС — отпуск без ЗП · ПР — прогул')+(true?' · бледно-жёлтая клетка с часами — вышел в свой выходной · красная штриховка — праздничный день':' · оранжевая штриховка — выходной по графику, красная — праздничный день')+'. Нажмите на клетку, чтобы открыть этот день.</p>';
   var old=monthOld&&syncOn()?'<p class="moldhint">Чтобы здесь были отметки с других телефонов, обновите скрипт в таблице (файл Code.gs, «Новая версия» в «Управление развертываниями»).</p>':'';
   if(!ppl.length){
     $('month').innerHTML=nav+'<div class="empty"><p>В табеле '+BOOKS[root.cur]+' пока нет людей.</p><button class="primary" data-a="people">Добавить людей</button></div>'; return;
@@ -864,7 +864,7 @@ function renderMonth(){
     head+='<th class="'+(ds===t?'tdy':'')+'"><button class="dh" data-a="mday" data-d="'+ds+'" aria-label="Открыть '+i+' число">'+i+'<small>'+WD[wd]+'</small></button></th>';
   }
   head+='<th class="tot">Дн.</th><th class="tot">Ч.</th></tr>';
-  var cnt=[], abs=[], are=root.cur==='are'; for(i=0;i<n;i++){ cnt.push(0); abs.push(0); }
+  var cnt=[], abs=[], are=true; for(i=0;i<n;i++){ cnt.push(0); abs.push(0); }
   var body=ppl.map(function(p){
     var days=0, hrs=0, tds='';
     for(i=1;i<=n;i++){
@@ -1014,9 +1014,9 @@ function reportText(){
   });
   return L.join('\n');
 }
-/* табель АРЕ — латинские обозначения */
+/* табели РФ и АРЕ — латинские обозначения */
 var CELL_ARE={off:'DO',sick:'SL',pl:'PL',ul:'UL',ab:'AB'};
-function cellText(r){ return !r?'':r.s==='work'?fmtH(r.h):(root.cur==='are'?CELL_ARE:CELL)[r.s]; }
+function cellText(r){ return !r?'':r.s==='work'?fmtH(r.h):CELL_ARE[r.s]; }
 function monthCsv(month){
   var n=daysIn(month), rows=[], head=['Таб. №','ФИО','Должность'];
   for(var i=1;i<=n;i++) head.push(String(i));
