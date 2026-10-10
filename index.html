@@ -178,9 +178,12 @@ body.vnd .row2,body.vnd .books,body.vnd #dateBtn,body.vnd #stats,body.vnd #tabs,
 body.vnd #menuBtn{margin-left:auto}
 .ndkinds button{flex:1 1 0;min-width:0;min-height:44px;font-size:clamp(10px,3.2vw,12px);line-height:1.15;padding:2px 2px;hyphens:manual;-webkit-hyphens:manual}
 .ndkinds .ndlogt span{font-weight:400}
-.ndlogtools{display:flex;gap:8px;margin:0 0 10px}
-.ndlogtools input{flex:1;min-width:0}
-.ndlogtools select{width:auto;flex:none;max-width:45%}
+.ndobjs{margin-bottom:6px}
+.ndobjs button{flex:1 1 0;min-width:0;min-height:40px;font-size:clamp(11px,3.3vw,14px);padding:2px;font-weight:700;letter-spacing:.02em}
+.dh2 .ndob{font-size:.8em;color:var(--muted,#777);font-weight:600;white-space:nowrap}
+.ndlogtools{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+.ndlogtools input{flex:1 1 100%;min-width:0}
+.ndlogtools select{flex:1 1 0;min-width:0;width:auto}
 .ndedit{background:var(--surface);border-left:6px solid var(--ul);border-radius:6px;padding:8px 10px;font-size:14px;margin:6px 0 10px}
 .ndedit button{min-height:34px;font-size:13px;margin-top:6px}
 .ndteamtools{display:flex;flex-direction:column;gap:6px;margin:0 0 8px}
@@ -320,7 +323,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='41';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='42';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1712,29 +1715,49 @@ var ND_TITLE={hz:'Наряд-допуск на опасные работы',fire
 var ND_FILE={hz:'Опасные',fire:'Огневые',lift:'ПС',conc:'Бетонные'};
 var ND_TPL={hz:'nd-hz.json',fire:'nd-fire.json',lift:'nd-lift.json'};   // для каких нарядов уже есть бланк
 var ND_KEY='tabel-nd-v1';
+var ND_OBJS=['91UYE','91UYF','92UYF','11UZU','13UYE'];   // объекты: у каждого свой ППР и свои «последние» значения
+function ndGuessObj(code){ code=String(code||'').toUpperCase(); for(var i=0;i<ND_OBJS.length;i++) if(code.indexOf(ND_OBJS[i])>=0) return ND_OBJS[i]; return ''; }
+function ndObjOf(e){ return e&&ND_OBJS.indexOf(e.obj)>=0?e.obj:ndGuessObj(e&&e.code); }
+function ndSl(st,k){ return st.obj+'|'+k; }
 var ND_BASE={t1:'07:00',t2:'21:00',days:'15',comb:'нет',h1:'No',h2:'No',h3:'No',h4:'No'};
 var ND_BASEK={fire:{t2:'19:00'},lift:{t2:'19:00'}};
 var ND_CFGK=['company','code','head','exec','prep','hse','issuer','ir','in','works','doc','tech','comb','t1','t2','days','h1','h2','h3','h4'];
 var ND_GROUPS={hz:[['att','Приложения'],['haz','Вредные и опасные факторы'],['eq','Оборудование и инструмент'],['ppe','СИЗ, меры безопасности']],fire:[['pre','Мероприятия до начала работ']],lift:[['haz','Опасности и риски'],['safe','Меры безопасности']]};
-var ndTplC={}, ndTplErr={}, ndBusy=false, ndFetchAt=0, ndShowAll=false, ndQ='', ndMsg='', ndLogQ='', ndLogK='';
+var ndTplC={}, ndTplErr={}, ndBusy=false, ndFetchAt=0, ndShowAll=false, ndQ='', ndMsg='', ndLogQ='', ndLogK='', ndLogO='';
 function ndSt(){
   var o={}; try{ o=JSON.parse(localStorage.getItem(ND_KEY)||'{}')||{}; }catch(e){ o={}; }
   if(!ND_TITLE[o.kind]&&o.kind!=='log') o.kind='hz';
   if(o.edit&&(!o.edit.id||!ND_TITLE[o.edit.kind])) o.edit=null;
   ['draft','cfg'].forEach(function(k){ if(!o[k]||typeof o[k]!=='object') o[k]={}; });
   ['list','q'].forEach(function(k){ if(!Array.isArray(o[k])) o[k]=[]; });
+  if(ND_OBJS.indexOf(o.obj)<0){   // переход со старой версии: черновики — к объекту из их поля «объект»
+    o.obj=ndGuessObj(((o.draft.hz||{}).code)||((o.cfg.hz||{}).code))||ND_OBJS[0];
+    Object.keys(o.draft).forEach(function(k){ if(k.indexOf('|')<0){ var ob=ndGuessObj(o.draft[k].code)||ndGuessObj((o.cfg[k]||{}).code)||o.obj; if(!o.draft[ob+'|'+k]) o.draft[ob+'|'+k]=o.draft[k]; delete o.draft[k]; } });
+    if(o.bak) Object.keys(o.bak).forEach(function(k){ if(k.indexOf('|')<0){ o.bak[o.obj+'|'+k]=o.bak[k]; delete o.bak[k]; } });
+    if(o.edit&&!o.edit.obj) o.edit.obj=o.obj;
+  }
+  if(!ND_TITLE[o.lastKind]) o.lastKind=ND_TITLE[o.kind]?o.kind:'hz';
   return o;
 }
 function ndSave(o){ try{ localStorage.setItem(ND_KEY,JSON.stringify(o)); }catch(e){ toast('Мало места на телефоне: журнал нарядов не сохранился'); } }
 function ndKind(){ return ndSt().kind; }
-function ndDraft(st,k){ st.draft[k]=st.draft[k]||{}; return st.draft[k]; }
+function ndDraft(st,k){ var sl=ndSl(st,k); st.draft[sl]=st.draft[sl]||{}; return st.draft[sl]; }
+function ndDr(st,k){ return st.draft[ndSl(st,k)]||{}; }
+/* последние значения для объекта; если по объекту наряда ещё не было — из прошлого наряда этого вида, но с этим объектом и без чужого ППР */
+function ndC(st,k){
+  var c=st.cfg[ndSl(st,k)]; if(c) return c;
+  var l=st.cfg[k]; c={}; if(l) Object.keys(l).forEach(function(f){ c[f]=l[f]; });
+  if(String(c.code||'').toUpperCase().indexOf(st.obj)<0){ c.code=st.obj; c.doc=''; }
+  return c;
+}
+function ndEd(st,k){ return st.edit&&st.edit.kind===k&&st.edit.obj===st.obj?ndFind(st,st.edit.id):null; }
 /* значение поля: черновик → последние использованные (из таблицы) → постоянные по умолчанию */
-function ndV(st,k,f){ var d=st.draft[k]||{}, c=st.cfg[k]||{}; if(typeof d[f]==='string') return d[f]; if(typeof c[f]==='string') return c[f]; var b=ND_BASEK[k]||{}; return b[f]!=null?b[f]:(ND_BASE[f]||''); }
+function ndV(st,k,f){ var d=ndDr(st,k), c=ndC(st,k); if(typeof d[f]==='string') return d[f]; if(typeof c[f]==='string') return c[f]; var b=ND_BASEK[k]||{}; return b[f]!=null?b[f]:(ND_BASE[f]||''); }
 function ndDmy(s){ var a=String(s||'').split('-'); return a.length===3?a[2]+'.'+a[1]+'.'+a[0]:''; }
 function ndIso(dmy){ var a=String(dmy||'').split('.'); return a.length===3?a[2]+'-'+a[1]+'-'+a[0]:''; }
 /* даты наряда (ГГГГ-ММ-ДД): опасные — дата + дни; огневые — до даты окончания (по умолчанию — до конца основного наряда) */
 function ndDates(st,k){
-  var d=st.draft[k]||{}, d1=ndV(st,k,'d1')||today();
+  var d=ndDr(st,k), d1=ndV(st,k,'d1')||today();
   if(k!=='fire') return {d1:d1,d2:ndUntil(d1,ndV(st,k,'days'))};
   var rel=String(d.rel||'').trim(), par=rel?ndAll(st,'hz').filter(function(e){ return String(e.no).trim()===rel; })[0]:null, p2=par?ndIso(par.d2):'';
   if(/^\d{4}-\d\d-\d\d$/.test(d.d2||'')) return {d1:d1,d2:d.d2,set:true,par:par};
@@ -1749,11 +1772,11 @@ function ndTemplate(k){
   return fetch(ND_TPL[k],{cache:'no-cache'}).then(function(r){ if(!r.ok) throw new Error('notpl'); return r.json(); }).then(function(j){ ndTplC[k]=j; delete ndTplErr[k]; return j; });
 }
 function ndCb(st,k,tpl){
-  var d=st.draft[k]||{}, c=st.cfg[k]||{};
+  var d=ndDr(st,k), c=ndC(st,k);
   if(Array.isArray(d.cb)) return d.cb; if(Array.isArray(c.cb)) return c.cb;
   return tpl?tpl.cb.map(function(x,i){ return x.on?i:-1; }).filter(function(i){ return i>=0; }):[];
 }
-function ndO(st,k){ var d=st.draft[k]||{}, c=st.cfg[k]||{}; return d.o&&typeof d.o==='object'?d.o:(c.o&&typeof c.o==='object'?c.o:{}); }
+function ndO(st,k){ var d=ndDr(st,k), c=ndC(st,k); return d.o&&typeof d.o==='object'?d.o:(c.o&&typeof c.o==='object'?c.o:{}); }
 function ndShort(name){ var a=String(name||'').trim().split(/\s+/); return a.length<2?a.join(''):a[0]+' '+a.slice(1,3).map(function(x){ return x.charAt(0).toUpperCase()+'.'; }).join(''); }
 /* люди обоих табелей, по возрастанию табельного номера */
 function ndPeople(){
@@ -1766,7 +1789,8 @@ function ndFetch(force){
   if(!syncOn()) return;
   if(!force&&Date.now()-ndFetchAt<60000) return; ndFetchAt=Date.now();
   var k=ndKind();
-  if(ND_TITLE[k]) call({action:'ndcfg',kind:k}).then(function(j){ var st=ndSt(); st.cfg[j.kind||k]=j.cfg||{}; ndSave(st); if(ui.view==='nd') renderNd(); }).catch(function(){});
+  var ob=ndSt().obj;
+  if(ND_TITLE[k]) call({action:'ndcfg',kind:k,obj:ob}).then(function(j){ var st=ndSt(); if(j.obj===ob) st.cfg[ob+'|'+(j.kind||k)]=j.cfg||{}; else st.cfg[j.kind||k]=j.cfg||{}; ndSave(st); if(ui.view==='nd') renderNd(); }).catch(function(){});
   call({action:'ndlist'}).then(function(j){ var st=ndSt(); st.list=Array.isArray(j.list)?j.list:[]; ndSave(st); if(ui.view==='nd') renderNd(); }).catch(function(){});
 }
 function ndFlush(){
@@ -1816,7 +1840,7 @@ function ndField(st,k,f,label,ph,list,type){
 }
 function ndDatalists(st,k){
   var fs=['code','head','exec','prep','hse','issuer','ir','in','works','doc','tech'], vals={};
-  fs.forEach(function(f){ vals[f]={}; var c=(st.cfg[k]||{})[f]; if(c) vals[f][c]=1; });
+  fs.forEach(function(f){ vals[f]={}; var c=ndC(st,k)[f]; if(c) vals[f][c]=1; });
   ndAll(st,k).forEach(function(e){ fs.forEach(function(f){ if(e[f]) vals[f][e[f]]=1; }); });
   memoResps().forEach(function(p){ if(p.role) vals.ir[p.role]=1; vals['in'][ndShort(p.name)]=1; });
   ['head','exec','prep'].forEach(function(a){ ['head','exec','prep'].forEach(function(b){ Object.keys(vals[b]).forEach(function(v){ vals[a][v]=1; }); }); });
@@ -1826,10 +1850,11 @@ function ndDatalists(st,k){
 function renderNd(){
   ndFetch(false); ndFlush();
   var st=ndSt(), k=st.kind, tpl=ndTplC[k], el=$('nd'); if(!el) return;
-  var kinds='<div class="mtype ndkinds" role="tablist" aria-label="Вид наряда">'+ND_KINDS.concat([['log','Журнал нарядов']]).map(function(x){ return '<button role="tab" data-a="ndkind" data-k="'+x[0]+'" aria-selected="'+(x[0]===k)+'"'+(x[0]==='log'?' class="ndlogt"':'')+'>'+(ND_KBTN[x[0]]||x[1])+(x[0]==='log'?' <span>('+ndAll(st,'').length+')</span>':'')+'</button>'; }).join('')+'</div>';
+  var objs='<div class="mtype ndobjs" role="tablist" aria-label="Объект">'+ND_OBJS.map(function(o){ return '<button role="tab" data-a="ndobj" data-o="'+o+'" aria-selected="'+(k!=='log'&&o===st.obj)+'">'+o+'</button>'; }).join('')+'</div>';
+  var kinds=objs+'<div class="mtype ndkinds" role="tablist" aria-label="Вид наряда">'+ND_KINDS.concat([['log','Журнал нарядов']]).map(function(x){ return '<button role="tab" data-a="ndkind" data-k="'+x[0]+'" aria-selected="'+(x[0]===k)+'"'+(x[0]==='log'?' class="ndlogt"':'')+'>'+(ND_KBTN[x[0]]||x[1])+(x[0]==='log'?' <span>('+ndAll(st,'').length+')</span>':'')+'</button>'; }).join('')+'</div>';
   if(k==='log'){ el.innerHTML='<div class="dwrap">'+kinds+ndLog(st)+'</div>'; return; }
-  var ed=st.edit&&st.edit.kind===k?ndFind(st,st.edit.id):null;
-  var head='<h2 class="dh2">'+(ed?'Изменение наряда № '+esc(ed.no):ND_TITLE[k])+'</h2>'+(ed?'<p class="ndedit">'+esc(ND_TITLE[k])+', оформлен '+esc(ed.d1||'')+(ed.who?' ('+esc(ed.who)+')':'')+'. Поправьте поля и сохраните — запись в журнале и в таблице обновится. <button data-a="ndcancel">Отменить изменение</button></p>':'');
+  var ed=ndEd(st,k);
+  var head='<h2 class="dh2">'+(ed?'Изменение наряда № '+esc(ed.no):ND_TITLE[k])+' <span class="ndob">'+esc(st.obj)+'</span></h2>'+(ed?'<p class="ndedit">'+esc(ND_TITLE[k])+', оформлен '+esc(ed.d1||'')+(ed.who?' ('+esc(ed.who)+')':'')+'. Поправьте поля и сохраните — запись в журнале и в таблице обновится. <button data-a="ndcancel">Отменить изменение</button></p>':'');
   if(!ND_TPL[k]){ el.innerHTML='<div class="dwrap">'+kinds+head+'<p class="note">Для этого наряда ещё нет бланка. Пришлите образец в Word — и здесь появится заполнение, как для наряда на опасные работы.</p></div>'; return; }
   if(!tpl){
     el.innerHTML='<div class="dwrap">'+kinds+head+'<p class="note">'+(ndTplErr[k]?'Не удалось загрузить бланк. Нужен интернет при первом открытии. <button data-a="ndretry">Повторить</button>':'Загружаю бланк…')+'</p></div>';
@@ -1896,7 +1921,7 @@ function renderNd(){
     '<div class="dgrid">'+ndField(st,k,'ir','Инструктаж провёл: должность','Мастер участка','ir')+ndField(st,k,'in','ФИО (Фамилия И.О.)','Фамилия И.О.','in')+'</div>'+
     ndField(st,k,'comb','Совмещённые работы: кто допускает','нет');
   el.innerHTML='<div class="dwrap">'+kinds+head+ndDatalists(st,k)+
-    '<p class="note">Поля заполнены как в прошлом наряде. Должности и ФИО — как в бланке, по-английски.</p>'+form+
+    '<p class="note">Поля заполнены как в прошлом наряде по объекту '+esc(st.obj)+'. Должности и ФИО — как в бланке, по-английски.</p>'+form+
     '<h3 class="dh3">Состав бригады <span id="nd_nsel">('+nsel+' чел.)</span></h3>'+ndTeamTools(st,k)+'<div id="ndteam">'+ndTeamList(st,k)+'</div>'+
     '<h3 class="dh3">Отметки в бланке</h3>'+groups+
     (k!=='hz'?'':'<details class="mhdr"><summary>Системы для работы на высоте</summary>'+
@@ -1915,19 +1940,21 @@ function ndLog(st){
   st.q.forEach(function(e){ if(!e._del) qid[e.id]=1; });
   var list=all.filter(function(e){
     if(ndLogK&&e.kind!==ndLogK) return false;
+    if(ndLogO&&ndObjOf(e)!==ndLogO) return false;
     if(!q) return true;
-    var hay=[e.no,e.works,e.code,e.d1,e.d2,e.who,e.rel].concat((e.team||[]).map(function(x){ return x.num+' '+x.name; })).join(' ').toLowerCase();
+    var hay=[e.no,ndObjOf(e),e.works,e.code,e.d1,e.d2,e.who,e.rel].concat((e.team||[]).map(function(x){ return x.num+' '+x.name; })).join(' ').toLowerCase();
     return hay.indexOf(q)>=0;
   });
   var show=ndShowAll?list:list.slice(0,30);
-  var head='<h2 class="dh2">Журнал нарядов</h2><p class="note">Общий для всех видов нарядов и для всех телефонов, копия — на листе «Наряды» в таблице. «Изменить» — поправить наряд и пересохранить файл.</p>'+
+  var head='<h2 class="dh2">Журнал нарядов</h2><p class="note">Общий для всех объектов, всех видов нарядов и всех телефонов, копия — на листе «Наряды» в таблице. «Изменить» — поправить наряд и пересохранить файл.</p>'+
     '<div class="ndlogtools"><input type="search" id="ndlq" placeholder="Найти: №, работы, место, фамилия" value="'+esc(ndLogQ)+'" aria-label="Поиск по журналу">'+
-    '<select id="ndlk" aria-label="Вид наряда"><option value="">Все виды</option>'+ND_KINDS.map(function(x){ return '<option value="'+x[0]+'"'+(ndLogK===x[0]?' selected':'')+'>'+x[1]+'</option>'; }).join('')+'</select></div>';
+    '<select id="ndlk" aria-label="Вид наряда"><option value="">Все виды</option>'+ND_KINDS.map(function(x){ return '<option value="'+x[0]+'"'+(ndLogK===x[0]?' selected':'')+'>'+x[1]+'</option>'; }).join('')+'</select>'+
+    '<select id="ndlo" aria-label="Объект"><option value="">Все объекты</option>'+ND_OBJS.map(function(o){ return '<option'+(ndLogO===o?' selected':'')+'>'+o+'</option>'; }).join('')+'</select></div>';
   if(!all.length) return head+'<p class="note">'+(syncOn()?'Пока пусто. Наряды, оформленные на любом телефоне, появятся здесь.':'Пока пусто. Подключите таблицу, чтобы журнал был общим для всех телефонов.')+'</p>';
   if(!list.length) return head+'<p class="note">Ничего не найдено.</p>';
   return head+'<div class="mlist" id="ndlog">'+show.map(function(e){
     var until=ndIso(e.d2), act=until&&until>=t;
-    return '<div class="ndj"><div class="ndjt"><b>№ '+esc(e.no)+' · '+esc(ND_SHORT[e.kind]||'')+'</b><span>'+esc(e.d1||'')+'–'+esc(e.d2||'')+(act?' <span class="ndon">действует</span>':'')+'</span>'+
+    return '<div class="ndj"><div class="ndjt"><b>№ '+esc(e.no)+' · '+esc(ND_SHORT[e.kind]||'')+(ndObjOf(e)?' · '+esc(ndObjOf(e)):'')+'</b><span>'+esc(e.d1||'')+'–'+esc(e.d2||'')+(act?' <span class="ndon">действует</span>':'')+'</span>'+
       '<small>'+esc([e.works,e.code,(e.team||[]).length+' чел.',e.rel?'к наряду № '+e.rel:'',e.who].filter(Boolean).join(' · '))+(e.upd?' · изменён '+esc(new Date(e.upd).toLocaleDateString('ru-RU'))+(e.ed?' ('+esc(e.ed)+')':''):'')+'</small>'+
       (qid[e.id]?'<small class="ndwarn">⏳ ещё не записан в таблицу'+(syncOn()?'':' — таблица не подключена')+'</small>':'')+
       (e.dup?'<small class="ndwarn">⚠ такой номер уже есть в журнале</small>':'')+'</div>'+
@@ -1967,8 +1994,8 @@ function ndDownload(e,after){
 }
 function ndMake(mode){
   var st=ndSt(), k=st.kind, tpl=ndTplC[k], msg=$('nd_msg'), d=ndDraft(st,k); if(!tpl) return;
-  var ed=st.edit&&st.edit.kind===k?ndFind(st,st.edit.id):null;
-  var e=ed?{id:ed.id,kind:k,who:ed.who||'',at:ed.at||Date.now(),upd:Date.now(),ed:sync.who||''}:{id:Date.now().toString(36)+Math.random().toString(36).slice(2,8),kind:k,who:sync.who||'',at:Date.now()};
+  var ed=ndEd(st,k);
+  var e=ed?{id:ed.id,kind:k,obj:st.obj,who:ed.who||'',at:ed.at||Date.now(),upd:Date.now(),ed:sync.who||''}:{id:Date.now().toString(36)+Math.random().toString(36).slice(2,8),kind:k,obj:st.obj,who:sync.who||'',at:Date.now()};
   ND_CFGK.forEach(function(f){ e[f]=ndV(st,k,f).trim(); });
   e.no=String(typeof d.no==='string'&&d.no?d.no:ndNext(st,k)).trim();
   e.days=String(Math.max(1,Math.min(366,parseInt(e.days,10)||1)));
@@ -1990,7 +2017,7 @@ function ndMake(mode){
   if(ed){
     var fin=function(name){
       var s=ndSt(); s.q=s.q.filter(function(x){ return x.id!==e.id||x._del; }); s.q.push(e);
-      s.list=s.list.filter(function(x){ return x.id!==e.id; }); ndEndEdit(s,k); s.kind='log'; ndSave(s); ndFlush();
+      s.list=s.list.filter(function(x){ return x.id!==e.id; }); ndEndEdit(s); s.kind='log'; ndSave(s); ndFlush();
       ndMsg=''; renderNd(); window.scrollTo(0,0); toast('Наряд № '+e.no+' изменён'+(name?', файл '+name:''));
     };
     if(mode!=='dl'){ fin(''); return; }
@@ -1998,14 +2025,14 @@ function ndMake(mode){
     ndDownload(e,function(r,name){ if(r!=='cancel') fin(name); else if($('nd_msg')) $('nd_msg').textContent=''; }).catch(function(){ if($('nd_msg')) $('nd_msg').textContent='Не удалось загрузить бланк.'; });
     return;
   }
-  ndMsg=''; msg.textContent='Готовлю файл…';
+  ndMsg=''; msg.textContent='Готовлю файл…'; var ob0=st.obj;
   ndDownload(e,function(r,name){
     if(r==='cancel'){ if($('nd_msg')) $('nd_msg').textContent=''; return; }
     var s=ndSt(); s.q.push(e);
-    var c=s.cfg[k]=s.cfg[k]||{}; ND_CFGK.forEach(function(f){ c[f]=e[f]; }); c.cb=e.cb; c.o=e.o;
-    var dd=ndDraft(s,k); ND_CFGK.forEach(function(f){ delete dd[f]; }); delete dd.cb; delete dd.o; delete dd.no; delete dd.d1; delete dd.d2; delete dd.rel;
+    var sl=ob0+'|'+k, c=s.cfg[sl]={}; ND_CFGK.forEach(function(f){ c[f]=e[f]; }); c.cb=e.cb; c.o=e.o;
+    var dd=s.draft[sl]=s.draft[sl]||{}; ND_CFGK.forEach(function(f){ delete dd[f]; }); delete dd.cb; delete dd.o; delete dd.no; delete dd.d1; delete dd.d2; delete dd.rel;
     ndSave(s);
-    if(syncOn()){ var cfg={}; ND_CFGK.forEach(function(f){ cfg[f]=e[f]; }); cfg.cb=e.cb; cfg.o=e.o; call({action:'ndcfg',kind:k,cfg:cfg}).catch(function(){}); }
+    if(syncOn()){ var cfg={}; ND_CFGK.forEach(function(f){ cfg[f]=e[f]; }); cfg.cb=e.cb; cfg.o=e.o; call({action:'ndcfg',kind:k,obj:ob0,cfg:cfg}).catch(function(){}); }
     ndFlush(); renderNd();
     ndMsg='Готово: '+name+' ('+e.team.length+' чел.). Наряд № '+e.no+' записан в журнал.'; if($('nd_msg')) $('nd_msg').textContent=ndMsg;
   }).catch(function(){ if($('nd_msg')) $('nd_msg').textContent='Не удалось загрузить бланк. Нужен интернет при первом запуске.'; });
@@ -2022,13 +2049,15 @@ function ndFromEntry(e,full){
 function ndEdit(id){
   var st=ndSt(), e=ndFind(st,id); if(!e) return;
   if(!ndTemplateOk(e.kind)) return;
-  st.bak=st.bak||{}; if(!(st.edit&&st.edit.kind===e.kind)) st.bak[e.kind]=st.draft[e.kind]||{};
-  st.draft[e.kind]=ndFromEntry(e,true); st.edit={id:e.id,kind:e.kind}; st.kind=e.kind; ndSave(st);
+  if(st.edit) ndEndEdit(st);
+  st.obj=ndObjOf(e)||st.obj; var sl=ndSl(st,e.kind);
+  st.bak=st.bak||{}; st.bak[sl]=st.draft[sl]||{};
+  st.draft[sl]=ndFromEntry(e,true); st.edit={id:e.id,kind:e.kind,obj:st.obj}; st.kind=e.kind; st.lastKind=e.kind; ndSave(st);
   ndQ=''; ndMsg=''; renderNd(); window.scrollTo(0,0);
-  var x=st.draft[e.kind].teamX.length; if(x) toast('В наряде '+x+' чел., которых сейчас нет в табеле — они останутся в наряде');
+  var x=st.draft[sl].teamX.length; if(x) toast('В наряде '+x+' чел., которых сейчас нет в табеле — они останутся в наряде');
 }
 function ndTemplateOk(k){ if(ND_TPL[k]) return true; toast('Для этого вида наряда ещё нет бланка'); return false; }
-function ndEndEdit(st,k){ st.draft[k]=(st.bak&&st.bak[k])||{}; if(st.bak) delete st.bak[k]; st.edit=null; }
+function ndEndEdit(st){ if(!st.edit) return; var sl=(st.edit.obj||st.obj)+'|'+st.edit.kind; st.draft[sl]=(st.bak&&st.bak[sl])||{}; if(st.bak) delete st.bak[sl]; st.edit=null; }
 function ndDel(id){
   var st=ndSt(), e=ndFind(st,id); if(!e) return;
   openSheet('Удалить наряд','<p>Удалить из журнала наряд № <b>'+esc(e.no)+'</b> ('+esc(ND_TITLE[e.kind]||'')+', '+esc(e.d1||'')+')?</p><p class="note">Он пропадёт из журнала на всех телефонах и из листа «Наряды» в таблице. Уже скачанные файлы Word останутся.</p>'+
@@ -2040,13 +2069,14 @@ function ndDelOk(id){
   st.q=st.q.filter(function(x){ return x.id!==id; });
   var onServer=st.list.some(function(x){ return x.id===id; })||!queued;
   if(onServer) st.q.push({id:id,kind:e.kind,_del:1,at:Date.now()});
-  if(st.edit&&st.edit.id===id) ndEndEdit(st,st.edit.kind);
+  if(st.edit&&st.edit.id===id) ndEndEdit(st);
   ndSave(st); ndFlush(); renderNd(); toast('Наряд № '+e.no+' удалён');
 }
 function ndUse(id){
   var st=ndSt(), e=ndFind(st,id); if(!e||!ndTemplateOk(e.kind)) return;
-  if(st.edit&&st.edit.kind===e.kind) ndEndEdit(st,e.kind);
-  st.draft[e.kind]=ndFromEntry(e,false); st.kind=e.kind; ndSave(st); ndQ=''; ndMsg=''; renderNd(); window.scrollTo(0,0); toast('Взято за основу: № '+e.no+'. Номер и дата — новые.');
+  st.obj=ndObjOf(e)||st.obj;
+  if(st.edit&&st.edit.kind===e.kind&&st.edit.obj===st.obj) ndEndEdit(st);
+  st.draft[ndSl(st,e.kind)]=ndFromEntry(e,false); st.kind=e.kind; st.lastKind=e.kind; ndSave(st); ndQ=''; ndMsg=''; renderNd(); window.scrollTo(0,0); toast('Взято за основу: № '+e.no+'. Номер и дата — новые.');
 }
 function ndInput(t){
   if(t.id==='ndlq'){ ndLogQ=t.value; var st0=ndSt(), h=document.createElement('div'); h.innerHTML=ndLog(st0); var nl=h.querySelector('#ndlog'), ol=$('ndlog'); if(ol&&nl) ol.outerHTML=nl.outerHTML; else renderNd(); return true; }
@@ -2064,6 +2094,7 @@ function ndInput(t){
 }
 function ndChange(t){
   if(t.id==='ndlk'){ ndLogK=t.value; renderNd(); return true; }
+  if(t.id==='ndlo'){ ndLogO=t.value; renderNd(); return true; }
   var st=ndSt(), k=st.kind, d=ndDraft(st,k);
   if(t.dataset.ndt){
     var team=(d.team||[]).filter(function(x){ return x!==t.dataset.ndt; }); if(t.checked) team.push(t.dataset.ndt); d.team=team; ndSave(st);
@@ -2103,10 +2134,11 @@ document.addEventListener('click',function(e){
     case 'menu': sheetMenu(); break;
     case 'scan': openScan(); break;
     case 'memodoc': memoMake(); break;
-    case 'ndkind': { var ns=ndSt(); ns.kind=el.dataset.k; ndSave(ns); ndQ=''; ndMsg=''; ndShowAll=false; ndFetchAt=0; renderNd(); break; }
+    case 'ndobj': { var no2=ndSt(); no2.obj=el.dataset.o; if(no2.kind==='log') no2.kind=no2.lastKind; ndSave(no2); ndQ=''; ndMsg=''; ndFetchAt=0; renderNd(); break; }
+    case 'ndkind': { var ns=ndSt(); ns.kind=el.dataset.k; if(ND_TITLE[ns.kind]) ns.lastKind=ns.kind; ndSave(ns); ndQ=''; ndMsg=''; ndShowAll=false; ndFetchAt=0; renderNd(); break; }
     case 'ndedit': ndEdit(el.dataset.id); break;
     case 'ndsave': ndMake(el.dataset.dl?'dl':'save'); break;
-    case 'ndcancel': { var cs=ndSt(); if(cs.edit){ var ck=cs.edit.kind; ndEndEdit(cs,ck); cs.kind='log'; ndSave(cs); } ndMsg=''; renderNd(); window.scrollTo(0,0); break; }
+    case 'ndcancel': { var cs=ndSt(); if(cs.edit){ ndEndEdit(cs); cs.kind='log'; ndSave(cs); } ndMsg=''; renderNd(); window.scrollTo(0,0); break; }
     case 'nddel': ndDel(el.dataset.id); break;
     case 'nddelok': ndDelOk(el.dataset.id); break;
     case 'ndretry': delete ndTplErr[ndKind()]; renderNd(); break;
