@@ -228,6 +228,8 @@ input,select,textarea{min-width:0;max-width:100%;box-sizing:border-box}
 .mtype button[aria-selected=true]{background:var(--ink);color:var(--bg)}
 .mhdr{margin:12px 0;border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--surface)}
 .mhdr summary{font-weight:700;cursor:pointer;padding:4px 0}
+.mhp{display:block;font-size:12px;color:var(--muted);margin-top:4px;line-height:1.3}
+.mhp .mhw,.mhw{color:var(--sick-t)}
 .mnav{display:flex;gap:6px;align-items:center;margin:10px 0 6px}
 .mnav button{width:46px;padding:0;font-size:18px;flex:none}
 .mnav .mlabel{flex:1;text-align:center;font-size:18px;font-weight:700;min-width:0}
@@ -311,7 +313,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='33';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='34';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1516,7 +1518,26 @@ var MEMO_HDR_F=[
   ['s4','Последняя подпись в записке о работе в выходной день — ФИО','И.О. Фамилия']];
 var MEMO_POS={}; MEMO_HDR_F.forEach(function(f){ if(f[3]!=null) MEMO_POS[f[0]]=f[3]; });
 var MEMO_NEED={ot:['addr','fromName','s1','s2','s3'],rvd:['addr','fromName','s1','s2','s4']};
-var MEMO_SHOW={ot:['addrPos','addr','fromPos','fromName','s1Pos','s1','s2Pos','s2','s3Pos','s3'],rvd:['addrPos','addr','fromPos','fromName','s1Pos','s1','s2Pos','s2','s4Pos','s4']};
+/* на экране — одно поле «должность и ФИО», в Word — как в образце: должность отдельно, ФИО отдельно */
+var MEMO_ONE=[['addr','addrPos','Кому — должность, организация и ФИО (кому?)','Генеральному директору АО «…» Фамилии И.О.'],
+  ['fromName','fromPos','От кого — должность и ФИО (кого?)','Начальника участка … Фамилии Имени Отчества'],
+  ['s1','s1Pos','Подпись — должность и ФИО','Начальник участка … И.О. Фамилия'],
+  ['s2','s2Pos','Согласовано — должность и ФИО','Директор по строительству И.О. Фамилия'],
+  ['s3','s3Pos','Утверждает (сверхурочная работа) — должность и ФИО','Заместитель директора управления И.О. Фамилия'],
+  ['s4','s4Pos','Утверждает (выходной день) — должность и ФИО','Директор управления И.О. Фамилия']];
+var MEMO_SHOW={ot:['addr','fromName','s1','s2','s3'],rvd:['addr','fromName','s1','s2','s4']};
+var MEMO_NAME_RE=/(?:[А-ЯЁ]\.\s?[А-ЯЁ]\.\s?[А-ЯЁ][а-яё]+(?:-[А-ЯЁ][а-яё]+)?|[А-ЯЁ][а-яё]+(?:-[А-ЯЁ][а-яё]+)?\s+(?:[А-ЯЁ]\.\s?[А-ЯЁ]\.?|[А-ЯЁ][а-яё]+\s+[А-ЯЁ][а-яё]+))\s*$/;
+function memoFlat(v){ return String(v||'').replace(/\s+/g,' ').trim(); }
+/* разделить «должность … ФИО»: для «Кому» — по организации (АО, ООО, «…»), иначе — ФИО в конце */
+function memoSplit(nameKey,text){
+  var t=memoFlat(text), pk=nameKey==='addr'?'addrPos':nameKey==='fromName'?'fromPos':nameKey+'Pos', pos='', name='';
+  if(nameKey==='addr'){ var m=/(?:^|\s)(?=(?:АО|ООО|ОАО|ПАО|ЗАО|АНО|ФГУП|Филиал[ау]?)\s|«)/.exec(t); if(m&&m.index>0){ pos=t.slice(0,m.index).trim(); name=t.slice(m.index).trim(); } }
+  if(!pos&&!name){ var n=MEMO_NAME_RE.exec(t); if(n){ name=n[0].trim(); pos=t.slice(0,n.index).trim(); } else pos=t; }
+  if(MEMO_POS[pk]!=null&&memoFlat(MEMO_POS[pk])===pos) pos=MEMO_POS[pk];   // как в образце — с теми же переносами
+  return {pk:pk,pos:pos,name:name};
+}
+function memoOneV(h,nameKey){ var pk=nameKey==='addr'?'addrPos':nameKey==='fromName'?'fromPos':nameKey+'Pos'; return memoFlat(memoFlat(memoHdrV(h,pk))+' '+(h[nameKey]||'')); }
+function memoSplitNote(k,v){ var r=memoSplit(k,v); return r.name?'В записке: '+esc(memoFlat(r.pos)||'—')+' | <b>'+esc(r.name)+'</b>':'<span class="mhw">ФИО не найдено — допишите в конце, например «И.О. Фамилия»</span>'; }
 function memoHdrV(h,k){ return typeof h[k]==='string'&&(h[k].trim()||MEMO_POS[k]==null)?h[k]:(MEMO_POS[k]!=null?MEMO_POS[k]:''); }
 function memoHdr(){ try{ var o=JSON.parse(localStorage.getItem(MEMO_HDR_KEY)||'{}'); return o&&typeof o==='object'?o:{}; }catch(e){ return {}; } }
 function memoHdrSave(o){ try{ localStorage.setItem(MEMO_HDR_KEY,JSON.stringify(o)); }catch(e){} }
@@ -1592,9 +1613,9 @@ function renderDocs(){
       ppl.map(function(p){ return '<option value="'+esc(p.id)+'">'+esc(p.name+(p.role?', '+p.role:''))+'</option>'; }).join('')+'</select>'+
       '<textarea id="m_resp" rows="2" style="margin-top:8px" placeholder="ФИО, должность, подразделение">'+esc(c.resp)+'</textarea></div>'+
     '<details class="mhdr"'+(MEMO_NEED[memoType()].some(function(k){ return !memoHdr()[k]; })?' open':'')+'><summary>Шапка и подписи</summary><p class="note">Хранятся в вашей Google Таблице и одинаковы на всех телефонах.</p>'+
-      MEMO_HDR_F.filter(function(f){ return MEMO_SHOW[memoType()].indexOf(f[0])>=0; }).map(function(f){ var v=memoHdrV(memoHdr(),f[0]);
-        return '<div class="fld"><label for="mh_'+f[0]+'">'+f[1]+'</label>'+(f[3]!=null?'<textarea id="mh_'+f[0]+'" data-mh="'+f[0]+'" rows="'+Math.min(3,Math.max(1,v.split('\n').length))+'" maxlength="300" placeholder="'+esc(f[2])+'">'+esc(v)+'</textarea>':'<input type="text" id="mh_'+f[0]+'" data-mh="'+f[0]+'" maxlength="300" value="'+esc(v)+'" placeholder="'+esc(f[2])+'">')+'</div>'; }).join('')+
-      '<p class="note">Должность можно писать в несколько строк — в записке переносы будут такими же. Пустое поле должности — как в образце.</p></details>'+
+      MEMO_ONE.filter(function(f){ return MEMO_SHOW[memoType()].indexOf(f[0])>=0; }).map(function(f){ var v=memoOneV(memoHdr(),f[0]);
+        return '<div class="fld"><label for="mh_'+f[0]+'">'+f[2]+'</label><textarea id="mh_'+f[0]+'" data-mhc="'+f[0]+'" rows="'+Math.min(4,Math.max(2,Math.ceil(v.length/34)))+'" maxlength="400" placeholder="'+esc(f[3])+'">'+esc(v)+'</textarea><small class="mhp" id="mhp_'+f[0]+'">'+memoSplitNote(f[0],v)+'</small></div>'; }).join('')+
+      '<p class="note">Пишите должность и ФИО подряд. В записке должность встанет на своё место, ФИО — на своё (под строкой видно, как разделится).</p></details>'+
     '<div class="acts"><button class="primary" data-a="memodoc">Скачать служебную записку (Word)</button></div>'+
     '<p class="note" id="m_msg" role="status" aria-live="polite"></p></div>';
 }
@@ -1653,7 +1674,7 @@ function memoMake(){
   if(objs.some(function(o){ return !o.obj; })){ msg.textContent='Укажите название у каждого объекта.'; return; }
   if(!c.resp.trim()){ msg.textContent='Укажите ответственного.'; $('m_resp').focus(); return; }
   var mt=memoType(), hdr=memoHdr(), miss=MEMO_HDR_F.filter(function(f){ return MEMO_NEED[mt].indexOf(f[0])>=0&&!String(hdr[f[0]]||'').trim(); });
-  if(miss.length){ msg.textContent='Заполните «Шапка и подписи»: '+miss.map(function(f){ return f[1]; }).join(', ')+'.'; var dd=document.querySelector('.mhdr'); if(dd) dd.open=true; return; }
+  if(miss.length){ msg.textContent='Заполните «Шапка и подписи» (должность и ФИО): '+miss.map(function(f){ var o=MEMO_ONE.filter(function(x){ return x[0]===f[0]; })[0]; return o?o[2].split(' — ')[0]:f[1]; }).join(', ')+'.'; var dd=document.querySelector('.mhdr'); if(dd) dd.open=true; return; }
   var a=ui.date.split('-'), date=a[2]+'.'+a[1]+'.'+a[0];
   var people=list.map(function(x){ var t=memoTimes(x,c); return {num:x.p.num||'',name:x.p.name,role:x.p.role||'',from:t.from,to:t.to,bf:t.bf,bt:t.bt,h:t.h}; });
   if(people.some(function(x){ return !(x.h>0); })){ msg.textContent='Проверьте время: у кого-то получилось 0 часов.'; return; }
@@ -2159,7 +2180,7 @@ document.addEventListener('click',function(e){
   }
 });
 $('q').addEventListener('input',function(){ ui.q=this.value; renderList(); });
-document.addEventListener('input',function(e){ var t=e.target; if(ui.view==='nd'&&ndInput(t)) return; if(t.dataset&&t.dataset.mo!=null){ var os=memoCfg().objs, k=Number(t.dataset.mo); if(os[k]){ os[k][t.dataset.mf]=t.value; memoSet('objs',os); } } if(t.id==='m_resp') memoSet('resp',t.value); if(t.dataset&&t.dataset.mh){ var h=memoHdr(); h[t.dataset.mh]=t.value; memoHdrSave(h); memoHdrPush(); } });
+document.addEventListener('input',function(e){ var t=e.target; if(ui.view==='nd'&&ndInput(t)) return; if(t.dataset&&t.dataset.mo!=null){ var os=memoCfg().objs, k=Number(t.dataset.mo); if(os[k]){ os[k][t.dataset.mf]=t.value; memoSet('objs',os); } } if(t.id==='m_resp') memoSet('resp',t.value); if(t.dataset&&t.dataset.mh){ var h=memoHdr(); h[t.dataset.mh]=t.value; memoHdrSave(h); memoHdrPush(); } if(t.dataset&&t.dataset.mhc){ var h2=memoHdr(), sp=memoSplit(t.dataset.mhc,t.value); h2[sp.pk]=sp.pos; h2[t.dataset.mhc]=sp.name; memoHdrSave(h2); memoHdrPush(); var pn=$('mhp_'+t.dataset.mhc); if(pn) pn.innerHTML=memoSplitNote(t.dataset.mhc,t.value); } });
 $('q').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); submitEntry(); } });
 $('file').addEventListener('change',function(){ if(this.files&&this.files[0]) handleFile(this.files[0]); });
 document.addEventListener('change',function(e){
