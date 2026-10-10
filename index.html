@@ -311,7 +311,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='32';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='33';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1499,9 +1499,25 @@ function tmin(s){ var a=String(s||'').split(':').map(Number); return a.length===
 function tstr(m){ m=((Math.round(m)%1440)+1440)%1440; return pad(Math.floor(m/60))+':'+pad(m%60); }
 /* шапка и подписи: хранятся в Google Таблице (не на сайте), на телефоне — копия */
 var MEMO_HDR_KEY='tabel-memo-hdr-v1', memoHdrLoaded=false, memoHdrTimer=null;
-var MEMO_HDR_F=[['addr','Кому (после «Генеральному директору»)','АО «…» Фамилия И.О.'],['fromName','От кого — ФИО начальника участка (кого?)','Фамилия Имя Отчество'],
-  ['s1','Подпись: начальник участка','И.О. Фамилия'],['s2','Согласовано: директор по строительству','И.О. Фамилия'],['s3','Заместитель директора управления (сверхурочная работа)','И.О. Фамилия'],['s4','Директор управления (работа в выходной день)','И.О. Фамилия']];
+/* шапка и подписи: [ключ, подпись, подсказка, должность по умолчанию (для полей должности)].
+   Должность можно писать в несколько строк — в записке будет так же. */
+var MEMO_HDR_F=[
+  ['addrPos','Кому — должность (кому?)','Генеральному директору','Генеральному директору'],
+  ['addr','Кому — организация и ФИО (кому?)','АО «…» Фамилия И.О.'],
+  ['fromPos','От кого — должность (кого?)','Начальника участка …','Начальника участка\nобщестроительных работ №2 Монтажного центра Управления организации строительства АРЕ'],
+  ['fromName','От кого — ФИО (кого?)','Фамилия Имя Отчество'],
+  ['s1Pos','Подпись — должность','Начальник участка …','Начальник участка \nобщестроительных работ №2'],
+  ['s1','Подпись — ФИО','И.О. Фамилия'],
+  ['s2Pos','Согласовано — должность','Директор по строительству','Директор по строительству'],
+  ['s2','Согласовано — ФИО','И.О. Фамилия'],
+  ['s3Pos','Последняя подпись в записке о сверхурочной работе — должность','Заместитель директора управления','Заместитель директора управления'],
+  ['s3','Последняя подпись в записке о сверхурочной работе — ФИО','И.О. Фамилия'],
+  ['s4Pos','Последняя подпись в записке о работе в выходной день — должность','Директор управления','Директор управления'],
+  ['s4','Последняя подпись в записке о работе в выходной день — ФИО','И.О. Фамилия']];
+var MEMO_POS={}; MEMO_HDR_F.forEach(function(f){ if(f[3]!=null) MEMO_POS[f[0]]=f[3]; });
 var MEMO_NEED={ot:['addr','fromName','s1','s2','s3'],rvd:['addr','fromName','s1','s2','s4']};
+var MEMO_SHOW={ot:['addrPos','addr','fromPos','fromName','s1Pos','s1','s2Pos','s2','s3Pos','s3'],rvd:['addrPos','addr','fromPos','fromName','s1Pos','s1','s2Pos','s2','s4Pos','s4']};
+function memoHdrV(h,k){ return typeof h[k]==='string'&&(h[k].trim()||MEMO_POS[k]==null)?h[k]:(MEMO_POS[k]!=null?MEMO_POS[k]:''); }
 function memoHdr(){ try{ var o=JSON.parse(localStorage.getItem(MEMO_HDR_KEY)||'{}'); return o&&typeof o==='object'?o:{}; }catch(e){ return {}; } }
 function memoHdrSave(o){ try{ localStorage.setItem(MEMO_HDR_KEY,JSON.stringify(o)); }catch(e){} }
 function memoHdrFetch(){
@@ -1576,7 +1592,9 @@ function renderDocs(){
       ppl.map(function(p){ return '<option value="'+esc(p.id)+'">'+esc(p.name+(p.role?', '+p.role:''))+'</option>'; }).join('')+'</select>'+
       '<textarea id="m_resp" rows="2" style="margin-top:8px" placeholder="ФИО, должность, подразделение">'+esc(c.resp)+'</textarea></div>'+
     '<details class="mhdr"'+(MEMO_NEED[memoType()].some(function(k){ return !memoHdr()[k]; })?' open':'')+'><summary>Шапка и подписи</summary><p class="note">Хранятся в вашей Google Таблице и одинаковы на всех телефонах.</p>'+
-      MEMO_HDR_F.map(function(f){ return '<div class="fld"><label for="mh_'+f[0]+'">'+f[1]+'</label><input type="text" id="mh_'+f[0]+'" data-mh="'+f[0]+'" maxlength="300" value="'+esc(memoHdr()[f[0]]||'')+'" placeholder="'+esc(f[2])+'"></div>'; }).join('')+'</details>'+
+      MEMO_HDR_F.filter(function(f){ return MEMO_SHOW[memoType()].indexOf(f[0])>=0; }).map(function(f){ var v=memoHdrV(memoHdr(),f[0]);
+        return '<div class="fld"><label for="mh_'+f[0]+'">'+f[1]+'</label>'+(f[3]!=null?'<textarea id="mh_'+f[0]+'" data-mh="'+f[0]+'" rows="'+Math.min(3,Math.max(1,v.split('\n').length))+'" maxlength="300" placeholder="'+esc(f[2])+'">'+esc(v)+'</textarea>':'<input type="text" id="mh_'+f[0]+'" data-mh="'+f[0]+'" maxlength="300" value="'+esc(v)+'" placeholder="'+esc(f[2])+'">')+'</div>'; }).join('')+
+      '<p class="note">Должность можно писать в несколько строк — в записке переносы будут такими же. Пустое поле должности — как в образце.</p></details>'+
     '<div class="acts"><button class="primary" data-a="memodoc">Скачать служебную записку (Word)</button></div>'+
     '<p class="note" id="m_msg" role="status" aria-live="polite"></p></div>';
 }
@@ -1621,7 +1639,8 @@ function memoBuild(tpl,data){
       o.works.split(/\r?\n/).filter(function(l){ return l.trim(); }).map(function(l){ return tpl.pline.replace('{{TEXT}}',xesc(l.trim())); }).join('');
   }).join('');
   var hd=data.hdr||{};
-  ['addr','fromName','s1','s2','s3','s4'].forEach(function(k){ var ph={addr:'{{ADDR}}',fromName:'{{FROMNAME}}',s1:'{{S1}}',s2:'{{S2}}',s3:'{{S3}}',s4:'{{S4}}'}[k]; doc=doc.split(ph).join(xesc(hd[k]||'')); });
+  var MPH={addr:'{{ADDR}}',fromName:'{{FROMNAME}}',s1:'{{S1}}',s2:'{{S2}}',s3:'{{S3}}',s4:'{{S4}}',addrPos:'{{ADDRPOS}}',fromPos:'{{FROMPOS}}',s1Pos:'{{S1POS}}',s2Pos:'{{S2POS}}',s3Pos:'{{S3POS}}',s4Pos:'{{S4POS}}'};
+  Object.keys(MPH).forEach(function(k){ var v=xesc(memoHdrV(hd,k)).split(/\r?\n/).join('</w:t><w:br /><w:t xml:space="preserve">'); doc=doc.split(MPH[k]).join(v); });
   doc=doc.replace('<!--ROWS-->',function(){ return rows; }).replace('<!--WORKS-->',function(){ return works; }).replace('{{RESP}}',function(){ return xesc(data.resp); });
   var files={}; Object.keys(tpl.files).forEach(function(k){ files[k]=tpl.files[k]; }); files['word/document.xml']=doc;
   return zipStore(files);
