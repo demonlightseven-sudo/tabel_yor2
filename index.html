@@ -251,6 +251,12 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 .mt td.po{background-image:repeating-linear-gradient(135deg,transparent 0 5px,rgba(239,108,0,.75) 5px 6px)}
 .mt td.pm{background-image:repeating-linear-gradient(135deg,transparent 0 5px,rgba(239,108,0,.35) 5px 6px)}
 .mt td.ph{background-image:repeating-linear-gradient(135deg,transparent 0 5px,rgba(211,47,47,.8) 5px 6px)}
+.dob{background:#ffe600;color:#1a1a1a;font-weight:700;padding:0 3px;border-radius:3px;line-height:1.25}
+.mt td.pmy{background:#fff7b3;color:#1a1a1a}
+.offgrp{list-style:none;margin:10px 0 0;padding:0}
+.offgrp>details{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:8px 10px}
+.offgrp summary{cursor:pointer;font-weight:700;padding:6px 0;font-size:15px}
+.offgrp .offl{list-style:none;margin:6px 0 0;padding:0}
 .mt td.phm{background-image:repeating-linear-gradient(135deg,transparent 0 5px,rgba(211,47,47,.4) 5px 6px)}
 .mfull{display:none}
 /* компьютер: табель за месяц на весь экран, весь месяц без прокрутки вбок */
@@ -313,7 +319,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='37';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='38';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -779,16 +785,19 @@ function matches(p,q){
   }
   return (p.name+' '+(p.role||'')+' '+(p.num||'')).toLowerCase().indexOf(t)>=0;
 }
+/* АРЕ: у кого день выходной по графику и нет отметки — не в явке (не нужно отмечать) */
+function planHidden(p,day){ return root.cur==='are'&&!day[p.id]&&planOff(p,ui.date)===true; }
 function stats(){
-  var ppl=activePeople(), day=dayRec(ui.date), c={work:0,off:0,sick:0,pl:0,ul:0,ab:0}, hrs=0, unm=0;
-  ppl.forEach(function(p){ var r=day[p.id]; if(!r){ unm++; return; } c[r.s]++; if(r.s==='work') hrs+=r.h; });
-  return {n:ppl.length,c:c,hrs:hrs,unm:unm};
+  var ppl=activePeople(), day=dayRec(ui.date), c={work:0,off:0,sick:0,pl:0,ul:0,ab:0}, hrs=0, unm=0, plan=0;
+  ppl.forEach(function(p){ var r=day[p.id]; if(!r){ if(planHidden(p,day)){ plan++; return; } unm++; return; } c[r.s]++; if(r.s==='work') hrs+=r.h; });
+  return {n:ppl.length-plan,c:c,hrs:hrs,unm:unm,plan:plan};
 }
 function renderStats(){
   var s=stats();
   var h='<div class="stats"><div class="w"><b>'+s.c.work+'</b><span>пришли</span></div><div class="a"><b>'+s.c.ab+'</b><span>прогул</span></div>'+
     '<div class="o"><b>'+s.c.off+'</b><span>выходной</span></div><div class="s"><b>'+s.c.sick+'</b><span>больничный</span></div></div>';
-  if(s.c.pl||s.c.ul) h+='<p class="stats2">Отпуск: '+s.c.pl+' · Отпуск без ЗП: '+s.c.ul+'</p>';
+  var s2=[]; if(s.plan) s2.push('Выходной по графику (DO): '+s.plan+' — их отмечать не нужно'); if(s.c.pl||s.c.ul) s2.push('Отпуск: '+s.c.pl+' · Отпуск без ЗП: '+s.c.ul);
+  if(s2.length) h+='<p class="stats2">'+s2.join('<br>')+'</p>';
   $('stats').innerHTML=h;
   $('tabs').innerHTML='<button data-a="flt" data-f="all" aria-pressed="'+(ui.filter==='all')+'">Все ('+s.n+')</button>'+
     '<button data-a="flt" data-f="u" aria-pressed="'+(ui.filter==='u')+'">Без отметки ('+s.unm+')</button>';
@@ -815,8 +824,12 @@ function renderList(){
     return;
   }
   var items=ppl.filter(function(p){ return matches(p,ui.q)&&(ui.filter!=='u'||!day[p.id]); });
+  /* выходные по графику — в конце, свёрнуто (при поиске показываем всех найденных) */
+  var off=ui.q?[]:items.filter(function(p){ return planHidden(p,day); });
+  if(off.length) items=items.filter(function(p){ return off.indexOf(p)<0; });
   var html=items.map(rowHtml).join('');
   if(!html) html='<li class="empty"><p>'+(ui.q?'Никого не найдено.':'Все отмечены.')+'</p></li>';
+  if(off.length) html+='<li class="offgrp"><details'+(ui.offOpen?' open':'')+' id="offgrp"><summary><span class="dob">DO</span> Выходной по графику: '+off.length+' чел. — в явке не участвуют</summary><p class="note">Если кто-то из них вышел на работу, отметьте его здесь или найдите по номеру.</p><ul class="offl">'+off.map(rowHtml).join('')+'</ul></details></li>';
   L.outerHTML='<ul id="list">'+html+'</ul>';
 }
 function render(){
@@ -839,7 +852,7 @@ function renderMonth(){
   var m=ui.month, a=m.split('-').map(Number), n=daysIn(m), recs=bk().records, t=today(), ppl=peopleForMonth(m), i;
   var nav='<div class="mnav"><button data-a="mnav" data-d="-1" aria-label="Предыдущий месяц">◀</button><div class="mlabel">'+MONTHS_N[a[1]-1]+' '+a[0]+' · '+BOOKS[root.cur]+'</div>'+
     '<button data-a="mnav" data-d="1" aria-label="Следующий месяц">▶</button><button data-a="mexp" aria-label="Сохранить файл для Excel" title="Файл для Excel">⬇</button><button class="mfull" data-a="mfull" aria-label="Во весь экран" title="Во весь экран (F11)">⛶</button></div>';
-  var leg='<p class="mleg">'+(root.cur==='are'?'UL — Отпуск без сохранения зар. платы · PL — Оплачиваемый отпуск · SL — Больничный · AB — Прогул · DO — Выходной по графику · число — часы':'Число — часы · В — выходной · Б — больничный · ОТ — отпуск · БС — отпуск без ЗП · ПР — прогул')+' · оранжевая штриховка — выходной по графику, красная — праздничный день. Нажмите на клетку, чтобы открыть этот день.</p>';
+  var leg='<p class="mleg">'+(root.cur==='are'?'UL — Отпуск без сохранения зар. платы · PL — Оплачиваемый отпуск · SL — Больничный · AB — Прогул · <span class="dob">DO</span> — Выходной по графику · число — часы':'Число — часы · В — выходной · Б — больничный · ОТ — отпуск · БС — отпуск без ЗП · ПР — прогул')+(root.cur==='are'?' · бледно-жёлтая клетка с часами — вышел в свой выходной · красная штриховка — праздничный день':' · оранжевая штриховка — выходной по графику, красная — праздничный день')+'. Нажмите на клетку, чтобы открыть этот день.</p>';
   var old=monthOld&&syncOn()?'<p class="moldhint">Чтобы здесь были отметки с других телефонов, обновите скрипт в таблице (файл Code.gs, «Новая версия» в «Управление развертываниями»).</p>':'';
   if(!ppl.length){
     $('month').innerHTML=nav+'<div class="empty"><p>В табеле '+BOOKS[root.cur]+' пока нет людей.</p><button class="primary" data-a="people">Добавить людей</button></div>'; return;
@@ -850,7 +863,7 @@ function renderMonth(){
     head+='<th class="'+(ds===t?'tdy':'')+'"><button class="dh" data-a="mday" data-d="'+ds+'" aria-label="Открыть '+i+' число">'+i+'<small>'+WD[wd]+'</small></button></th>';
   }
   head+='<th class="tot">Дн.</th><th class="tot">Ч.</th></tr>';
-  var cnt=[], abs=[]; for(i=0;i<n;i++){ cnt.push(0); abs.push(0); }
+  var cnt=[], abs=[], are=root.cur==='are'; for(i=0;i<n;i++){ cnt.push(0); abs.push(0); }
   var body=ppl.map(function(p){
     var days=0, hrs=0, tds='';
     for(i=1;i<=n;i++){
@@ -859,9 +872,10 @@ function renderMonth(){
         cls=MCLS[r.s];
         if(r.s==='work'&&r.h>0){ days++; hrs+=r.h; cnt[i-1]++; }
         if(r.s==='ab') abs[i-1]++;
-        if(planOff(p,ds)===true) cls+=planHol(p,ds)?' phm':' pm';
-      } else if(planOff(p,ds)===true) cls=planHol(p,ds)?'ph':'po';
-      tds+='<td class="'+cls+'" data-a="mcell" data-d="'+ds+'" data-id="'+esc(p.id)+'">'+cellText(r)+'</td>';
+        if(planOff(p,ds)===true) cls+=are?(r.s==='work'?' pmy':'')+(planHol(p,ds)?' phm':''):(planHol(p,ds)?' phm':' pm');
+      } else if(planOff(p,ds)===true) cls=are?(planHol(p,ds)?'ph':''):(planHol(p,ds)?'ph':'po');
+      var txt=cellText(r); if(are&&planOff(p,ds)===true&&(!r||r.s==='off')) txt='<span class="dob">DO</span>';
+      tds+='<td class="'+cls+'" data-a="mcell" data-d="'+ds+'" data-id="'+esc(p.id)+'">'+txt+'</td>';
     }
     return '<tr><th class="c0" scope="row" title="'+esc((p.num?p.num+' ':'')+p.name)+'">'+(p.num?'<span class="tn">'+esc(p.num)+'</span>':'')+esc(p.name)+'</th>'+tds+'<td class="tot">'+days+'</td><td class="tot">'+fmtH(hrs)+'</td></tr>';
   }).join('');
@@ -2182,6 +2196,7 @@ document.addEventListener('click',function(e){
   }
 });
 $('q').addEventListener('input',function(){ ui.q=this.value; renderList(); });
+document.addEventListener('toggle',function(e){ if(e.target&&e.target.id==='offgrp') ui.offOpen=e.target.open; },true);
 document.addEventListener('input',function(e){ var t=e.target; if(ui.view==='nd'&&ndInput(t)) return; if(t.dataset&&t.dataset.mo!=null){ var os=memoCfg().objs, k=Number(t.dataset.mo); if(os[k]){ os[k][t.dataset.mf]=t.value; memoSet('objs',os); } } if(t.id==='m_resp') memoSet('resp',t.value); if(t.dataset&&t.dataset.mh){ var h=memoHdr(); h[t.dataset.mh]=t.value; memoHdrSave(h); memoHdrPush(); } if(t.dataset&&t.dataset.mhc){ var h2=memoHdr(), sp=memoSplit(t.dataset.mhc,t.value); h2[sp.pk]=sp.pos; h2[t.dataset.mhc]=sp.name; memoHdrSave(h2); memoHdrPush(); var pn=$('mhp_'+t.dataset.mhc); if(pn) pn.innerHTML=memoSplitNote(t.dataset.mhc,t.value); } });
 $('q').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); submitEntry(); } });
 $('file').addEventListener('change',function(){ if(this.files&&this.files[0]) handleFile(this.files[0]); });
