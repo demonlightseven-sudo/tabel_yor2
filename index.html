@@ -274,12 +274,24 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
   body.vmonth .mt .tot{width:42px;min-width:0}
   body.vmonth .mt .dh{min-height:30px;font-size:12px}
   body.vmonth .mt .dh small{font-size:9px}
-  body.vmonth .mt tfoot tr.f1 th,body.vmonth .mt tfoot tr.f1 td{bottom:30px}
+  body.vmonth .mt tfoot tr.f1 th,body.vmonth .mt tfoot tr.f1 td{bottom:60px}
+  body.vmonth .mt tfoot tr.f2 th,body.vmonth .mt tfoot tr.f2 td{bottom:30px}
 }
 .mt tfoot th,.mt tfoot td{position:sticky;background:var(--bg);font-weight:700;color:var(--muted);cursor:default}
-.mt tfoot tr.f1 th,.mt tfoot tr.f1 td{bottom:38px;z-index:1}
-.mt tfoot tr.f2 th,.mt tfoot tr.f2 td{bottom:0;z-index:1}
-.mt tfoot tr.f1 th.c0,.mt tfoot tr.f2 th.c0{z-index:3}
+.mt tfoot tr.f1 th,.mt tfoot tr.f1 td{bottom:76px;z-index:1}
+.mt tfoot tr.f2 th,.mt tfoot tr.f2 td{bottom:38px;z-index:1}
+.mt tfoot tr.f3 th,.mt tfoot tr.f3 td{bottom:0;z-index:1}
+.mt tfoot tr.f1 th.c0,.mt tfoot tr.f2 th.c0,.mt tfoot tr.f3 th.c0{z-index:3}
+.mt tfoot td.mf{cursor:pointer;color:var(--muted);font-weight:400}
+.mt tfoot td.mf svg{width:15px;height:15px;vertical-align:middle;opacity:.75}
+.mt tfoot td.mf.has{color:#1e8e3e;font-weight:800;font-size:16px;background:#e6f4ea}
+.mt tfoot td.mf.has sup{font-size:9px}
+@media (prefers-color-scheme: dark){.mt tfoot td.mf.has{color:#81c995;background:#1e3a26}}
+.mfl{list-style:none;margin:0 0 12px;padding:0}
+.mfl li{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.mfl li span{flex:1;min-width:0;overflow-wrap:anywhere;font-size:14px}
+.mfl li small{display:block;color:var(--muted);font-size:12px}
+.mfl li button{flex:none}
 .danger{color:var(--sick-t);border-color:var(--sick)}
 .moldhint{font-size:13px;margin:0 0 8px;padding:8px 10px;border-left:6px solid var(--ul);background:var(--surface);border-radius:6px}
 @media (prefers-reduced-motion:reduce){#toast{transition:none}.row.flash{animation:none}button:active{transform:none}}
@@ -317,13 +329,14 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 <div id="sheetWrap" hidden><div class="backdrop" data-a="close"></div><div id="sheet" role="dialog" aria-modal="true" aria-label="Окно"></div></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <input type="file" id="file" accept=".json,application/json" hidden>
+<input type="file" id="mfin" accept="application/pdf,.pdf" hidden>
 
 <script>
 (function(){
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='42';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='43';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -474,9 +487,9 @@ function hhmm(ms){ var d=new Date(ms); return pad(d.getHours())+':'+pad(d.getMin
 function b64u(str){ var a=new TextEncoder().encode(str), s=''; for(var i=0;i<a.length;i++) s+=String.fromCharCode(a[i]); return btoa(s); }
 function unb64u(b){ var t=atob(b), a=new Uint8Array(t.length); for(var i=0;i<t.length;i++) a[i]=t.charCodeAt(i); return new TextDecoder().decode(a); }
 
-function call(payload){
+function call(payload,ms){
   payload.code=sync.code; payload.app=APP_VER; if(!payload.who) payload.who=sync.who;
-  var ctl=window.AbortController?new AbortController():null, to=setTimeout(function(){ if(ctl) ctl.abort(); },25000);
+  var ctl=window.AbortController?new AbortController():null, to=setTimeout(function(){ if(ctl) ctl.abort(); },ms||25000);
   return fetch(sync.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),redirect:'follow',cache:'no-store',signal:ctl?ctl.signal:undefined})
     .then(function(r){ return r.json(); })
     .then(function(j){ clearTimeout(to); if(!j||j.ok!==true) throw new Error((j&&j.error)||'bad_response'); return j; },function(e){ clearTimeout(to); throw e; });
@@ -883,14 +896,82 @@ function renderMonth(){
     }
     return '<tr><th class="c0" scope="row" title="'+esc((p.num?p.num+' ':'')+p.name)+'">'+(p.num?'<span class="tn">'+esc(p.num)+'</span>':'')+esc(p.name)+'</th>'+tds+'<td class="tot">'+days+'</td><td class="tot">'+fmtH(hrs)+'</td></tr>';
   }).join('');
-  var f1='<tr class="f1"><th class="c0">Вышло, чел.</th>', f2='<tr class="f2"><th class="c0">Прогул</th>';
-  for(i=0;i<n;i++){ f1+='<td>'+(cnt[i]||'')+'</td>'; f2+='<td>'+(abs[i]||'')+'</td>'; }
-  f1+='<td></td><td></td></tr>'; f2+='<td></td><td></td></tr>';
+  var f1='<tr class="f1"><th class="c0">Вышло, чел.</th>', f2='<tr class="f2"><th class="c0">Прогул</th>', f3='<tr class="f3"><th class="c0" title="Подписанная директором служебная записка (сверхурочная работа, работа в выходной) — скан PDF">Служ. записка</th>', mfd=mfMonth(root.cur,m);
+  for(i=0;i<n;i++){ f1+='<td>'+(cnt[i]||'')+'</td>'; f2+='<td>'+(abs[i]||'')+'</td>'; var fd=m+'-'+pad(i+1), fl=mfd[fd]||[];
+    f3+='<td class="mf'+(fl.length?' has':'')+'" data-a="mfile" data-d="'+fd+'" aria-label="'+(fl.length?'Записка за '+(i+1)+' число прикреплена ('+fl.length+')':'Прикрепить записку за '+(i+1)+' число')+'">'+(fl.length?'✓'+(fl.length>1?'<sup>'+fl.length+'</sup>':''):MF_CLIP)+'</td>'; }
+  f1+='<td></td><td></td></tr>'; f2+='<td></td><td></td></tr>'; f3+='<td></td><td></td></tr>'; mfFetch(root.cur,m,false);
   var keepL=0, keepT=0, w0=$('mwrap'); if(w0){ keepL=w0.scrollLeft; keepT=w0.scrollTop; }
-  $('month').innerHTML=nav+leg+old+'<div class="mwrap" id="mwrap"><table class="mt"><thead>'+head+'</thead><tbody>'+body+'</tbody><tfoot>'+f1+f2+'</tfoot></table></div>';
+  $('month').innerHTML=nav+leg+old+'<div class="mwrap" id="mwrap"><table class="mt"><thead>'+head+'</thead><tbody>'+body+'</tbody><tfoot>'+f1+f2+f3+'</tfoot></table></div>';
   var w=$('mwrap'); w.scrollLeft=keepL; w.scrollTop=keepT;
   fitMonth();
   if(!keepL&&ui.month===today().slice(0,7)&&w.scrollWidth>w.clientWidth+4){ var td=document.querySelector('.mt th.tdy'); if(td){ w.scrollLeft=Math.max(0,td.offsetLeft-190); } }
+}
+/* ---------------------------------------------- служебные записки (сканы PDF) по дням */
+var MF_KEY='tabel-mfiles-v1', MF_MAX=15*1024*1024, mfBusy='', mfAt={}, mfPick=null;
+var MF_CLIP='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M16.5 6.5l-8 8a2 2 0 0 0 2.8 2.8l8.5-8.5a4 4 0 0 0-5.7-5.7l-8.5 8.5a6 6 0 0 0 8.5 8.5l7-7"/></svg>';
+function mfAll(){ try{ return JSON.parse(localStorage.getItem(MF_KEY)||'{}')||{}; }catch(e){ return {}; } }
+function mfSave(o){ try{ localStorage.setItem(MF_KEY,JSON.stringify(o)); }catch(e){} }
+/* {дата: [файлы]} за месяц табеля */
+function mfMonth(b,m){ var o=mfAll()[b+'|'+m]; var out={}; ((o&&o.files)||[]).forEach(function(f){ (out[f.d]=out[f.d]||[]).push(f); }); return out; }
+function mfSet(b,m,files){ var o=mfAll(); o[b+'|'+m]={at:Date.now(),files:files}; mfSave(o); }
+function mfFetch(b,m,force){
+  if(!syncOn()) return; var k=b+'|'+m;
+  if(!force&&Date.now()-(mfAt[k]||0)<60000) return; mfAt[k]=Date.now();
+  call({action:'mflist',book:b,month:m}).then(function(j){
+    var before=JSON.stringify((mfAll()[k]||{}).files||[]); mfSet(b,m,j.files||[]);
+    if(ui.view==='month'&&before!==JSON.stringify(j.files||[])) renderMonth();
+    if(mfOpenD&&mfOpenD.slice(0,7)===m&&!$('sheetWrap').hidden&&$('mfsheet')) mfSheet(mfOpenD);
+  }).catch(function(e){ if(e&&e.message==='bad_action') mfAt[k]=Date.now()+3600000; });
+}
+var mfOpenD='';
+function mfSize(n){ return n>=1048576?(n/1048576).toFixed(1).replace('.',',')+' МБ':Math.max(1,Math.round(n/1024))+' КБ'; }
+function mfSheet(d){
+  mfOpenD=d; var fl=mfMonth(root.cur,d.slice(0,7))[d]||[], busy=mfBusy===root.cur+'|'+d;
+  var html='<div id="mfsheet"><p class="note">Табель '+BOOKS[root.cur]+'. Скан служебной записки на сверхурочную работу или работу в выходной день, подписанной директором, — файл PDF до 15 МБ. Файл хранится в Google Диске владельца таблицы, его видно на всех телефонах.</p>';
+  if(fl.length) html+='<ul class="mfl">'+fl.map(function(f){ return '<li><span>✓ '+esc(f.name)+'<small>'+esc([mfSize(f.size||0),f.who,f.at?new Date(f.at).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):''].filter(Boolean).join(' · '))+'</small></span>'+
+    '<button data-a="mfget" data-id="'+esc(f.id)+'">Открыть</button><button class="danger" data-a="mfdel" data-id="'+esc(f.id)+'" aria-label="Удалить '+esc(f.name)+'">✕</button></li>'; }).join('')+'</ul>';
+  else html+='<p>Файл ещё не прикреплён.</p>';
+  if(!syncOn()) html+='<p class="note">Чтобы прикреплять файлы, подключите таблицу (Меню → Общая таблица).</p>';
+  else html+='<div class="acts"><button class="primary" data-a="mfadd"'+(busy?' disabled':'')+'>'+(busy?'Загружаю…':fl.length?'Прикрепить ещё PDF':'Прикрепить PDF')+'</button><button data-a="close">Закрыть</button></div>';
+  html+='<p class="note" id="mfmsg" role="status" aria-live="polite"></p></div>';
+  openSheet('Служебная записка — '+ndDmy(d),html);
+}
+function mfUpload(file){
+  var d=mfOpenD, b=root.cur, m=d.slice(0,7), msg=function(t){ if($('mfmsg')&&mfOpenD===d) $('mfmsg').textContent=t; };
+  if(!file||!d) return;
+  if(!/\.pdf$/i.test(file.name)&&file.type!=='application/pdf'){ msg('Нужен файл PDF.'); return; }
+  if(file.size>MF_MAX){ msg('Файл больше 15 МБ — отсканируйте с меньшим качеством.'); return; }
+  mfBusy=b+'|'+d; mfSheet(d); msg('Загружаю '+file.name+'…');
+  var rd=new FileReader();
+  rd.onerror=function(){ mfBusy=''; mfSheet(d); msg('Не удалось прочитать файл.'); };
+  rd.onload=function(){
+    var data=String(rd.result).replace(/^data:[^,]*,/,'');
+    call({action:'mfadd',book:b,date:d,name:file.name,data:data},180000).then(function(j){
+      mfBusy=''; var o=mfAll()[b+'|'+m], files=((o&&o.files)||[]).filter(function(x){ return x.id!==j.file.id; }); files.push(j.file); mfSet(b,m,files);
+      if(ui.view==='month') renderMonth(); if(mfOpenD===d&&!$('sheetWrap').hidden) mfSheet(d); toast('Записка за '+ndDmy(d)+' прикреплена');
+    }).catch(function(e){
+      mfBusy=''; if(mfOpenD===d&&!$('sheetWrap').hidden) mfSheet(d);
+      var em=e&&e.message; msg(em==='bad_action'?'Обновите скрипт в таблице — он ещё не умеет принимать файлы.':em==='not_pdf'?'Это не PDF-файл.':em==='too_big'?'Файл слишком большой.':/drive|auth|permission|разреш/i.test(em||'')?'Скрипту таблицы нужно разрешение на Google Диск. Владелец таблицы должен один раз его выдать.':'Не удалось загрузить: нет связи. Попробуйте ещё раз.');
+    });
+  };
+  rd.readAsDataURL(file);
+}
+function mfGet(id){
+  var d=mfOpenD; if($('mfmsg')) $('mfmsg').textContent='Скачиваю…';
+  call({action:'mfget',id:id},120000).then(function(j){
+    var t=atob(j.data), a=new Uint8Array(t.length); for(var i=0;i<t.length;i++) a[i]=t.charCodeAt(i);
+    if($('mfmsg')&&mfOpenD===d) $('mfmsg').textContent='';
+    return saveFile(j.name,'application/pdf',new Blob([a],{type:'application/pdf'})).then(reportDone);
+  }).catch(function(){ if($('mfmsg')) $('mfmsg').textContent='Не удалось скачать файл.'; });
+}
+function mfDel(id){
+  var d=mfOpenD, b=root.cur, m=d.slice(0,7);
+  if(mfDel.ok!==id){ mfDel.ok=id; if($('mfmsg')) $('mfmsg').textContent='Нажмите ✕ ещё раз, чтобы удалить файл.'; return; }
+  mfDel.ok=null; if($('mfmsg')) $('mfmsg').textContent='Удаляю…';
+  call({action:'mfdel',id:id}).then(function(){
+    var o=mfAll()[b+'|'+m]; mfSet(b,m,((o&&o.files)||[]).filter(function(x){ return x.id!==id; }));
+    if(ui.view==='month') renderMonth(); if(mfOpenD===d&&!$('sheetWrap').hidden) mfSheet(d); toast('Файл удалён');
+  }).catch(function(){ if($('mfmsg')) $('mfmsg').textContent='Не удалось удалить: нет связи.'; });
 }
 function fitMonth(){
   var w=$('mwrap'); if(!w||ui.view!=='month') return;
@@ -2121,6 +2202,10 @@ document.addEventListener('click',function(e){
     case 'mnav': ui.month=shiftMonth(ui.month,Number(el.dataset.d)); renderMonth(); pull(); break;
     case 'mday': goDay(el.dataset.d,null); break;
     case 'mcell': goDay(el.dataset.d,id); break;
+    case 'mfile': mfSheet(el.dataset.d); mfFetch(root.cur,el.dataset.d.slice(0,7),true); break;
+    case 'mfadd': { var fi=$('mfin'); fi.value=''; fi.click(); break; }
+    case 'mfget': mfGet(id); break;
+    case 'mfdel': mfDel(id); break;
     case 'mfull': {
       var d=document;
       if(d.fullscreenElement){ if(d.exitFullscreen) d.exitFullscreen(); }
@@ -2233,6 +2318,7 @@ document.addEventListener('toggle',function(e){ if(e.target&&e.target.id==='offg
 document.addEventListener('input',function(e){ var t=e.target; if(ui.view==='nd'&&ndInput(t)) return; if(t.dataset&&t.dataset.mo!=null){ var os=memoCfg().objs, k=Number(t.dataset.mo); if(os[k]){ os[k][t.dataset.mf]=t.value; memoSet('objs',os); } } if(t.id==='m_resp') memoSet('resp',t.value); if(t.dataset&&t.dataset.mh){ var h=memoHdr(); h[t.dataset.mh]=t.value; memoHdrSave(h); memoHdrPush(); } if(t.dataset&&t.dataset.mhc){ var h2=memoHdr(), sp=memoSplit(t.dataset.mhc,t.value); h2[sp.pk]=sp.pos; h2[t.dataset.mhc]=sp.name; memoHdrSave(h2); memoHdrPush(); var pn=$('mhp_'+t.dataset.mhc); if(pn) pn.innerHTML=memoSplitNote(t.dataset.mhc,t.value); } });
 $('q').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); submitEntry(); } });
 $('file').addEventListener('change',function(){ if(this.files&&this.files[0]) handleFile(this.files[0]); });
+$('mfin').addEventListener('change',function(){ if(this.files&&this.files[0]) mfUpload(this.files[0]); });
 document.addEventListener('change',function(e){
   var t=e.target;
   if(ui.view==='nd'&&ndChange(t)) return;
