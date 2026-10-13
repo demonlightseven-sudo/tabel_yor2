@@ -336,7 +336,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='44';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='45';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -931,7 +931,7 @@ function mfSheet(d){
   mfOpenD=d; var fl=mfMonth(root.cur,d.slice(0,7))[d]||[], busy=mfBusy===root.cur+'|'+d;
   var html='<div id="mfsheet"><p class="note">Табель '+BOOKS[root.cur]+'. Скан служебной записки на сверхурочную работу или работу в выходной день, подписанной директором, — файл PDF до 15 МБ. Файл хранится в Google Диске владельца таблицы, его видно на всех телефонах.</p>';
   if(fl.length) html+='<ul class="mfl">'+fl.map(function(f){ return '<li><span>✓ '+esc(f.name)+'<small>'+esc([mfSize(f.size||0),f.who,f.at?new Date(f.at).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):''].filter(Boolean).join(' · '))+'</small></span>'+
-    '<button data-a="mfget" data-id="'+esc(f.id)+'">Открыть</button><button class="danger" data-a="mfdel" data-id="'+esc(f.id)+'" aria-label="Удалить '+esc(f.name)+'">✕</button></li>'; }).join('')+'</ul>';
+    '<button data-a="mfget" data-id="'+esc(f.id)+'" title="Сохранить PDF в папку «Загрузки»">Скачать</button>'+(!isDesktop()&&navigator.canShare?'<button data-a="mfshare" data-id="'+esc(f.id)+'" aria-label="Поделиться или открыть">⤴</button>':'')+'<button class="danger" data-a="mfdel" data-id="'+esc(f.id)+'" aria-label="Удалить '+esc(f.name)+'">✕</button></li>'; }).join('')+'</ul>';
   else html+='<p>Файл ещё не прикреплён.</p>';
   if(!syncOn()) html+='<p class="note">Чтобы прикреплять файлы, подключите таблицу (Меню → Общая таблица).</p>';
   else html+='<div class="acts"><button class="primary" data-a="mfadd"'+(busy?' disabled':'')+'>'+(busy?'Загружаю…':fl.length?'Прикрепить ещё PDF':'Прикрепить PDF')+'</button><button data-a="close">Закрыть</button></div>';
@@ -958,13 +958,24 @@ function mfUpload(file){
   };
   rd.readAsDataURL(file);
 }
-function mfGet(id){
-  var d=mfOpenD; if($('mfmsg')) $('mfmsg').textContent='Скачиваю…';
+var mfCache={};
+function mfName(j,d){ var n=String(j.name||'zapiska.pdf').replace(/[\\/:*?"<>|]+/g,'_'); return 'Служебная записка '+BOOKS[root.cur]+' '+ndDmy(d)+' — '+(/\.pdf$/i.test(n)?n:n+'.pdf'); }
+/* mode: 'dl' — обычное скачивание в «Загрузки»; 'share' — меню «Поделиться» (телефон) */
+function mfGet(id,mode){
+  var d=mfOpenD, msg=function(t){ if($('mfmsg')&&mfOpenD===d) $('mfmsg').textContent=t; };
+  var go=function(j){
+    var name=mfName(j,d), blob=new Blob([j.bytes],{type:'application/pdf'});
+    if(mode==='share'){ var f; try{ f=new File([blob],name,{type:'application/pdf'}); }catch(e){ f=null; }
+      if(f&&navigator.canShare&&navigator.canShare({files:[f]})) return navigator.share({files:[f],title:name}).then(function(){ msg(''); },function(){ msg(''); });
+    }
+    var r=download(name,'application/pdf',blob); msg(r==='download'?'Файл «'+name+'» сохранён в «Загрузки».':'Не получилось сохранить файл.');
+  };
+  if(mfCache[id]){ go(mfCache[id]); return; }
+  msg('Скачиваю…');
   call({action:'mfget',id:id},120000).then(function(j){
     var t=atob(j.data), a=new Uint8Array(t.length); for(var i=0;i<t.length;i++) a[i]=t.charCodeAt(i);
-    if($('mfmsg')&&mfOpenD===d) $('mfmsg').textContent='';
-    return saveFile(j.name,'application/pdf',new Blob([a],{type:'application/pdf'})).then(reportDone);
-  }).catch(function(){ if($('mfmsg')) $('mfmsg').textContent='Не удалось скачать файл.'; });
+    mfCache[id]={name:j.name,bytes:a}; go(mfCache[id]);
+  }).catch(function(){ msg('Не удалось скачать файл: нет связи.'); });
 }
 function mfDel(id){
   var d=mfOpenD, b=root.cur, m=d.slice(0,7);
@@ -1153,7 +1164,9 @@ function viaClaude(name,content){
 function saveFile(name,mime,content){
   return viaClaude(name,content).then(function(r){ return r||saveFile2(name,mime,content); });
 }
+function isDesktop(){ try{ return !!(window.matchMedia&&window.matchMedia('(pointer: fine)').matches&&!window.matchMedia('(any-pointer: coarse)').matches); }catch(e){ return false; } }
 function saveFile2(name,mime,content){
+  if(isDesktop()) return Promise.resolve(download(name,mime,content));
   var file; try{ file=new File([content],name,{type:mime}); }catch(e){ file=null; }
   if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
     return navigator.share({files:[file],title:name}).then(function(){ return 'shared'; },function(e){ return e&&e.name==='AbortError'?'cancel':download(name,mime,content); });
@@ -2206,7 +2219,8 @@ document.addEventListener('click',function(e){
     case 'mcell': goDay(el.dataset.d,id); break;
     case 'mfile': mfSheet(el.dataset.d); mfFetch(root.cur,el.dataset.d.slice(0,7),true); break;
     case 'mfadd': { var fi=$('mfin'); fi.value=''; fi.click(); break; }
-    case 'mfget': mfGet(id); break;
+    case 'mfget': mfGet(id,'dl'); break;
+    case 'mfshare': mfGet(id,'share'); break;
     case 'mfdel': mfDel(id); break;
     case 'mfull': {
       var d=document;
