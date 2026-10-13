@@ -243,7 +243,21 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 .mt thead th{position:sticky;top:0;z-index:2}
 .mt th.c0{position:sticky;left:0;z-index:1;text-align:left;min-width:150px;max-width:150px;width:150px;padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
 .mt th.c0 .tn{color:var(--muted);font-weight:600;margin-right:6px}
-.mt thead th.c0{z-index:3}
+.mt thead th.c0{z-index:3;text-align:center}
+.mt .c1{position:sticky;left:var(--c0w,150px);z-index:1;box-shadow:1px 0 0 var(--line);min-width:52px;width:52px;font-weight:600;font-size:12px;color:var(--muted);background:var(--bg);cursor:default;white-space:nowrap}
+.mt thead th.c1{font-size:11px;z-index:3}
+.mt tfoot td.c1{position:sticky;z-index:2}
+.mt tfoot tr.f1 td.c1{z-index:4}
+.mt th.srt .dh{background:var(--flash);box-shadow:inset 0 -3px 0 var(--ink)}
+.mt td.mnone{text-align:left;padding:0 10px;color:var(--muted);font-weight:400;cursor:default}
+.mtools{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:0 0 8px;font-size:13px}
+.mtools label{color:var(--muted)}
+.mtools select{width:auto;max-width:100%;min-height:36px;padding:4px 8px;font-size:14px}
+.mtools .mhint{color:var(--muted);font-size:12px}
+.mtools .msrt{display:inline-flex;align-items:center;gap:6px;background:var(--flash);border-radius:8px;padding:2px 4px 2px 10px}
+.mtools .msrt button{min-height:30px;min-width:30px;padding:0 8px;border:0;background:transparent}
+.msortl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 12px}
+.msortl button{min-height:44px}
 .mt .tot{min-width:44px;font-weight:700;background:var(--bg)}
 .mt .dh{border:0;background:none;border-radius:0;min-height:38px;width:100%;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;font-weight:700;font-size:13px}
 .mt .dh small{font-weight:400;color:var(--muted);font-size:10px}
@@ -274,14 +288,13 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
   body.vmonth .mt .tot{width:42px;min-width:0}
   body.vmonth .mt .dh{min-height:30px;font-size:12px}
   body.vmonth .mt .dh small{font-size:9px}
-  body.vmonth .mt tfoot tr.f1 th,body.vmonth .mt tfoot tr.f1 td{bottom:60px}
-  body.vmonth .mt tfoot tr.f2 th,body.vmonth .mt tfoot tr.f2 td{bottom:30px}
+  body.vmonth .mt .c1{width:46px;min-width:0}
 }
 .mt tfoot th,.mt tfoot td{position:sticky;background:var(--bg);font-weight:700;color:var(--muted);cursor:default}
-.mt tfoot tr.f1 th,.mt tfoot tr.f1 td{bottom:76px;z-index:1}
-.mt tfoot tr.f2 th,.mt tfoot tr.f2 td{bottom:38px;z-index:1}
-.mt tfoot tr.f3 th,.mt tfoot tr.f3 td{bottom:0;z-index:1}
-.mt tfoot tr.f1 th.c0,.mt tfoot tr.f2 th.c0,.mt tfoot tr.f3 th.c0{z-index:3}
+.mt tfoot th,.mt tfoot td{position:static}
+.mt tfoot th.c0{position:sticky;left:0;z-index:2;white-space:normal;line-height:1.15;font-size:12px}
+.mt tfoot tr.f1 th,.mt tfoot tr.f1 td{position:sticky;bottom:0;z-index:2;box-shadow:0 -1px 0 var(--line)}
+.mt tfoot tr.f1 th.c0{z-index:4}
 .mt tfoot td.mf{cursor:pointer;color:var(--muted);font-weight:400}
 .mt tfoot td.mf svg{width:15px;height:15px;vertical-align:middle;opacity:.75}
 .mt tfoot td.mf.has{color:#1e8e3e;font-weight:800;font-size:16px;background:#e6f4ea}
@@ -336,7 +349,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='45';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='46';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -867,6 +880,17 @@ function peopleForMonth(m){
 }
 function shiftMonth(m,d){ var a=m.split('-').map(Number); return ymd(new Date(a[0],a[1]-1+d,1)).slice(0,7); }
 var MCLS={work:'w',off:'o',sick:'s',pl:'p',ul:'u',ab:'a'};
+var MSCH_S={'':'—',std:'Обычн.',w61:'6/1',g1:'№1',g2:'№2',g3:'№3',g4:'№4',g5:'№5'};
+var MSORT=[['work','Явка'],['ab','AB - прогул'],['ul','UL - отпуск без сохр. зарплаты'],['pl','PL - оплачиваемый отпуск'],['sick','SL - больничный'],['off','DO - выходной по графику']];
+var MSORT_N={work:'явка',ab:'AB',ul:'UL',pl:'PL',sick:'SL',off:'DO'};
+/* что стоит у человека в этот день (для сортировки): work/ab/ul/pl/sick/off или '' */
+function mStat(p,ds,r){ if(r&&r.s) return r.s==='work'&&!(r.h>0)?'':r.s; return planOff(p,ds)===true?'off':''; }
+function mDaySheet(ds){
+  var d=parseYmd(ds), cur=ui.mSort&&ui.mSort.d===ds?ui.mSort.s:'';
+  openSheet(d.getDate()+' '+MONTHS_G[d.getMonth()]+', '+WD_FULL[d.getDay()],'<p class="note">Показать сначала тех, у кого в этот день:</p><div class="msortl">'+
+    MSORT.map(function(x){ return '<button data-a="msort" data-d="'+ds+'" data-s="'+x[0]+'"'+(cur===x[0]?' class="primary"':'')+'>'+x[1]+'</button>'; }).join('')+'</div>'+
+    '<div class="acts">'+(ui.mSort?'<button data-a="msortx">Сбросить сортировку</button>':'')+'<button data-a="mdayopen" data-d="'+ds+'">Открыть этот день</button></div>');
+}
 function renderMonth(){
   var m=ui.month, a=m.split('-').map(Number), n=daysIn(m), recs=bk().records, t=today(), ppl=peopleForMonth(m), i;
   var nav='<div class="mnav"><button data-a="mnav" data-d="-1" aria-label="Предыдущий месяц">◀</button><div class="mlabel">'+MONTHS_N[a[1]-1]+' '+a[0]+' · '+BOOKS[root.cur]+'</div>'+
@@ -876,13 +900,23 @@ function renderMonth(){
   if(!ppl.length){
     $('month').innerHTML=nav+'<div class="empty"><p>В табеле '+BOOKS[root.cur]+' пока нет людей.</p><button class="primary" data-a="people">Добавить людей</button></div>'; return;
   }
-  var head='<tr><th class="c0">Фамилия</th>';
+  /* фильтр по графику и сортировка по статусу в выбранный день */
+  var schIds={}; ppl.forEach(function(p){ schIds[p.sched||'']=1; });
+  if(ui.mSched&&!schIds[ui.mSched==='-'?'':ui.mSched]) ui.mSched='';
+  var srt=ui.mSort&&ui.mSort.d&&ui.mSort.d.slice(0,7)===m?ui.mSort:null;
+  var tools='<div class="mtools"><label for="msched">График:</label><select id="msched" aria-label="Показать людей по графику"><option value="">Все в табеле ('+ppl.length+')</option>'+
+    SCHEDS.filter(function(g){ return schIds[g.id]; }).map(function(g){ var v=g.id||'-', k=ppl.filter(function(p){ return (p.sched||'')===g.id; }).length; return '<option value="'+v+'"'+(ui.mSched===v?' selected':'')+'>'+esc(g.id?g.short:'Без графика')+' ('+k+')</option>'; }).join('')+'</select>'+
+    (srt?'<span class="msrt">Сначала: <b>'+MSORT_N[srt.s]+'</b> за '+Number(srt.d.slice(8))+' число <button data-a="msortx" aria-label="Сбросить сортировку">✕</button></span>':'<span class="mhint">Нажмите на число месяца, чтобы отсортировать людей</span>')+'</div>';
+  if(ui.mSched) ppl=ppl.filter(function(p){ return (p.sched||'')===(ui.mSched==='-'?'':ui.mSched); });
+  if(srt){ var sdr=recs[srt.d]||{}; ppl=ppl.map(function(p,ix){ return {p:p,ix:ix,k:mStat(p,srt.d,sdr[p.id])===srt.s?0:1,h:(sdr[p.id]&&sdr[p.id].s==='work')?sdr[p.id].h:0}; })
+    .sort(function(x,y){ return x.k-y.k||(srt.s==='work'?y.h-x.h:0)||x.ix-y.ix; }).map(function(x){ return x.p; }); }
+  var head='<tr><th class="c0">ФИО</th><th class="c1">График</th>';
   for(i=1;i<=n;i++){
     var ds=m+'-'+pad(i), wd=new Date(a[0],a[1]-1,i).getDay();
-    head+='<th class="'+(ds===t?'tdy':'')+'"><button class="dh" data-a="mday" data-d="'+ds+'" aria-label="Открыть '+i+' число">'+i+'<small>'+WD[wd]+'</small></button></th>';
+    head+='<th class="'+(ds===t?'tdy':'')+(srt&&srt.d===ds?' srt':'')+'"><button class="dh" data-a="mday" data-d="'+ds+'" aria-label="'+i+' число: сортировка или открыть день">'+i+'<small>'+WD[wd]+'</small></button></th>';
   }
   head+='<th class="tot">Дн.</th><th class="tot">Ч.</th></tr>';
-  var cnt=[], abs=[], are=true; for(i=0;i<n;i++){ cnt.push(0); abs.push(0); }
+  var cnt=[], abs=[], are=true, cu=[], cp=[], cs=[], cd=[]; for(i=0;i<n;i++){ cnt.push(0); abs.push(0); cu.push(0); cp.push(0); cs.push(0); cd.push(0); }
   var body=ppl.map(function(p){
     var days=0, hrs=0, tds='';
     for(i=1;i<=n;i++){
@@ -891,22 +925,30 @@ function renderMonth(){
         cls=MCLS[r.s];
         if(r.s==='work'&&r.h>0){ days++; hrs+=r.h; cnt[i-1]++; }
         if(r.s==='ab') abs[i-1]++;
+        if(r.s==='ul') cu[i-1]++; if(r.s==='pl') cp[i-1]++; if(r.s==='sick') cs[i-1]++;
         if(planOff(p,ds)===true) cls+=(r.s==='work'&&r.h>0)?' pmy':(planHol(p,ds)?' phm':'');
       } else if(planOff(p,ds)===true) cls=are?(planHol(p,ds)?'ph':''):(planHol(p,ds)?'ph':'po');
       var txt=cellText(r); if(are&&planOff(p,ds)===true&&(!r||r.s==='off')) txt='<span class="dob">DO</span>';
+      if((r&&r.s==='off')||(!r&&planOff(p,ds)===true)) cd[i-1]++;
       tds+='<td class="'+cls+'" data-a="mcell" data-d="'+ds+'" data-id="'+esc(p.id)+'">'+txt+'</td>';
     }
-    return '<tr><th class="c0" scope="row" title="'+esc((p.num?p.num+' ':'')+p.name)+'">'+(p.num?'<span class="tn">'+esc(p.num)+'</span>':'')+esc(p.name)+'</th>'+tds+'<td class="tot">'+days+'</td><td class="tot">'+fmtH(hrs)+'</td></tr>';
+    var sg=schedById(p.sched||'');
+    return '<tr><th class="c0" scope="row" title="'+esc((p.num?p.num+' ':'')+p.name)+'">'+(p.num?'<span class="tn">'+esc(p.num)+'</span>':'')+esc(p.name)+'</th><td class="c1" title="'+esc(sg&&sg.id?sg.name:'График не задан')+'">'+esc(MSCH_S[p.sched||'']||'—')+'</td>'+tds+'<td class="tot">'+days+'</td><td class="tot">'+fmtH(hrs)+'</td></tr>';
   }).join('');
-  var f1='<tr class="f1"><th class="c0">Вышло, чел.</th>', f2='<tr class="f2"><th class="c0">Прогул</th>', f3='<tr class="f3"><th class="c0" title="Подписанная директором служебная записка (сверхурочная работа, работа в выходной) — скан PDF">Служ. записка</th>', mfd=mfMonth(root.cur,m);
-  for(i=0;i<n;i++){ f1+='<td>'+(cnt[i]||'')+'</td>'; f2+='<td>'+(abs[i]||'')+'</td>'; var fd=m+'-'+pad(i+1), fl=mfd[fd]||[];
+  if(!ppl.length) body='<tr><th class="c0">Никого</th><td class="c1"></td><td colspan="'+(n+2)+'" class="mnone">С таким графиком в табеле никого нет</td></tr>';
+  var E='<td class="c1"></td>', f1='<tr class="f1"><th class="c0">Явка, чел.</th>'+E, f2='<tr class="f2"><th class="c0">AB - прогул</th>'+E,
+    fu='<tr class="fx"><th class="c0" title="Отпуск без сохранения заработной платы">UL - отпуск без сохр. зарплаты</th>'+E, fp='<tr class="fx"><th class="c0">PL - оплачиваемый отпуск</th>'+E,
+    fs='<tr class="fx"><th class="c0">SL - больничный</th>'+E, fdo='<tr class="fx"><th class="c0">DO - выходной по графику</th>'+E,
+    f3='<tr class="f3"><th class="c0" title="Подписанная директором служебная записка (сверхурочная работа, работа в выходной) — скан PDF">Служ. записка</th>'+E, mfd=mfMonth(root.cur,m);
+  for(i=0;i<n;i++){ f1+='<td>'+(cnt[i]||'')+'</td>'; f2+='<td>'+(abs[i]||'')+'</td>'; fu+='<td>'+(cu[i]||'')+'</td>'; fp+='<td>'+(cp[i]||'')+'</td>'; fs+='<td>'+(cs[i]||'')+'</td>'; fdo+='<td>'+(cd[i]||'')+'</td>'; var fd=m+'-'+pad(i+1), fl=mfd[fd]||[];
     f3+='<td class="mf'+(fl.length?' has':'')+'" data-a="mfile" data-d="'+fd+'" aria-label="'+(fl.length?'Записка за '+(i+1)+' число прикреплена ('+fl.length+')':'Прикрепить записку за '+(i+1)+' число')+'">'+(fl.length?'✓'+(fl.length>1?'<sup>'+fl.length+'</sup>':''):MF_CLIP)+'</td>'; }
-  f1+='<td></td><td></td></tr>'; f2+='<td></td><td></td></tr>'; f3+='<td></td><td></td></tr>'; mfFetch(root.cur,m,false);
+  var EE='<td></td><td></td></tr>'; f1+=EE; f2+=EE; fu+=EE; fp+=EE; fs+=EE; fdo+=EE; f3+=EE; mfFetch(root.cur,m,false);
   var keepL=0, keepT=0, w0=$('mwrap'); if(w0){ keepL=w0.scrollLeft; keepT=w0.scrollTop; }
-  $('month').innerHTML=nav+leg+old+'<div class="mwrap" id="mwrap"><table class="mt"><thead>'+head+'</thead><tbody>'+body+'</tbody><tfoot>'+f1+f2+f3+'</tfoot></table></div>';
-  var w=$('mwrap'); w.scrollLeft=keepL; w.scrollTop=keepT;
+  $('month').innerHTML=nav+leg+old+tools+'<div class="mwrap" id="mwrap"><table class="mt"><thead>'+head+'</thead><tbody>'+body+'</tbody><tfoot>'+f1+f2+fu+fp+fs+fdo+f3+'</tfoot></table></div>';
+  var w=$('mwrap'), c0=document.querySelector('.mt thead th.c0'), c0w=c0?c0.getBoundingClientRect().width:150; w.querySelector('table').style.setProperty('--c0w',c0w+'px');
+  w.scrollLeft=keepL; w.scrollTop=keepT;
   fitMonth();
-  if(!keepL&&ui.month===today().slice(0,7)&&w.scrollWidth>w.clientWidth+4){ var td=document.querySelector('.mt th.tdy'); if(td){ w.scrollLeft=Math.max(0,td.offsetLeft-190); } }
+  if(!keepL&&ui.month===today().slice(0,7)&&w.scrollWidth>w.clientWidth+4){ var td=document.querySelector('.mt th.tdy'); if(td){ w.scrollLeft=Math.max(0,td.offsetLeft-c0w-90); } }
 }
 /* ---------------------------------------------- служебные записки (сканы PDF) по дням */
 var MF_KEY='tabel-mfiles-v1', MF_MAX=15*1024*1024, mfBusy='', mfAt={}, mfPick=null;
@@ -2215,7 +2257,10 @@ document.addEventListener('click',function(e){
     case 'date': sheetDate(); break;
     case 'view': setView(el.dataset.v); break;
     case 'mnav': ui.month=shiftMonth(ui.month,Number(el.dataset.d)); renderMonth(); pull(); break;
-    case 'mday': goDay(el.dataset.d,null); break;
+    case 'mday': mDaySheet(el.dataset.d); break;
+    case 'mdayopen': closeSheet(); goDay(el.dataset.d,null); break;
+    case 'msort': ui.mSort={d:el.dataset.d,s:el.dataset.s}; closeSheet(); renderMonth(); break;
+    case 'msortx': ui.mSort=null; closeSheet(); renderMonth(); break;
     case 'mcell': goDay(el.dataset.d,id); break;
     case 'mfile': mfSheet(el.dataset.d); mfFetch(root.cur,el.dataset.d.slice(0,7),true); break;
     case 'mfadd': { var fi=$('mfin'); fi.value=''; fi.click(); break; }
@@ -2338,6 +2383,7 @@ $('mfin').addEventListener('change',function(){ if(this.files&&this.files[0]) mf
 document.addEventListener('change',function(e){
   var t=e.target;
   if(ui.view==='nd'&&ndChange(t)) return;
+  if(t.id==='msched'){ ui.mSched=t.value; renderMonth(); return; }
   if(t.id==='dpick'&&/^\d{4}-\d{2}-\d{2}$/.test(t.value)){ ui.date=t.value; ui.follow=t.value===today(); closeSheet(); render(); pull(); }
   if(t.id==='obj'){ bk().object=t.value.trim().slice(0,80); save(); }
   if(t.dataset&&t.dataset.mk){ memoSel[memoType()+'|'+root.cur+'|'+ui.date+'|'+t.dataset.mk]=t.checked; renderDocs(); }
