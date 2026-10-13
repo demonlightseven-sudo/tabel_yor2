@@ -352,7 +352,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='48';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='49';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -824,15 +824,15 @@ function matches(p,q){
 /* у кого день выходной по графику и нет отметки — не в явке (не нужно отмечать) */
 function planHidden(p,day){ return !day[p.id]&&planOff(p,ui.date)===true; }
 function stats(){
-  var ppl=activePeople(), day=dayRec(ui.date), c={work:0,off:0,sick:0,pl:0,ul:0,ab:0}, hrs=0, unm=0, plan=0;
-  ppl.forEach(function(p){ var r=day[p.id]; if(!r){ if(planHidden(p,day)){ plan++; return; } unm++; return; } c[r.s]++; if(r.s==='work') hrs+=r.h; });
-  return {n:ppl.length-plan,c:c,hrs:hrs,unm:unm,plan:plan};
+  var ppl=activePeople(), day=dayRec(ui.date), c={work:0,off:0,sick:0,pl:0,ul:0,ab:0}, hrs=0, unm=0, plan=0, ot=0, norm=memoNorm(root.cur);
+  ppl.forEach(function(p){ var r=day[p.id]; if(!r){ if(planHidden(p,day)){ plan++; return; } unm++; return; } c[r.s]++; if(r.s==='work'){ hrs+=r.h; if((Number(r.h)||0)>norm) ot++; } });
+  return {n:ppl.length-plan,c:c,hrs:hrs,unm:unm,plan:plan,ot:ot,norm:norm};
 }
 function renderStats(){
   var s=stats();
   var h='<div class="stats"><div class="w"><b>'+s.c.work+'</b><span>пришли</span></div><div class="a"><b>'+s.c.ab+'</b><span>прогул</span></div>'+
-    '<div class="o"><b>'+s.c.off+'</b><span>выходной</span></div><div class="s"><b>'+s.c.sick+'</b><span>больничный</span></div></div>';
-  var s2=[]; if(s.plan) s2.push('Выходной по графику (DO): '+s.plan+' — их отмечать не нужно'); if(s.c.pl||s.c.ul) s2.push('Отпуск: '+s.c.pl+' · Отпуск без ЗП: '+s.c.ul);
+    '<div class="o" title="Больше '+s.norm+' ч за день"><b>'+s.ot+'</b><span>сверхурочка</span></div><div class="s"><b>'+s.c.sick+'</b><span>больничный</span></div></div>';
+  var s2=[]; if(s.c.off) s2.push('Выходной (отмечен): '+s.c.off); if(s.plan) s2.push('Выходной по графику (DO): '+s.plan+' — их отмечать не нужно'); if(s.c.pl||s.c.ul) s2.push('Отпуск: '+s.c.pl+' · Отпуск без ЗП: '+s.c.ul);
   if(s2.length) h+='<p class="stats2">'+s2.join('<br>')+'</p>';
   $('stats').innerHTML=h;
   $('tabs').innerHTML='<button data-a="flt" data-f="all" aria-pressed="'+(ui.filter==='all')+'">Все ('+s.n+')</button>'+
