@@ -352,7 +352,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='47';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='48';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -483,7 +483,8 @@ var ui={date:today(),follow:true,filter:'all',q:'',open:{},undo:null,numMode:tru
 var SYNC_KEY='tabel-app-sync-v1';
 var URL_RE=/^https:\/\/script\.google\.com\/(a\/[^\/]+\/)?macros\/s\/[\w-]+\/exec$/;
 var LOCAL_RE=/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//;
-function okUrl(u){ return URL_RE.test(u)||LOCAL_RE.test(u); }
+var CF_RE=/^https:\/\/[\w-]+\.demonlightseven\.workers\.dev\/?$/;
+function okUrl(u){ return URL_RE.test(u)||CF_RE.test(u)||LOCAL_RE.test(u); }
 function loadSync(){
   var d={url:'',code:'',who:'',queue:{},lastOk:0,rev:{},pq:[],aq:[]};
   try{
