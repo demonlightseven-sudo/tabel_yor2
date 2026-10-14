@@ -354,7 +354,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='50';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='51';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -364,7 +364,7 @@ var LBL={}; STAT.forEach(function(x){ LBL[x[0]]=x[1]; });
 var CELL={off:'В',sick:'Б',pl:'ОТ',ul:'БС',ab:'ПР'};
 var SCHEDS=[
   {id:'',name:'График не задан',short:''},
-  {id:'std',name:'Обычный: вс–чт рабочие, выходные пт и сб',short:'Обычный график'},
+  {id:'std',name:'5/2 · вс–чт рабочие, выходные пт и сб',short:'График 5/2'},
   {id:'w61',name:'6/1 · выходной только пятница',short:'График 6/1'},
   {id:'g1',name:'№1 · 24/6 (день) ПК АРЕ',short:'График №1',from:1,to:6},
   {id:'g2',name:'№2 · 24/6 (день) ПК АРЕ',short:'График №2',from:7,to:12},
@@ -886,7 +886,7 @@ function peopleForMonth(m){
 }
 function shiftMonth(m,d){ var a=m.split('-').map(Number); return ymd(new Date(a[0],a[1]-1+d,1)).slice(0,7); }
 var MCLS={work:'w',off:'o',sick:'s',pl:'p',ul:'u',ab:'a'};
-var MSCH_S={'':'—',std:'Обычн.',w61:'6/1',g1:'№1',g2:'№2',g3:'№3',g4:'№4',g5:'№5'};
+var MSCH_S={'':'—',std:'5/2',w61:'6/1',g1:'№1',g2:'№2',g3:'№3',g4:'№4',g5:'№5'};
 var MSORT=[['work','Явка'],['ab','AB'],['ul','UL'],['pl','PL'],['sick','SL'],['off','DO']];
 var MSORT_N={work:'явка',ab:'AB',ul:'UL',pl:'PL',sick:'SL',off:'DO'};
 /* что стоит у человека в этот день (для сортировки): work/ab/ul/pl/sick/off или '' */
@@ -1349,7 +1349,7 @@ function formHtml(p){
 }
 function schedFromCode(c){
   c=String(c||'').trim().toLowerCase().replace('№','');
-  if(c==='об'||c==='обычный') return 'std';
+  if(c==='об'||c==='обычный'||c==='52'||c==='5/2'||c==='5-2') return 'std';
   if(c==='61'||c==='6/1'||c==='6-1') return 'w61';
   if(/^[1-5]$/.test(c)) return 'g'+c;
   return '';
@@ -1407,7 +1407,7 @@ function deleteEverywhere(){
 }
 var delIds=[];
 function sheetBulk(note){
-  openSheet('Добавить списком','<p class="note">По одному человеку в строке. Через запятую: фамилия, профессия, табельный номер, график (об — обычный, 61 — «6/1», 1–5 — графики №1–№5). Лишнее можно не писать, пропущенное оставить пустым: «Иванов И. И., , 101, 3».</p>'+
+  openSheet('Добавить списком','<p class="note">По одному человеку в строке. Через запятую: фамилия, профессия, табельный номер, график (52 — «5/2», 61 — «6/1», 1–5 — графики №1–№5). Лишнее можно не писать, пропущенное оставить пустым: «Иванов И. И., , 101, 3».</p>'+
     '<textarea id="bulk" rows="7" placeholder="Иванов И. И., бетонщик, 101, 2&#10;Петров П. П., арматурщик, 102, об&#10;Сидоров С. С." aria-label="Список людей, по одному в строке"></textarea>'+
     '<div class="acts"><button class="primary" data-a="pbulkok">Добавить всех в табель '+BOOKS[root.cur]+'</button><button data-a="people">Отмена</button></div><p class="note" id="bmsg" role="status">'+esc(note||'')+'</p>');
 }
