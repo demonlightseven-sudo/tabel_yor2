@@ -354,7 +354,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='51';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='52';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1050,13 +1050,27 @@ function fitMonth(){
   var tb=$('tabbar').getBoundingClientRect().height||56, top=w.getBoundingClientRect().top+window.scrollY;
   w.style.maxHeight=Math.max(240,Math.floor(window.innerHeight-top-tb-10))+'px';
 }
+/* место прокрутки каждой вкладки: при возврате (месяц → день → месяц) список остаётся там же */
+var viewScroll={};
+function saveViewScroll(){
+  var w=ui.view==='month'?$('mwrap'):null;
+  viewScroll[ui.view]={y:window.scrollY||0, t:w?w.scrollTop:0, l:w?w.scrollLeft:0, ym:ui.month, d:ui.date, b:root.cur};
+}
+function restoreViewScroll(){
+  var s=viewScroll[ui.view];
+  if(!s||s.b!==root.cur||(ui.view==='month'&&s.ym!==ui.month)){ window.scrollTo(0,0); return; }
+  function go(){ window.scrollTo(0,s.y); if(ui.view==='month'){ var w=$('mwrap'); if(w){ w.scrollTop=s.t; w.scrollLeft=s.l; } } }
+  go(); requestAnimationFrame(go);
+}
 function setView(v){
   if(ui.view===v) return;
+  saveViewScroll();
   ui.view=v;
   if(v==='month') ui.month=ui.date.slice(0,7);
-  window.scrollTo(0,0); clearMsg(); render(); pull();
+  clearMsg(); render(); restoreViewScroll(); pull();
 }
 function goDay(date,id){
+  saveViewScroll();
   ui.date=date; ui.follow=date===today(); ui.filter='all'; ui.q=''; $('q').value=''; ui.view='day';
   window.scrollTo(0,0); clearMsg(); render(); pull();
   if(id){
