@@ -378,7 +378,7 @@ body.only-month .list2>button:not([data-a=month]):not([data-a=install]):not([dat
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='54';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='55';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -574,7 +574,7 @@ function showLogin(msg){
   var w=document.getElementById('login'); if(!w){ w=document.createElement('div'); w.id='login'; document.body.appendChild(w); }
   w.hidden=false; document.body.classList.add('lg-open');
   w.innerHTML='<div class="lgbox"><h2>Табель — вход</h2><p class="lgsub">Выберите свой уровень доступа и введите пароль.</p><div class="lgroles">'+
-    ROLES.map(function(r){ return '<button data-a="lgrole" data-r="'+r.id+'" aria-pressed="'+(lgSel===r.id)+'">'+esc(r.name)+'<small>'+esc(r.d)+'</small></button>'; }).join('')+
+    ROLES.map(function(r){ return '<button data-a="lgrole" data-r="'+r.id+'" aria-pressed="'+(lgSel===r.id)+'">'+esc(r.name)+'</button>'; }).join('')+
     '</div><label for="lgpass">Пароль</label><input id="lgpass" type="password" inputmode="numeric" autocomplete="current-password">'+
     '<label for="lgwho">Ваша фамилия (видна в отметках)</label><input id="lgwho" maxlength="40" autocomplete="off" value="'+esc(sync.who||'')+'">'+
     '<button class="lggo" data-a="lggo">Войти</button><p class="lgmsg" id="lgmsg">'+esc(msg||'')+'</p></div>';
