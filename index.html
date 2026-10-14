@@ -313,6 +313,30 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 @media (prefers-reduced-motion:reduce){#toast{transition:none}.row.flash{animation:none}button:active{transform:none}}
 .hours .chips{justify-content:flex-end}
 @media (max-width:420px){.hours .val{font-size:17px;min-width:40px}.hours .chips button{font-size:15px}}
+
+#login{position:fixed;inset:0;z-index:10000;background:var(--bg);color:var(--ink);overflow:auto;padding:24px 16px 40px}
+#login[hidden]{display:none}
+body.lg-open{overflow:hidden}
+.lgbox{max-width:420px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.lgbox h2{margin:8px 0 0;font-size:24px}
+.lgsub{color:var(--muted);margin:0 0 4px}
+.lgmsg{min-height:1.4em;margin:0;color:var(--ab-t);font-weight:600}
+.lgroles{display:flex;flex-direction:column;gap:8px}
+.lgroles button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;height:auto;min-height:52px;padding:10px 14px;gap:2px;font-weight:700}
+.lgroles button small{color:var(--muted);font-weight:400;font-size:13px}
+.lgroles button[aria-pressed=true]{border-color:var(--work);background:var(--work-bg);color:var(--work-t)}
+.lgbox label{font-size:14px;color:var(--muted);margin-top:4px}
+.lgbox input{width:100%;box-sizing:border-box;font-size:18px}
+.lggo{margin-top:8px;font-weight:700;background:var(--ink);color:var(--bg);border-color:var(--ink)}
+body.ro-day #list [data-a=set],body.ro-day #list [data-a=hstep],body.ro-day #list [data-a=hset],body.ro-day [data-a=go],body.ro-day [data-a=scan],body.ro-day [data-a=undo]{opacity:.4}
+body.ro-day #stats::before{content:attr(data-ro);display:block;margin:0 0 8px;padding:8px 12px;border-radius:10px;background:var(--off-bg);color:var(--off-t);font-weight:600;font-size:14px}
+[data-a=slink],
+body.ro-day [data-a=fill],
+body.ro-month [data-a=mfadd],body.ro-month [data-a=mfdel],
+body.no-people [data-a=padd],body.no-people [data-a=pbulk],body.no-people [data-a=pdel],body.no-people [data-a=pedit],body.no-people [data-a=parch],body.no-people [data-a=pdelarch],body.no-people [data-a=pwsheet],body.no-people [data-a=import],body.no-people [data-a=defh],
+body.no-admin [data-a=ssave],body.no-admin [data-a=spl],body.no-admin [data-a=smonth],body.no-admin [data-a=soff],
+body.only-month [data-a=view]:not([data-v=month]),
+body.only-month .list2>button:not([data-a=month]):not([data-a=install]):not([data-a=logout]){display:none!important}
 </style>
 </head>
 <body>
@@ -354,7 +378,7 @@ table.mt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='53';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='54';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -500,6 +524,80 @@ function loadSync(){
 }
 var sync=loadSync(), syncErr='', flushing=false, pulling=false, flushTimer=null;
 function saveSync(){ try{ localStorage.setItem(SYNC_KEY,JSON.stringify(sync)); }catch(e){} }
+/* ------------------------------------------------------------- уровни доступа (вход по паролю) */
+var AUTH_KEY='tabel-auth-v1';
+var ROLES=[
+  {id:'nach',name:'Начальник участка',d:'Может изменять всё'},
+  {id:'tech',name:'Техник (помощник)',d:'Может изменять всё'},
+  {id:'prorab',name:'Прораб',d:'Отметки только за сегодня, с 05:00 до 22:00'},
+  {id:'techu',name:'Техник участка',d:'«День» и «Месяц» — только просмотр'},
+  {id:'mont',name:'Монтажник',d:'Только «Месяц», просмотр'}
+];
+var API_DEFAULT='https://tabel-uor2.demonlightseven.workers.dev/';
+function roleById(id){ for(var i=0;i<ROLES.length;i++) if(ROLES[i].id===id) return ROLES[i]; return null; }
+function loadAuth(){ try{ var o=JSON.parse(localStorage.getItem(AUTH_KEY)||'null'); if(o&&roleById(o.role)&&typeof o.token==='string') return o; }catch(e){} return null; }
+var auth=loadAuth();
+if(!auth&&sync.code){ sync.code=''; saveSync(); }   /* вход сброшен: старый общий код больше не используется */
+function saveAuth(){ try{ if(auth) localStorage.setItem(AUTH_KEY,JSON.stringify(auth)); else localStorage.removeItem(AUTH_KEY); }catch(e){} }
+function role(){ return auth?auth.role:''; }
+function isAdmin(){ var r=role(); return r==='nach'||r==='tech'; }
+function dayEditOk(d){ var r=role(); if(r==='nach'||r==='tech') return true; if(r!=='prorab') return false; var h=new Date().getHours(); return (d||ui.date)===today()&&h>=5&&h<22; }
+function dayDenyText(){ if(role()==='prorab') return ui.date!==today()?'Прораб может отмечать только сегодняшний день':'Отмечать можно с 05:00 до 22:00'; return 'Только просмотр: изменять отметки нельзя'; }
+function canDay(show){ if(dayEditOk()) return true; if(show) toast(dayDenyText()); return false; }
+function canPeople(show){ var r=role(); if(r==='nach'||r==='tech'||r==='prorab') return true; if(show) toast('Изменять список людей нельзя'); return false; }
+var DAY_A={set:1,hstep:1,hset:1,undo:1,go:1,scan:1,fill:1,fillok:1};
+var PEOPLE_A={padd:1,pbulk:1,pbulkok:1,pdel:1,pdelarch:1,pdelall:1,pdelok:1,pedit:1,psave:1,parch:1,imp:1,'import':1,pwgo:1,pwsheet:1,defh:1};
+var ADMIN_A={ssave:1,slink:1,lshare:1,lcopy:1,spl:1,splok:1,smonth:1,soff:1,soffok:1};
+var MONT_A={book:1,view:1,mnav:1,mday:1,msort:1,msortx:1,mfile:1,mfget:1,mfshare:1,mfull:1,mexp:1,mexport:1,close:1,menu:1,snow:1,install:1,doinstall:1,month:1,mshift:1};
+function roleClick(a,el){
+  var r=role(); if(!r) return false;
+  if(r==='mont'&&(!MONT_A[a]||(a==='view'&&el.dataset.v!=='month'))){ if(a!=='mcell'&&a!=='mdayopen') toast('Доступен только просмотр табеля за месяц'); return false; }
+  if(DAY_A[a]&&!canDay(true)) return false;
+  if(PEOPLE_A[a]&&!canPeople(true)) return false;
+  if(ADMIN_A[a]&&!isAdmin()){ toast('Доступно только начальнику участка и технику (помощнику)'); return false; }
+  if((a==='mfadd'||a==='mfdel')&&(r==='techu'||r==='mont')){ toast('Только просмотр'); return false; }
+  return true;
+}
+function applyRole(){
+  var r=role(), c=document.body.classList;
+  if(r==='mont'&&ui.view!=='month'){ ui.view='month'; ui.month=ui.date.slice(0,7); }
+  c.toggle('ro-day',!!r&&!dayEditOk());
+  c.toggle('ro-month',r==='techu'||r==='mont');
+  c.toggle('no-people',!canPeople());
+  c.toggle('no-admin',!isAdmin());
+  c.toggle('only-month',r==='mont');
+  var st=document.getElementById('stats'); if(st) st.setAttribute('data-ro',dayDenyText());
+}
+setInterval(function(){ if(!auth||document.hidden) return; var was=document.body.classList.contains('ro-day'); applyRole(); if(was!==document.body.classList.contains('ro-day')&&ui.view==='day') render(); },60000);
+var lgSel='';
+function showLogin(msg){
+  var w=document.getElementById('login'); if(!w){ w=document.createElement('div'); w.id='login'; document.body.appendChild(w); }
+  w.hidden=false; document.body.classList.add('lg-open');
+  w.innerHTML='<div class="lgbox"><h2>Табель — вход</h2><p class="lgsub">Выберите свой уровень доступа и введите пароль.</p><div class="lgroles">'+
+    ROLES.map(function(r){ return '<button data-a="lgrole" data-r="'+r.id+'" aria-pressed="'+(lgSel===r.id)+'">'+esc(r.name)+'<small>'+esc(r.d)+'</small></button>'; }).join('')+
+    '</div><label for="lgpass">Пароль</label><input id="lgpass" type="password" inputmode="numeric" autocomplete="current-password">'+
+    '<label for="lgwho">Ваша фамилия (видна в отметках)</label><input id="lgwho" maxlength="40" autocomplete="off" value="'+esc(sync.who||'')+'">'+
+    '<button class="lggo" data-a="lggo">Войти</button><p class="lgmsg" id="lgmsg">'+esc(msg||'')+'</p></div>';
+}
+function lgSubmit(){
+  var pass=$('lgpass').value.trim(), who=$('lgwho').value.trim().slice(0,40), msg=$('lgmsg');
+  if(!lgSel){ msg.textContent='Выберите уровень доступа.'; return; }
+  if(!pass){ msg.textContent='Введите пароль.'; return; }
+  msg.textContent='Проверяю…';
+  fetch('api.json?t='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.json():null; }).catch(function(){ return null; }).then(function(o){
+    var u=o&&typeof o.url==='string'&&CF_RE.test(o.url.trim())?o.url.trim():(CF_RE.test(sync.url||'')?sync.url:API_DEFAULT);
+    return fetch(u,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'login',role:lgSel,pass:pass,app:APP_VER}),cache:'no-store'})
+      .then(function(r){ return r.json(); }).then(function(j){
+        if(!j||!j.ok){ msg.textContent=j&&j.error==='bad_pass'?'Неверный пароль.':(j&&j.error==='too_many'?'Слишком много попыток. Подождите 15 минут.':'Не удалось войти: '+((j&&j.error)||'ошибка')); return; }
+        auth={role:j.role,token:j.token,at:Date.now()}; saveAuth();
+        sync.url=u; sync.code=j.token; if(who) sync.who=who; sync.rev={}; syncErr=''; saveSync();
+        $('login').hidden=true; $('login').innerHTML=''; document.body.classList.remove('lg-open');
+        render(); syncNow(); toast('Вход выполнен: '+roleById(j.role).name);
+      });
+  }).catch(function(){ msg.textContent='Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.'; });
+}
+function logout(msg){ auth=null; saveAuth(); sync.code=''; saveSync(); lgSel=''; showLogin(msg||''); }
+
 function syncOn(){ return !!(sync.url&&sync.code&&okUrl(sync.url)); }
 function qn(){ return Object.keys(sync.queue).length; }
 function aqn(){ return (sync.aq||[]).length; }
@@ -509,7 +607,7 @@ function b64u(str){ var a=new TextEncoder().encode(str), s=''; for(var i=0;i<a.l
 function unb64u(b){ var t=atob(b), a=new Uint8Array(t.length); for(var i=0;i<t.length;i++) a[i]=t.charCodeAt(i); return new TextDecoder().decode(a); }
 
 function call(payload,ms){
-  payload.code=sync.code; payload.app=APP_VER; if(!payload.who) payload.who=sync.who;
+  payload.code=sync.code; payload.app=APP_VER; payload.role=role(); if(!payload.who) payload.who=sync.who;
   var ctl=window.AbortController?new AbortController():null, to=setTimeout(function(){ if(ctl) ctl.abort(); },ms||25000);
   return fetch(sync.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),redirect:'follow',cache:'no-store',signal:ctl?ctl.signal:undefined})
     .then(function(r){ return r.json(); })
@@ -517,7 +615,8 @@ function call(payload,ms){
 }
 function syncFail(e){
   var m=e&&e.message;
-  if(m==='bad_code'||m==='code_not_set') syncErr=m;
+  if(m==='bad_code'&&auth){ syncErr=''; logout('Вход сброшен. Войдите заново.'); }
+  else if(m==='bad_code'||m==='code_not_set') syncErr=m;
   else if(m==='bad_action') syncErr='old';
   else if((e&&(e.name==='TypeError'||e.name==='AbortError'))||navigator.onLine===false) syncErr='net';
   else syncErr='other';
@@ -754,7 +853,7 @@ function pullMonth(){
   });
 }
 function syncNow(){ flush(); pull(); }
-function queueMonth(){
+function queueMonth(){ if(!isAdmin()) return 0;
   var ym=ui.date.slice(0,7), b=bk(), cnt=0, byId={};
   b.people.forEach(function(p){ byId[p.id]=p; });
   Object.keys(b.records).forEach(function(d){
@@ -773,7 +872,7 @@ function applyConnectHash(){
   try{
     var o=JSON.parse(unb64u(decodeURIComponent(h.slice(6))));
     if(!o||typeof o.u!=='string'||typeof o.c!=='string'||!okUrl(o.u)||o.c.length<8) throw new Error('bad');
-    sync.url=o.u; sync.code=o.c; saveSync(); clean(); return true;
+    clean(); setTimeout(function(){ toast('Ссылки для подключения больше не действуют — войдите по паролю'); },300); return false;
   }catch(e){ clean(); setTimeout(function(){ toast('Ссылка для подключения не подошла'); },300); return false; }
 }
 
@@ -871,6 +970,7 @@ function renderList(){
   L.outerHTML='<ul id="list">'+html+'</ul>';
 }
 function render(){
+  applyRole();
   document.body.classList.toggle('vmonth',ui.view==='month');
   document.body.classList.toggle('vdocs',ui.view==='docs');
   document.body.classList.toggle('vnd',ui.view==='nd');
@@ -1091,17 +1191,17 @@ function dayObj(d,create){
   return r[d]||{};
 }
 function dropEmpty(d){ var r=bk().records; if(r[d]&&!Object.keys(r[d]).length) delete r[d]; }
-function setStatus(id,s){
+function setStatus(id,s){ if(!canDay(true)) return;
   var day=dayObj(ui.date,true), cur=day[id];
   if(cur&&cur.s===s) delete day[id];
   else day[id]={s:s,h:s==='work'?(cur&&cur.s==='work'?cur.h:bk().defH):0,t:Date.now()};
   dropEmpty(ui.date); save(); track(root.cur,ui.date,id); updateRow(id);
 }
-function setHours(id,h){
+function setHours(id,h){ if(!canDay(true)) return;
   var day=dayObj(ui.date,false), r=day[id]; if(!r||r.s!=='work') return;
   r.h=clampH(h); r.t=Date.now(); save(); track(root.cur,ui.date,id); updateRow(id);
 }
-function fillBySchedule(){
+function fillBySchedule(){ if(!canDay(true)) return;
   var day=dayObj(ui.date,true), nw=0, no=0, now=Date.now(), made=[];
   activePeople().forEach(function(p){
     if(day[p.id]) return;
@@ -1112,7 +1212,7 @@ function fillBySchedule(){
   toast('Пришли: '+nw+(no?', выходной по графику: '+no:''));
 }
 
-function submitEntry(){
+function submitEntry(){ if(!canDay(true)) return;
   var q=$('q'), text=latinDigits(q.value).trim();
   if(!text){ q.focus(); return; }
   var toks=text.split(/[\s,;]+/).filter(Boolean).map(function(x){ return x.replace(/^[№#]/,''); });
@@ -1158,7 +1258,7 @@ function markPresent(hit,unknown,text,dup){
   if(one){ var li=document.querySelector('#list li[data-id="'+(window.CSS&&CSS.escape?CSS.escape(hit[0].id):hit[0].id)+'"]'); if(li){ li.scrollIntoView({block:'center'}); li.classList.add('flash'); } }
   $('q').focus({preventScroll:true});
 }
-function undo(){
+function undo(){ if(!canDay(true)) return;
   var u=ui.undo; if(!u) return;
   var b=root.books[u.book], day=b.records[u.date]||(b.records[u.date]={});
   u.changes.forEach(function(c){ if(c[1]===null) delete day[c[0]]; else day[c[0]]={s:c[1].s,h:c[1].h,t:Date.now()}; });
@@ -1268,6 +1368,7 @@ window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); d
 function sheetMenu(){
   var s=stats();
   openSheet('Меню','<div class="list2">'+
+    '<button data-a="logout">'+esc(auth?roleById(auth.role).name:'Вход')+(sync.who?' · '+esc(sync.who):'')+'<small>Выйти / сменить уровень доступа</small></button>'+
     '<button data-a="fill">Остальных отметить по графику<small>Рабочий день: «Пришёл», выходной по графику: «Выходной». Без отметки: '+s.unm+'</small></button>'+
     '<button data-a="report">Отчёт за день<small>Текст, который можно отправить в мессенджер</small></button>'+
     '<button data-a="month">Табель за месяц<small>Файл для Excel (CSV)</small></button>'+
@@ -1374,7 +1475,7 @@ function markCount(ids){
   return n;
 }
 /* удалить людей и все их отметки на этом телефоне без возможности вернуть */
-function deletePeople(ids){ return deletePeopleIn(root.cur,ids); }
+function deletePeople(ids){ if(!canPeople(true)) return; return deletePeopleIn(root.cur,ids); }
 function deletePeopleIn(bookId,ids){
   var b=root.books[bookId], set={}, marks=0; ids.forEach(function(i){ set[i]=1; });
   var gone={}; b.people.forEach(function(p){ if(set[p.id]&&p.num) gone[p.num]=1; });
@@ -1425,7 +1526,7 @@ function sheetBulk(note){
     '<textarea id="bulk" rows="7" placeholder="Иванов И. И., бетонщик, 101, 2&#10;Петров П. П., арматурщик, 102, об&#10;Сидоров С. С." aria-label="Список людей, по одному в строке"></textarea>'+
     '<div class="acts"><button class="primary" data-a="pbulkok">Добавить всех в табель '+BOOKS[root.cur]+'</button><button data-a="people">Отмена</button></div><p class="note" id="bmsg" role="status">'+esc(note||'')+'</p>');
 }
-function addBulk(){
+function addBulk(){ if(!canPeople(true)) return;
   var lines=$('bulk').value.split(/\r?\n/), added=0, dup=0, taken={};
   bk().people.forEach(function(p){ if(p.num) taken[p.num]=1; });
   lines.forEach(function(line){
@@ -1457,7 +1558,7 @@ function readForm(){
   var name=$('f_name').value.trim(); if(!name){ toast('Введите фамилию'); $('f_name').focus(); return null; }
   return {name:name.slice(0,120),num:$('f_num').value.trim().slice(0,20),role:$('f_role').value.trim().slice(0,120),sched:validSched($('f_sched').value)};
 }
-function savePerson(){
+function savePerson(){ if(!canPeople(true)) return;
   var f=readForm(); if(!f) return;
   var dup=f.num&&bk().people.some(function(p){ return p.id!==editId&&p.num===f.num&&!p.archived; });
   var np;
@@ -1525,7 +1626,7 @@ function loadEncrypted(){
         e&&e.name==='TypeError'&&m!=='format'?'Нет связи с сайтом. Проверьте интернет.':'Не удалось прочитать список.';
     });
 }
-function doImport(mode){
+function doImport(mode){ if(!canPeople(true)) return;
   var src=pendingImport; pendingImport=null; if(!src) return;
   if(mode==='all'){ root.books.rf=src.books.rf; root.books.are=src.books.are; }
   else{
@@ -2283,6 +2384,10 @@ function ndChange(t){
 document.addEventListener('click',function(e){
   var el=e.target.closest?e.target.closest('[data-a]'):null; if(!el) return;
   var a=el.dataset.a, id=el.dataset.id;
+  if(a==='lgrole'){ lgSel=el.dataset.r; document.querySelectorAll('[data-a=lgrole]').forEach(function(b){ b.setAttribute('aria-pressed',String(b===el)); }); var pw=$('lgpass'); if(pw) pw.focus(); return; }
+  if(a==='lggo'){ lgSubmit(); return; }
+  if(a==='logout'){ closeSheet(); if(confirm('Выйти и сменить уровень доступа?')) logout(''); return; }
+  if(!roleClick(a,el)) return;
   switch(a){
     case 'book': if(root.cur!==el.dataset.b){ root.cur=el.dataset.b; save(); ui.q=''; $('q').value=''; ui.open={}; clearMsg(); render(); window.scrollTo(0,0); pull(); } break;
     case 'date': sheetDate(); break;
@@ -2426,6 +2531,7 @@ document.addEventListener('keydown',function(e){
   if(e.key==='Escape'&&scan.on){ closeScan(); return; }
   if(e.key==='Escape'&&!$('sheetWrap').hidden) closeSheet();
   if(e.key==='Enter'&&e.target&&e.target.id==='pw'){ e.preventDefault(); loadEncrypted(); }
+  if(e.key==='Enter'&&e.target&&(e.target.id==='lgpass'||e.target.id==='lgwho')){ e.preventDefault(); lgSubmit(); }
 });
 document.addEventListener('visibilitychange',function(){
   if(!document.hidden&&ui.follow&&ui.date!==today()){ ui.date=today(); render(); }
@@ -2487,6 +2593,7 @@ document.addEventListener('visibilitychange',function(){ if(!document.hidden) ch
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
   window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
 }
+applyRole(); if(!auth) showLogin('');
 })();
 </script>
 </body>
