@@ -378,7 +378,7 @@ body.only-month .list2>button:not([data-a=month]):not([data-a=install]):not([dat
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='55';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='56';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -575,7 +575,7 @@ function showLogin(msg){
   w.hidden=false; document.body.classList.add('lg-open');
   w.innerHTML='<div class="lgbox"><h2>Табель — вход</h2><p class="lgsub">Выберите свой уровень доступа и введите пароль.</p><div class="lgroles">'+
     ROLES.map(function(r){ return '<button data-a="lgrole" data-r="'+r.id+'" aria-pressed="'+(lgSel===r.id)+'">'+esc(r.name)+'</button>'; }).join('')+
-    '</div><label for="lgpass">Пароль</label><input id="lgpass" type="password" inputmode="numeric" autocomplete="current-password">'+
+    '</div><input type="text" name="lguser" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"><label for="lgpass">Пароль</label><input id="lgpass" name="lgpass" type="password" inputmode="numeric" autocomplete="new-password">'+
     '<label for="lgwho">Ваша фамилия (видна в отметках)</label><input id="lgwho" maxlength="40" autocomplete="off" value="'+esc(sync.who||'')+'">'+
     '<button class="lggo" data-a="lggo">Войти</button><p class="lgmsg" id="lgmsg">'+esc(msg||'')+'</p></div>';
 }
@@ -592,10 +592,13 @@ function lgSubmit(){
         auth={role:j.role,token:j.token,at:Date.now()}; saveAuth();
         sync.url=u; sync.code=j.token; if(who) sync.who=who; sync.rev={}; syncErr=''; saveSync();
         $('login').hidden=true; $('login').innerHTML=''; document.body.classList.remove('lg-open');
-        render(); syncNow(); toast('Вход выполнен: '+roleById(j.role).name);
+        clearAutofill(); setTimeout(clearAutofill,500); render(); syncNow(); toast('Вход выполнен: '+roleById(j.role).name);
       });
   }).catch(function(){ msg.textContent='Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.'; });
 }
+/* браузер может вписать сохранённый адрес в поле «Табельный №» — убираем */
+function clearAutofill(){ var q=document.getElementById('q'); if(q&&/^https?:|script\.google|\/exec/i.test(q.value)){ q.value=''; ui.q=''; if(auth) render(); } }
+setTimeout(clearAutofill,300); setTimeout(clearAutofill,1500); document.addEventListener('input',function(e){ if(e.target&&e.target.id==='q') setTimeout(clearAutofill,0); },true);
 function logout(msg){ auth=null; saveAuth(); sync.code=''; saveSync(); lgSel=''; showLogin(msg||''); }
 
 function syncOn(){ return !!(sync.url&&sync.code&&okUrl(sync.url)); }
