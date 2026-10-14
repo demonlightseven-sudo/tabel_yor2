@@ -343,6 +343,7 @@ body.only-month .list2>button:not([data-a=month]):not([data-a=install]):not([dat
 .tbtf{display:flex;flex-direction:column;gap:6px}
 .tbtf label{font-size:14px;color:var(--muted);margin-top:6px}
 .tbtf input{width:100%;box-sizing:border-box}
+.tbtf input:not([type=checkbox]){min-height:44px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font-size:16px;font-family:inherit}
 .tbtline{display:flex;gap:6px}.tbtline input{flex:1;min-width:0}.tbtline button{flex:0 0 auto}
 .tbth3{margin:14px 0 4px;font-size:17px}
 .tbttopics{display:flex;flex-direction:column;gap:6px}
@@ -395,7 +396,7 @@ body.only-month .list2>button:not([data-a=month]):not([data-a=install]):not([dat
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='57';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='58';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
