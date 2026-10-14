@@ -337,6 +337,23 @@ body.no-people [data-a=padd],body.no-people [data-a=pbulk],body.no-people [data-
 body.no-admin [data-a=ssave],body.no-admin [data-a=spl],body.no-admin [data-a=smonth],body.no-admin [data-a=soff],
 body.only-month [data-a=view]:not([data-v=month]),
 body.only-month .list2>button:not([data-a=month]):not([data-a=install]):not([data-a=logout]){display:none!important}
+
+.tbtbtn{display:block;width:100%;margin:8px 0;padding:14px;height:auto;font-weight:700;font-size:17px;border-radius:12px}
+.tbtbtn[aria-pressed=true]{background:var(--work-bg);border-color:var(--work);color:var(--work-t)}
+.tbtf{display:flex;flex-direction:column;gap:6px}
+.tbtf label{font-size:14px;color:var(--muted);margin-top:6px}
+.tbtf input{width:100%;box-sizing:border-box}
+.tbtline{display:flex;gap:6px}.tbtline input{flex:1;min-width:0}.tbtline button{flex:0 0 auto}
+.tbth3{margin:14px 0 4px;font-size:17px}
+.tbttopics{display:flex;flex-direction:column;gap:6px}
+.tbtf label.tbtcb{display:flex;align-items:center;gap:8px;color:var(--ink);font-size:15px;margin:0}
+.tbtf .tbtcb input{width:20px;height:20px;flex:0 0 auto}
+.tbtrows{display:flex;flex-direction:column;gap:8px}
+.tbtrow{border:1px solid var(--line);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:4px;background:var(--surface)}
+.tbtrh{display:flex;align-items:center;gap:6px}.tbtrh .tbtnum{flex:1;min-width:0}
+.tbtx{flex:0 0 44px;width:44px;padding:0}
+.tbtmanual{margin-top:6px}
+.tbtdl{margin-top:12px;font-weight:700;background:var(--ink);color:var(--bg);border-color:var(--ink);padding:14px;height:auto}
 </style>
 </head>
 <body>
@@ -378,7 +395,7 @@ body.only-month .list2>button:not([data-a=month]):not([data-a=install]):not([dat
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='56';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='57';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1999,7 +2016,7 @@ var ND_GROUPS={hz:[['att','Приложения'],['haz','Вредные и оп
 var ndTplC={}, ndTplErr={}, ndBusy=false, ndFetchAt=0, ndShowAll=false, ndQ='', ndMsg='', ndLogQ='', ndLogK='', ndLogO='';
 function ndSt(){
   var o={}; try{ o=JSON.parse(localStorage.getItem(ND_KEY)||'{}')||{}; }catch(e){ o={}; }
-  if(!ND_TITLE[o.kind]&&o.kind!=='log') o.kind='hz';
+  if(!ND_TITLE[o.kind]&&o.kind!=='log'&&o.kind!=='tbt') o.kind='hz';
   if(o.edit&&(!o.edit.id||!ND_TITLE[o.edit.kind])) o.edit=null;
   ['draft','cfg'].forEach(function(k){ if(!o[k]||typeof o[k]!=='object') o[k]={}; });
   ['list','q'].forEach(function(k){ if(!Array.isArray(o[k])) o[k]=[]; });
@@ -2124,8 +2141,9 @@ function renderNd(){
   ndFetch(false); ndFlush();
   var st=ndSt(), k=st.kind, tpl=ndTplC[k], el=$('nd'); if(!el) return;
   var objs='<div class="mtype ndobjs" role="tablist" aria-label="Объект">'+ND_OBJS.map(function(o){ return '<button role="tab" data-a="ndobj" data-o="'+o+'" aria-selected="'+(k!=='log'&&o===st.obj)+'">'+o+'</button>'; }).join('')+'</div>';
-  var kinds=objs+'<div class="mtype ndkinds" role="tablist" aria-label="Вид наряда">'+ND_KINDS.concat([['log','Журнал нарядов']]).map(function(x){ return '<button role="tab" data-a="ndkind" data-k="'+x[0]+'" aria-selected="'+(x[0]===k)+'"'+(x[0]==='log'?' class="ndlogt"':'')+'>'+(ND_KBTN[x[0]]||x[1])+(x[0]==='log'?' <span>('+ndAll(st,'').length+')</span>':'')+'</button>'; }).join('')+'</div>';
+  var kinds=objs+'<button class="tbtbtn" data-a="ndkind" data-k="tbt" aria-pressed="'+(k==='tbt')+'">Инструктаж перед началом работ (TBT)</button>'+'<div class="mtype ndkinds" role="tablist" aria-label="Вид наряда">'+ND_KINDS.concat([['log','Журнал нарядов']]).map(function(x){ return '<button role="tab" data-a="ndkind" data-k="'+x[0]+'" aria-selected="'+(x[0]===k)+'"'+(x[0]==='log'?' class="ndlogt"':'')+'>'+(ND_KBTN[x[0]]||x[1])+(x[0]==='log'?' <span>('+ndAll(st,'').length+')</span>':'')+'</button>'; }).join('')+'</div>';
   if(k==='log'){ el.innerHTML='<div class="dwrap">'+kinds+ndLog(st)+'</div>'; return; }
+  if(k==='tbt'){ el.innerHTML='<div class="dwrap">'+kinds+tbtRender()+'</div>'; return; }
   var ed=ndEd(st,k);
   var head='<h2 class="dh2">'+(ed?'Изменение наряда № '+esc(ed.no):ND_TITLE[k])+' <span class="ndob">'+esc(st.obj)+'</span></h2>'+(ed?'<p class="ndedit">'+esc(ND_TITLE[k])+', оформлен '+esc(ed.d1||'')+(ed.who?' ('+esc(ed.who)+')':'')+'. Поправьте поля и сохраните — запись в журнале и в таблице обновится. <button data-a="ndcancel">Отменить изменение</button></p>':'');
   if(!ND_TPL[k]){ el.innerHTML='<div class="dwrap">'+kinds+head+'<p class="note">Для этого наряда ещё нет бланка. Пришлите образец в Word — и здесь появится заполнение, как для наряда на опасные работы.</p></div>'; return; }
@@ -2391,6 +2409,7 @@ document.addEventListener('click',function(e){
   if(a==='lggo'){ lgSubmit(); return; }
   if(a==='logout'){ closeSheet(); if(confirm('Выйти и сменить уровень доступа?')) logout(''); return; }
   if(!roleClick(a,el)) return;
+  if(a.indexOf('tbt')===0){ tbtClick(a,el); return; }
   switch(a){
     case 'book': if(root.cur!==el.dataset.b){ root.cur=el.dataset.b; save(); ui.q=''; $('q').value=''; ui.open={}; clearMsg(); render(); window.scrollTo(0,0); pull(); } break;
     case 'date': sheetDate(); break;
@@ -2596,6 +2615,141 @@ document.addEventListener('visibilitychange',function(){ if(!document.hidden) ch
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
   window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
 }
+/* ------------------------------------------------------------- Инструктаж перед началом работ (TBT) */
+var TBT_KEY='tabel-tbt-v1', tbtTpl=null, tbtMsg='';
+var TBT_TOPICS=['Общие требования охраны труда','Опасные и вредные факторы на рабочем месте','Проверка СИЗ','Порядок выполнения работ','Меры пожарной безопасности','Работа с подъемными механизмами','Работы на высоте','Электробезопасность'];
+var TBT_TR={'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'e','ж':'zh','з':'z','и':'i','й':'i','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'shch','ъ':'ie','ы':'y','ь':'','э':'e','ю':'yu','я':'ya'};
+var TBT_EN={'монтажник сижбк':'Installer of SRCS','арматурщик':'Reinforcement worker','бетонщик':'Concrete worker','начальник участка':'Head of the site','производитель работ':'Site Foreman','прораб':'Site Foreman','мастер участка':'Site Master','мастер':'Master','техник':'Technician','подсобный рабочий':'Auxiliary worker','переводчик':'Translator','водитель экскаватора':'Excavator driver','машинист экскаватора':'Excavator operator','машинист крана':'Crane operator','стропальщик':'Slinger','электрогазосварщик':'Electric and gas welder','сварщик':'Welder','плотник':'Carpenter','электромонтажник':'Electrician'};
+var TBT_AR={'подсобный рабочий':'عامل صيانة','переводчик':'مترجم','техник':'فني','водитель экскаватора':'سائق حفار','машинист экскаватора':'مشغل حفار','машинист крана':'مشغل رافعة','стропальщик':'عامل ربط','сварщик':'لحام','электрогазосварщик':'لحام','плотник':'نجار'};
+function tbtLat(s){ return String(s||'').replace(/[А-яЁё]/g,function(c){ var l=c.toLowerCase(), t=TBT_TR[l]; if(t==null) return c; return c!==l&&t?t.charAt(0).toUpperCase()+t.slice(1):t; }); }
+function tbtProf(role,b){
+  var r=String(role||'').trim(); if(/^подс/i.test(r)) r='Подсобный рабочий';
+  var m=/^(.*?)\s+(\d)\s*-?(?:го)?\s*разряда$/i.exec(r), base=(m?m[1]:r).toLowerCase(), n=m?m[2]:'';
+  var ord=n?' '+n+(n==='1'?'st':n==='2'?'nd':n==='3'?'rd':'th')+' category':'';
+  var p2=b==='are'?(TBT_AR[base]||(TBT_EN[base]?TBT_EN[base]+ord:'')):(TBT_EN[base]?TBT_EN[base]+ord:'');
+  return {p1:r,p2:p2};
+}
+function tbtSt(){ var o={}; try{ o=JSON.parse(localStorage.getItem(TBT_KEY)||'{}')||{}; }catch(e){ o={}; } if(!o.d||typeof o.d!=='object') o.d={}; if(!Array.isArray(o.resps)) o.resps=[]; return o; }
+function tbtSave(o){ try{ localStorage.setItem(TBT_KEY,JSON.stringify(o)); }catch(e){} }
+function tbtPlace(obj){ return String(obj||'').replace(/^(\d+)([A-Z])/,'$1 $2'); }
+function tbtDraft(o,obj){
+  var d=o.d[obj]; if(!d||typeof d!=='object') d=o.d[obj]={};
+  if(!d.place) d.place=tbtPlace(obj);
+  if(!d.date) d.date=today();
+  if(!Array.isArray(d.topics)||d.topics.length!==TBT_TOPICS.length) d.topics=TBT_TOPICS.map(function(){ return true; });
+  if(!Array.isArray(d.other)) d.other=['','',''];
+  if(!Array.isArray(d.rows)) d.rows=[];
+  if(d.resp==null) d.resp=o.resps[0]||'';
+  if(d.no==null) d.no='';
+  return d;
+}
+function tbtDmy(iso){ var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso||'')); return m?m[3]+'.'+m[2]+'.'+m[1]:String(iso||''); }
+function tbtPerson(num){ var n=String(num||'').replace(/^0+/,''); var all=ndPeople(); for(var i=0;i<all.length;i++){ if(String(all[i].p.num||'').replace(/^0+/,'')===n) return all[i]; } return null; }
+function tbtRowOf(x){ var pr=tbtProf(x.p.role,x.b); return {num:String(x.p.num||''),ru:String(x.p.name||''),lat:tbtLat(x.p.name),p1:pr.p1,p2:pr.p2}; }
+function tbtNdOf(no,obj){
+  var n=String(no||'').replace(/^№\s*/,'').trim(); if(!n) return null;
+  var all=ndAll(ndSt(),''), best=null;
+  all.forEach(function(e){ if(String(e.no||'').trim()!==n) return; var same=false; try{ same=ndGuessObj(e.code)===obj; }catch(er){} if(!best||same) best=e; });
+  return best;
+}
+function tbtRender(){
+  var o=tbtSt(), obj=ndSt().obj, d=tbtDraft(o,obj); tbtSave(o);
+  var nds=ndAll(ndSt(),'').filter(function(e){ try{ return ndGuessObj(e.code)===obj; }catch(er){ return true; } }).slice(0,40);
+  var ndHit=tbtNdOf(d.no,obj);
+  var h='<h2 class="dh2">Инструктаж перед началом работ (TBT) <span class="ndob">'+esc(obj)+'</span></h2><div class="tbtf">'+
+    '<label for="tbt_place">Место проведения работ</label><input id="tbt_place" data-tf="place" value="'+esc(d.place)+'">'+
+    '<label for="tbt_date">Дата</label><input id="tbt_date" type="date" data-tf="date" value="'+esc(d.date)+'">'+
+    '<label for="tbt_resp">ФИО, должность ответственного лица</label><input id="tbt_resp" data-tf="resp" list="tbt_resps" value="'+esc(d.resp)+'" placeholder="Installer of SRCS 5th category Zolotnitsin V. A.">'+
+    '<datalist id="tbt_resps">'+o.resps.map(function(r){ return '<option value="'+esc(r)+'">'; }).join('')+'</datalist>'+
+    '<label for="tbt_no">К наряд-допуску №</label><div class="tbtline"><input id="tbt_no" data-tf="no" list="tbt_nos" inputmode="numeric" value="'+esc(d.no)+'">'+
+    '<button data-a="tbtfromnd"'+(ndHit&&Array.isArray(ndHit.team)&&ndHit.team.length?'':' disabled')+'>Бригада из наряда</button></div>'+
+    '<datalist id="tbt_nos">'+nds.map(function(e){ return '<option value="'+esc(e.no)+'">'+esc((ND_TITLE[e.kind]||'')+' · '+(e.d1||''))+'</option>'; }).join('')+'</datalist>'+
+    '<h3 class="tbth3">Темы инструктажа</h3><div class="tbttopics">'+
+    TBT_TOPICS.map(function(t,i){ return '<label class="tbtcb"><input type="checkbox" data-tt="'+i+'"'+(d.topics[i]?' checked':'')+'> '+esc(t)+'</label>'; }).join('')+'</div>'+
+    '<label>Другие темы</label>'+[0,1,2].map(function(i){ return '<input data-to="'+i+'" value="'+esc(d.other[i]||'')+'" placeholder="Другая тема '+(i+1)+'">'; }).join('')+
+    '<h3 class="tbth3">Работники <span class="ndob">'+d.rows.length+'</span></h3>'+
+    '<div class="tbtline"><input id="tbt_q" list="tbt_ppl" placeholder="Табельный № или фамилия" autocomplete="off"><button data-a="tbtadd">Добавить</button></div>'+
+    '<datalist id="tbt_ppl">'+ndPeople().map(function(x){ return '<option value="'+esc(x.p.num+' — '+x.p.name)+'">'+esc(x.p.role||'')+'</option>'; }).join('')+'</datalist>'+
+    '<div class="tbtrows">'+d.rows.map(function(r,i){
+      return '<div class="tbtrow"><div class="tbtrh"><b>'+(i+1)+'.</b><input data-r="'+i+'" data-f="num" value="'+esc(r.num)+'" placeholder="Т/Н" inputmode="numeric" class="tbtnum">'+
+        '<button class="tbtx" data-a="tbtup" data-i="'+i+'" aria-label="Выше"'+(i?'':' disabled')+'>↑</button><button class="tbtx" data-a="tbtdel" data-i="'+i+'" aria-label="Убрать">✕</button></div>'+
+        '<input data-r="'+i+'" data-f="ru" value="'+esc(r.ru)+'" placeholder="ФИО (рус.)">'+
+        '<input data-r="'+i+'" data-f="lat" value="'+esc(r.lat)+'" placeholder="ФИО латиницей">'+
+        '<input data-r="'+i+'" data-f="p1" value="'+esc(r.p1)+'" placeholder="Профессия">'+
+        '<input data-r="'+i+'" data-f="p2" value="'+esc(r.p2)+'" placeholder="Профессия (англ. / араб.)">'+
+        '</div>';
+    }).join('')+'</div>'+
+    '<button data-a="tbtrow" class="tbtmanual">+ Строка вручную</button>'+
+    '<button data-a="tbtdl" class="tbtdl">Скачать инструктаж (Word)</button>'+
+    '<p class="note" id="tbt_msg" role="status" aria-live="polite">'+esc(tbtMsg)+'</p></div>';
+  return h;
+}
+function tbtUpd(fn){ var o=tbtSt(), obj=ndSt().obj, d=tbtDraft(o,obj); fn(d,o); tbtSave(o); }
+function tbtInput(t){
+  if(t.dataset.tf){ var f=t.dataset.tf; tbtUpd(function(d){ d[f]=t.value; }); if(f==='no'){ var b=document.querySelector('[data-a=tbtfromnd]'); if(b){ var e=tbtNdOf(t.value,ndSt().obj); b.disabled=!(e&&Array.isArray(e.team)&&e.team.length); } } return true; }
+  if(t.dataset.tt!=null){ tbtUpd(function(d){ d.topics[Number(t.dataset.tt)]=t.checked; }); return true; }
+  if(t.dataset.to!=null){ tbtUpd(function(d){ d.other[Number(t.dataset.to)]=t.value; }); return true; }
+  if(t.dataset.r!=null&&t.dataset.f){ tbtUpd(function(d){ var r=d.rows[Number(t.dataset.r)]; if(r) r[t.dataset.f]=t.value; }); return true; }
+  return false;
+}
+function tbtAddFromQuery(){
+  var q=$('tbt_q'); if(!q) return; var v=q.value.trim(); if(!v) return;
+  var num=(/^(\d+)/.exec(v)||[])[1], x=null;
+  if(num) x=tbtPerson(num);
+  if(!x){ var lv=v.toLowerCase(); var hits=ndPeople().filter(function(y){ return String(y.p.name||'').toLowerCase().indexOf(lv)>=0; }); if(hits.length===1) x=hits[0]; else if(hits.length>1){ toast('Найдено несколько: уточните или выберите из списка'); return; } }
+  if(!x){ toast('Человек не найден'); return; }
+  var dup=false; tbtUpd(function(d){ if(d.rows.some(function(r){ return r.num&&String(r.num)===String(x.p.num); })){ dup=true; return; } d.rows.push(tbtRowOf(x)); });
+  if(dup){ toast('Уже в списке'); return; }
+  renderNd(); var q2=$('tbt_q'); if(q2) q2.focus();
+}
+function tbtFromNd(){
+  var obj=ndSt().obj, cur=tbtSt(), e=tbtNdOf(tbtDraft(cur,obj).no,obj); if(!e||!Array.isArray(e.team)) return;
+  var n=0;
+  tbtUpd(function(d){ e.team.forEach(function(t){ if(t.num&&d.rows.some(function(r){ return String(r.num)===String(t.num); })) return; var x=t.num?tbtPerson(t.num):null; var row=x?tbtRowOf(x):(function(){ var pr=tbtProf(t.role,''); return {num:String(t.num||''),ru:String(t.name||''),lat:tbtLat(t.name),p1:pr.p1,p2:pr.p2}; })(); d.rows.push(row); n++; }); });
+  tbtMsg='Добавлено из наряда № '+e.no+': '+n; renderNd();
+}
+function tbtClick(a,el){
+  if(a==='tbtadd'){ tbtAddFromQuery(); return; }
+  if(a==='tbtfromnd'){ tbtFromNd(); return; }
+  if(a==='tbtrow'){ tbtUpd(function(d){ d.rows.push({num:'',ru:'',lat:'',p1:'',p2:''}); }); renderNd(); return; }
+  if(a==='tbtdel'){ var i=Number(el.dataset.i); tbtUpd(function(d){ d.rows.splice(i,1); }); renderNd(); return; }
+  if(a==='tbtup'){ var j=Number(el.dataset.i); if(j>0) tbtUpd(function(d){ var t=d.rows[j]; d.rows[j]=d.rows[j-1]; d.rows[j-1]=t; }); renderNd(); return; }
+  if(a==='tbtdl'){ tbtDownload(); return; }
+}
+function tbtTemplate(){ if(tbtTpl) return Promise.resolve(tbtTpl); return fetch('tbt.json',{cache:'no-cache'}).then(function(r){ if(!r.ok) throw new Error('notpl'); return r.json(); }).then(function(j){ tbtTpl=j; return j; }); }
+function tbtB64(s){ var t=atob(s), a=new Uint8Array(t.length); for(var i=0;i<t.length;i++) a[i]=t.charCodeAt(i); return a; }
+function tbtBuild(tpl,d){
+  var BR='<w:r><w:br /></w:r>', parts=tpl.row.split(BR);
+  var rows=d.rows.filter(function(r){ return r.num||r.ru||r.lat||r.p1||r.p2; }).map(function(r){
+    var p2=String(r.p2||''), rtl=/[؀-ۿ]/.test(p2);
+    var row=parts.length===3?parts[0]+(r.lat?BR:'')+parts[1]+(p2?BR:'')+parts[2]:tpl.row;
+    return row.replace('{{TN}}',function(){ return xesc(r.num||''); }).replace('{{RU}}',function(){ return xesc(r.ru||''); }).replace('{{LAT}}',function(){ return xesc(r.lat||''); })
+      .replace('{{P1}}',function(){ return xesc(r.p1||''); }).replace('{{P2}}',function(){ return xesc(p2); }).replace('{{RTL}}',rtl?'<w:rtl />':'');
+  }).join('');
+  var doc=tpl.files['word/document.xml'].replace('<!--ROWS-->',function(){ return rows; });
+  var no=String(d.no||'').trim(); if(no&&!/^№/.test(no)) no='№ '+no;
+  var map={PLACE:d.place,DATE:tbtDmy(d.date),RESP:d.resp,NO:no};
+  d.topics.forEach(function(on,i){ map['C'+i]=on?'ü':'¨'; });
+  [0,1,2].forEach(function(i){ var t=String(d.other[i]||'').trim(); map['K'+i]=t?'ü':'¨'; map['O'+i]=t?t.replace(/;?$/,';'):new Array(100).join('_')+';'; });
+  Object.keys(map).forEach(function(k){ doc=doc.split('{{'+k+'}}').join(xesc(map[k]||'')); });
+  var files={}; Object.keys(tpl.files).forEach(function(n){ files[n]=n==='word/document.xml'?doc:tpl.files[n]; });
+  Object.keys(tpl.bin||{}).forEach(function(n){ files[n]=tbtB64(tpl.bin[n]); });
+  return zipStore(files);
+}
+function tbtDownload(){
+  var o=tbtSt(), obj=ndSt().obj, d=tbtDraft(o,obj), msg=$('tbt_msg');
+  if(!d.rows.length){ if(msg) msg.textContent='Добавьте работников.'; return; }
+  if(d.resp){ o.resps=[d.resp].concat(o.resps.filter(function(r){ return r!==d.resp; })).slice(0,15); tbtSave(o); }
+  if(msg) msg.textContent='Готовлю файл…';
+  tbtTemplate().then(function(tpl){
+    var b=tbtBuild(tpl,d), name='TBT_'+tbtDmy(d.date).replace(/\./g,'_')+'_'+String(d.place||obj).replace(/[^\wА-Яа-яЁё-]/g,'')+(d.no?'_'+String(d.no).replace(/[^\w-]/g,''):'')+'.docx';
+    return saveFile(name,b.type,b).then(function(r){ tbtMsg='Файл: '+name; var m2=$('tbt_msg'); if(m2) m2.textContent=tbtMsg; reportDone(r); });
+  }).catch(function(e){ var m3=$('tbt_msg'); if(m3) m3.textContent=e&&e.message==='notpl'?'Не удалось загрузить бланк инструктажа. Проверьте интернет.':'Не удалось сделать файл.'; });
+}
+document.addEventListener('input',function(e){ var t=e.target; if(t&&t.closest&&t.closest('.tbtf')) tbtInput(t); },true);
+document.addEventListener('change',function(e){ var t=e.target; if(t&&t.closest&&t.closest('.tbtf')&&t.type==='checkbox') tbtInput(t); },true);
+document.addEventListener('keydown',function(e){ if(e.key==='Enter'&&e.target&&e.target.id==='tbt_q'){ e.preventDefault(); tbtAddFromQuery(); } });
+
 applyRole(); if(!auth) showLogin('');
 })();
 </script>
