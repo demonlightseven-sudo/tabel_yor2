@@ -368,7 +368,7 @@ body.vx .row2,body.vx .books,body.vx #dateBtn,body.vx #stats,body.vx #tabs,body.
 body.vx #menuBtn{margin-left:auto}
 body.r-mont .books{display:none}
 #tabbar [data-v=brig],#tabbar [data-v=task],#tabbar [data-v=board]{display:none}
-body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prorab #tabbar [data-v=task],body.r-nach #tabbar [data-v=task],body.r-tech #tabbar [data-v=task],body.r-nach #tabbar [data-v=board]{display:block}
+body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prorab #tabbar [data-v=task],body.r-nach #tabbar [data-v=task],body.r-tech #tabbar [data-v=task],body.r-nach #tabbar [data-v=board],body.r-tech #tabbar [data-v=board]{display:block}
 #tabbar button{white-space:normal;line-height:1.1;font-size:clamp(11px,3.1vw,15px)}
 #xv{max-width:760px;margin:0 auto;padding:0 0 90px}
 .xnav{display:flex;align-items:center;gap:8px;margin:6px 0 10px}.xnav b{flex:1;text-align:center}.xnav button{flex:0 0 48px}
@@ -427,7 +427,7 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='62';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='63';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -618,7 +618,7 @@ function roleClick(a,el){
 function applyRole(){
   var r=role(), c=document.body.classList;
   if(r){
-    var okv=r==='mont'?{brig:1,month:1,task:1}:{day:1,month:1,docs:1,nd:1,task:(r==='prorab'||r==='nach'||r==='tech')?1:0,board:r==='nach'?1:0};
+    var okv=r==='mont'?{brig:1,month:1,task:1}:{day:1,month:1,docs:1,nd:1,task:(r==='prorab'||r==='nach'||r==='tech')?1:0,board:(r==='nach'||r==='tech')?1:0};
     if(!okv[ui.view]){ ui.view=r==='mont'?'brig':'day'; ui.month=ui.date.slice(0,7); }
     if(r==='mont'&&root.cur!=='rf'){ root.cur='rf'; }
   }
