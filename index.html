@@ -427,7 +427,7 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='63';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='64';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -886,7 +886,7 @@ function mergePull(b,d0,items){
   if(changed) save();
   return changed;
 }
-function pull(){ if(ui.view==='month') pullMonth(); else if(ui.view==='brig'||ui.view==='task'||ui.view==='board') bdFetch(ui.view==='task'?(tkDate||today()):ui.view==='board'?(bdDate||today()):today(),true); else pullDay(); }
+function pull(){ if(ui.view==='month') pullMonth(); else if(ui.view==='brig'||ui.view==='task'||ui.view==='board') bdFetch(ui.view==='task'?(tkDate||tkDef()):ui.view==='board'?(bdDate||today()):today(),true); else pullDay(); }
 function pullDay(){
   if(!syncOn()||pulling||navigator.onLine===false) return;
   var b=root.cur, d=ui.date; pulling=true;
@@ -2839,68 +2839,6 @@ function renderX(){
 }
 /* --- бригада (бригадир) --- */
 function myBrigId(d){ return 'brig|'+d+'|'+nameKey(sync.who).slice(0,30); }
-function brgRender(){
-  var d=today(), o=brgSt(); bdFetch(d,false);
-  var mine=bdItems(d).filter(function(x){ return x.kind==='brig'&&x.id===myBrigId(d); })[0];
-  var obj=o.obj||(mine&&mine.obj)||ND_OBJS[0], nums=o.nums||((mine&&mine.data&&mine.data.nums)||[]).join(' ');
-  var list=parseNums(nums);
-  var h='<h2 class="dh2">Бригада <span class="ndob">'+esc(dmyLong(d))+'</span></h2>'+
-    (mine?'<p class="xok">✓ Список подан в '+new Date(mine.t).toTimeString().slice(0,5)+' · '+esc(mine.obj)+' · '+((mine.data.nums||[]).length)+' чел.</p>':'<p class="xno">Список бригады на сегодня ещё не подан</p>')+
-    '<div class="tbtf"><label>Бригадир</label><input value="'+esc(sync.who||'')+'" disabled>'+
-    '<label for="brg_lnum">Ваш табельный №</label><input id="brg_lnum" inputmode="numeric" value="'+esc(o.lnum||'')+'">'+
-    '<label for="brg_obj">Объект</label>'+objSelect('brg_obj',obj)+
-    '<label for="brg_nums">Табельные номера работников (через пробел или запятую)</label><textarea id="brg_nums" rows="3" inputmode="numeric">'+esc(nums)+'</textarea>'+
-    '<div class="xlist">'+list.map(function(n,i){ var x=anyPerson(n); return '<div class="xrow"><b>'+(i+1)+'.</b> '+esc(n)+' '+(x?esc(x.p.name)+' <small>'+esc(x.p.role||'')+'</small>':'<span class="xno">нет в табеле</span>')+'</div>'; }).join('')+'</div>'+
-    '<button class="tbtdl" data-a="brgsend">'+(mine?'Обновить список бригады':'Подать список бригады')+'</button><p class="note" id="brg_msg"></p></div>';
-  var tasks=bdItems(d).filter(function(x){ return x.kind==='task'&&(x.data.bid===myBrigId(d)||nameKey(x.data.brig)===nameKey(sync.who)); });
-  h+='<h3 class="tbth3">Наряд-задание на сегодня</h3>'+(tasks.length?tasks.map(tkCard).join(''):'<p class="note">Заданий пока нет.</p>');
-  return h;
-}
-function brgSend(){
-  var o=brgSt(), d=today(), msg=$('brg_msg');
-  o.obj=$('brg_obj').value; o.nums=$('brg_nums').value; o.lnum=$('brg_lnum').value.trim(); brgSave(o);
-  var nums=parseNums(o.nums); if(!nums.length){ msg.textContent='Введите табельные номера.'; return; }
-  if(!sync.who){ msg.textContent='Укажите фамилию: Меню → выйти и войти снова.'; return; }
-  if(!syncOn()){ msg.textContent='Нет связи с сервером.'; return; }
-  msg.textContent='Отправляю…';
-  bdPut({kind:'brig',d:d,obj:o.obj,id:myBrigId(d),data:{lead:sync.who,lnum:o.lnum,nums:nums}}).then(function(){ toast('Список бригады подан'); bdFetch(d,true); })
-    .catch(function(e){ msg.textContent='Не отправлено: '+((e&&e.message)||'ошибка'); });
-}
-/* --- наряд-задание (прораб ставит, бригадир видит) --- */
-function tkCard(x){
-  var dd=x.data||{};
-  return '<div class="xcard"><div class="xch"><b>'+esc(x.obj)+'</b> · бригадир: <b>'+esc(whoBase(dd.brig)||'—')+'</b>'+(role()!=='mont'&&(isAdmin()||x.role===role())?'<button class="tbtx" data-a="tkdel" data-id="'+esc(x.id)+'" aria-label="Удалить задание">✕</button>':'')+'</div>'+
-    '<div class="xtask">'+esc(dd.tasks||'').replace(/\n/g,'<br>')+'</div><small class="note">Выдал: '+esc(whoBase(x.who))+' · '+new Date(x.t).toTimeString().slice(0,5)+'</small></div>';
-}
-function tkRender(){
-  var d=tkDate||today(); bdFetch(d,false);
-  var items=bdItems(d), tasks=items.filter(function(x){ return x.kind==='task'; });
-  if(role()==='mont'){ tasks=tasks.filter(function(x){ return x.data.bid===myBrigId(d)||nameKey(x.data.brig)===nameKey(sync.who); });
-    return '<h2 class="dh2">Наряд-задание</h2>'+navDate('tkday',d)+(tasks.length?tasks.map(tkCard).join(''):'<p class="note">Заданий на этот день нет.</p>'); }
-  var o=brgSt(), obj=o.tobj||ND_OBJS[0];
-  var brigs=items.filter(function(x){ return x.kind==='brig'&&x.obj===obj; });
-  var h='<h2 class="dh2">Наряд-задание</h2>'+navDate('tkday',d)+'<div class="tbtf">'+
-    '<label for="tk_obj">Объект</label>'+objSelect('tk_obj',obj)+
-    '<label for="tk_brig">Бригадир</label><input id="tk_brig" list="tk_brigs" placeholder="Фамилия бригадира" value="'+esc(o.tbrig||'')+'">'+
-    '<datalist id="tk_brigs">'+brigs.map(function(x){ return '<option value="'+esc(whoBase(x.data.lead))+'">'+esc((x.data.nums||[]).length+' чел.')+'</option>'; }).join('')+'</datalist>'+
-    (brigs.length?'':'<p class="note">На этот объект бригадиры ещё не подали списки — фамилию можно вписать вручную.</p>')+
-    '<label for="tk_text">Задачи</label><textarea id="tk_text" rows="4" placeholder="Что нужно сделать, объёмы, где"></textarea>'+
-    '<button class="tbtdl" data-a="tksend">Выдать наряд-задание</button><p class="note" id="tk_msg"></p></div>'+
-    '<h3 class="tbth3">Выдано за день ('+tasks.length+')</h3>'+(tasks.length?tasks.map(tkCard).join(''):'<p class="note">Пока нет.</p>');
-  return h;
-}
-function tkSend(){
-  var d=tkDate||today(), o=brgSt(), msg=$('tk_msg');
-  var obj=$('tk_obj').value, brig=$('tk_brig').value.trim(), text=$('tk_text').value.trim();
-  o.tobj=obj; o.tbrig=brig; brgSave(o);
-  if(!brig){ msg.textContent='Укажите бригадира.'; return; } if(!text){ msg.textContent='Впишите задачи.'; return; }
-  if(!syncOn()){ msg.textContent='Нет связи с сервером.'; return; }
-  var b=bdItems(d).filter(function(x){ return x.kind==='brig'&&x.obj===obj&&nameKey(x.data.lead)===nameKey(brig); })[0];
-  msg.textContent='Отправляю…';
-  bdPut({kind:'task',d:d,obj:obj,data:{brig:brig,bid:b?b.id:'',tasks:text.slice(0,3000),by:sync.who}}).then(function(){ toast('Наряд-задание выдано'); var t=$('tk_text'); if(t) t.value=''; bdFetch(d,true); })
-    .catch(function(e){ msg.textContent='Не отправлено: '+((e&&e.message)||'ошибка'); });
-}
-/* --- доска руководителя --- */
 function bookDay(b,d){
   var bb=root.books[b], day=(bb.records||{})[d]||{}, norm=memoNorm(b);
   var c={list:0,work:0,ab:0,off:0,dob:0,sick:0,pl:0,ul:0,unm:0,fired:0,ot:0};
@@ -2919,6 +2857,73 @@ function bdPullDay(d){
   ['rf','are'].forEach(function(b){ call({action:'pull',book:b,date:d}).then(function(j){ applyServer(j); if(mergePull(b,d,j.items||[])){ save(); if(ui.view==='board') renderX(); } }).catch(function(){}); });
   call({action:'ndlist'}).then(function(j){ var st=ndSt(); st.list=Array.isArray(j.list)?j.list:[]; ndSave(st); if(ui.view==='board') renderX(); }).catch(function(){});
 }
+function tkDef(){ return role()==='mont'?today():addDays(today(),1); }
+var bdLeads=[], bdLeadsAt=0;
+function bdLeadsFetch(){ if(!syncOn()||Date.now()-bdLeadsAt<120000) return; bdLeadsAt=Date.now(); call({action:'blist'}).then(function(j){ bdLeads=Array.isArray(j.list)?j.list:[]; if(ui.view==='task') { var dl=$('tk_brigs'); if(dl) dl.innerHTML=tkLeadOpts(); } }).catch(function(){}); }
+function tkLeadOpts(){ var o=brgSt(), seen={}, out=[]; (bdLeads||[]).concat(o.tbrigs||[]).forEach(function(n){ n=whoBase(n); var k=n.toLowerCase(); if(n&&!seen[k]){ seen[k]=1; out.push(n); } }); return out.map(function(n){ return '<option value="'+esc(n)+'">'; }).join(''); }
+function myTasks(d){ return bdItems(d).filter(function(x){ return x.kind==='task'&&nameKey(x.data.brig)===nameKey(sync.who); }); }
+/* --- бригада (бригадир): численность на сегодня по своему наряд-заданию --- */
+function brgRender(){
+  var d=today(), o=brgSt(); bdFetch(d,false);
+  var mine=bdItems(d).filter(function(x){ return x.kind==='brig'&&x.id===myBrigId(d); })[0], tasks=myTasks(d);
+  var obj=(mine&&mine.obj)||(tasks[0]&&tasks[0].obj)||o.obj||ND_OBJS[0], nums=o.nums!=null?o.nums:((mine&&mine.data&&mine.data.nums)||[]).join(' ');
+  var list=parseNums(nums);
+  var h='<h2 class="dh2">Бригада <span class="ndob">'+esc(dmyLong(d))+'</span></h2>'+
+    '<h3 class="tbth3">Наряд-задание на сегодня</h3>'+(tasks.length?tasks.map(tkCard).join(''):'<p class="xno">Прораб ещё не выдал вам наряд-задание на сегодня</p>')+
+    '<h3 class="tbth3">Численность бригады</h3>'+
+    (mine?'<p class="xok">✓ Подано в '+new Date(mine.t).toTimeString().slice(0,5)+' · '+esc(mine.obj)+' · '+((mine.data.nums||[]).length)+' чел.</p>':'<p class="xno">Численность на сегодня ещё не подана</p>')+
+    '<div class="tbtf"><label>Бригадир</label><input value="'+esc(sync.who||'')+'" disabled>'+
+    '<label for="brg_lnum">Ваш табельный №</label><input id="brg_lnum" inputmode="numeric" value="'+esc(o.lnum||'')+'">'+
+    '<label for="brg_obj">Объект</label>'+objSelect('brg_obj',obj)+
+    '<label for="brg_nums">Табельные номера работников (через пробел или запятую)</label><textarea id="brg_nums" rows="3" inputmode="numeric">'+esc(nums)+'</textarea>'+
+    '<div class="xlist">'+list.map(function(n,i){ var x=anyPerson(n); return '<div class="xrow"><b>'+(i+1)+'.</b> '+esc(n)+' '+(x?esc(x.p.name)+' <small>'+esc(x.p.role||'')+'</small>':'<span class="xno">нет в табеле</span>')+'</div>'; }).join('')+'</div>'+
+    '<button class="tbtdl" data-a="brgsend">'+(mine?'Обновить численность бригады':'Подать численность бригады')+'</button><p class="note" id="brg_msg"></p></div>';
+  return h;
+}
+function brgSend(){
+  var o=brgSt(), d=today(), msg=$('brg_msg');
+  o.obj=$('brg_obj').value; o.nums=$('brg_nums').value; o.lnum=$('brg_lnum').value.trim(); brgSave(o);
+  var nums=parseNums(o.nums); if(!nums.length){ msg.textContent='Введите табельные номера.'; return; }
+  if(!sync.who){ msg.textContent='Укажите фамилию: Меню → выйти и войти снова.'; return; }
+  if(!syncOn()){ msg.textContent='Нет связи с сервером.'; return; }
+  msg.textContent='Отправляю…';
+  bdPut({kind:'brig',d:d,obj:o.obj,id:myBrigId(d),data:{lead:sync.who,lnum:o.lnum,nums:nums,tid:myTasks(d).map(function(t){ return t.id; })}}).then(function(){ toast('Численность бригады подана'); bdFetch(d,true); })
+    .catch(function(e){ msg.textContent='Не отправлено: '+((e&&e.message)||'ошибка'); });
+}
+/* --- наряд-задание: прораб выдаёт конкретному бригадиру, по умолчанию на завтра --- */
+function tkCard(x){
+  var dd=x.data||{};
+  return '<div class="xcard"><div class="xch"><b>'+esc(x.obj)+'</b> · бригадир: <b>'+esc(whoBase(dd.brig)||'—')+'</b>'+(role()!=='mont'&&(isAdmin()||x.role===role())?'<button class="tbtx" data-a="tkdel" data-id="'+esc(x.id)+'" aria-label="Удалить задание">✕</button>':'')+'</div>'+
+    '<div class="xtask">'+esc(dd.tasks||'').replace(/\n/g,'<br>')+'</div><small class="note">Выдал: '+esc(whoBase(x.who))+' · '+new Date(x.t).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</small></div>';
+}
+function tkRender(){
+  var d=tkDate||tkDef(); bdFetch(d,false);
+  var tasks=bdItems(d).filter(function(x){ return x.kind==='task'; });
+  if(role()==='mont'){ tasks=tasks.filter(function(x){ return nameKey(x.data.brig)===nameKey(sync.who); });
+    return '<h2 class="dh2">Наряд-задание</h2>'+navDate('tkday',d)+(tasks.length?tasks.map(tkCard).join(''):'<p class="note">Заданий на этот день нет.</p>'); }
+  bdLeadsFetch();
+  var o=brgSt(), obj=o.tobj||ND_OBJS[0];
+  var h='<h2 class="dh2">Наряд-задание</h2>'+navDate('tkday',d)+
+    (d===addDays(today(),1)?'<p class="note">Задания выдаются сегодня на завтра. Завтра бригадир подаст численность бригады по своему заданию.</p>':(d<today()?'<p class="xno">Прошедший день</p>':''))+
+    '<div class="tbtf"><label for="tk_brig">Бригадир</label><input id="tk_brig" list="tk_brigs" placeholder="Фамилия бригадира" autocomplete="off" value="">'+
+    '<datalist id="tk_brigs">'+tkLeadOpts()+'</datalist>'+
+    '<label for="tk_obj">Объект</label>'+objSelect('tk_obj',obj)+
+    '<label for="tk_text">Задачи</label><textarea id="tk_text" rows="4" placeholder="Что нужно сделать, объёмы, где"></textarea>'+
+    '<button class="tbtdl" data-a="tksend">Выдать наряд-задание</button><p class="note" id="tk_msg"></p></div>'+
+    '<h3 class="tbth3">Выдано на '+esc(dmyLong(d))+' ('+tasks.length+')</h3>'+(tasks.length?tasks.map(tkCard).join(''):'<p class="note">Пока нет.</p>');
+  return h;
+}
+function tkSend(){
+  var d=tkDate||tkDef(), o=brgSt(), msg=$('tk_msg');
+  var obj=$('tk_obj').value, brig=$('tk_brig').value.trim(), text=$('tk_text').value.trim();
+  o.tobj=obj; brgSave(o);
+  if(!brig){ msg.textContent='Укажите бригадира.'; return; } if(!text){ msg.textContent='Впишите задачи.'; return; }
+  if(!syncOn()){ msg.textContent='Нет связи с сервером.'; return; }
+  o.tbrigs=[brig].concat((o.tbrigs||[]).filter(function(n){ return n.toLowerCase()!==brig.toLowerCase(); })).slice(0,40); brgSave(o);
+  msg.textContent='Отправляю…';
+  bdPut({kind:'task',d:d,obj:obj,data:{brig:brig,tasks:text.slice(0,3000),by:sync.who}}).then(function(){ toast('Наряд-задание выдано: '+brig+', '+dmyLong(d)); var t=$('tk_text'); if(t) t.value=''; var b=$('tk_brig'); if(b) b.value=''; bdFetch(d,true); })
+    .catch(function(e){ msg.textContent='Не отправлено: '+((e&&e.message)||'ошибка'); });
+}
 function bdRender(){
   var d=bdDate||today(); bdFetch(d,false); bdPullDay(d);
   var cols=[['list','В списке'],['work','Пришли'],['ab','Прогул'],['off','Выходной'],['dob','DO по графику'],['sick','Больничный'],['pl','Отпуск'],['ul','Отпуск без ЗП'],['unm','Без отметки'],['fired','Уволены'],['ot','Сверхурочка']];
@@ -2926,26 +2931,27 @@ function bdRender(){
   var h='<h2 class="dh2">Доска руководителя</h2>'+navDate('bdday',d)+
     '<h3 class="tbth3">1. Явка</h3><div class="xtw"><table class="xt"><thead><tr><th></th>'+cols.map(function(c){ return '<th>'+c[1]+'</th>'; }).join('')+'</tr></thead><tbody>'+
     [['РФ',rf],['АРЕ',ar],['Всего',tot]].map(function(r){ return '<tr'+(r[0]==='Всего'?' class="xtot"':'')+'><th>'+r[0]+'</th>'+cols.map(function(c){ var v=r[1][c[0]]; return '<td class="'+(c[0]==='ab'&&v?'xbad':c[0]==='work'?'xgood':'')+'">'+(v||'')+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></div>';
-  /* 2. бригады и задания */
-  var items=bdItems(d), brigs=items.filter(function(x){ return x.kind==='brig'; }), tasks=items.filter(function(x){ return x.kind==='task'; }), used={};
+  /* 2. наряд-задания по бригадирам и поданная ими численность */
+  var items=bdItems(d), brigs=items.filter(function(x){ return x.kind==='brig'; }), tasks=items.filter(function(x){ return x.kind==='task'; }), usedB={};
   var objs=ND_OBJS.slice(); items.forEach(function(x){ if(x.obj&&objs.indexOf(x.obj)<0) objs.push(x.obj); });
-  h+='<h3 class="tbth3">2. Наряд-задания и бригады</h3>';
+  function members(x){ var dd=x.data||{}; return '<div class="xlist">'+(dd.nums||[]).map(function(n,i){ var p=anyPerson(n), st=p?personDayStat(p,d):''; return '<div class="xrow'+(st==='прогул'?' xbad':'')+'"><b>'+(i+1)+'.</b> '+esc(n)+' '+(p?esc(shortName(p.p.name))+' <small>'+esc(p.p.role||'')+' · '+esc(st)+'</small>':'<span class="xno">нет в табеле</span>')+'</div>'; }).join('')+'</div>'; }
+  h+='<h3 class="tbth3">2. Наряд-задания по бригадирам</h3>';
   var any=false;
   objs.forEach(function(o){
-    var bo=brigs.filter(function(x){ return x.obj===o; }), to=tasks.filter(function(x){ return x.obj===o; });
-    if(!bo.length&&!to.length) return; any=true;
-    h+='<div class="xobj"><div class="xobjh">'+esc(o)+' <small>бригад: '+bo.length+' · чел.: '+bo.reduce(function(s,x){ return s+(x.data.nums||[]).length; },0)+'</small></div>';
-    bo.forEach(function(x){
-      var dd=x.data||{}, mt=to.filter(function(t){ return t.data.bid===x.id||nameKey(t.data.brig)===nameKey(dd.lead); });
-      mt.forEach(function(t){ used[t.id]=1; });
-      h+='<div class="xcard"><div class="xch">Бригадир: <b>'+esc(whoBase(dd.lead))+'</b>'+(dd.lnum?' ('+esc(dd.lnum)+')':'')+' · '+(dd.nums||[]).length+' чел. <small class="note">подан '+new Date(x.t).toTimeString().slice(0,5)+'</small></div>'+
-        '<div class="xlist">'+(dd.nums||[]).map(function(n,i){ var p=anyPerson(n), st=p?personDayStat(p,d):''; return '<div class="xrow'+(st==='прогул'?' xbad':'')+'"><b>'+(i+1)+'.</b> '+esc(n)+' '+(p?esc(shortName(p.p.name))+' <small>'+esc(p.p.role||'')+' · '+esc(st)+'</small>':'<span class="xno">нет в табеле</span>')+'</div>'; }).join('')+'</div>'+
-        (mt.length?mt.map(function(t){ return '<div class="xtask"><b>Задание:</b> '+esc(t.data.tasks||'').replace(/\n/g,'<br>')+' <small class="note">('+esc(whoBase(t.who))+')</small></div>'; }).join(''):'<div class="xno">Наряд-задание не выдано</div>')+'</div>';
+    var to=tasks.filter(function(x){ return x.obj===o; }), bo=brigs.filter(function(x){ return x.obj===o; });
+    var cards='';
+    to.forEach(function(t){
+      var b=brigs.filter(function(x){ return nameKey(x.data.lead)===nameKey(t.data.brig); })[0]; if(b) usedB[b.id]=1;
+      cards+='<div class="xcard"><div class="xch">Бригадир: <b>'+esc(whoBase(t.data.brig))+'</b>'+(b?' · <span class="xok">'+(b.data.nums||[]).length+' чел.</span>'+(b.obj!==o?' <small class="xno">подал на '+esc(b.obj)+'</small>':'')+' <small class="note">подано '+new Date(b.t).toTimeString().slice(0,5)+'</small>':' · <span class="xno">численность не подана</span>')+'</div>'+
+        '<div class="xtask"><b>Задание:</b> '+esc(t.data.tasks||'').replace(/\n/g,'<br>')+' <small class="note">('+esc(whoBase(t.who))+')</small></div>'+(b?members(b):'')+'</div>';
     });
-    to.filter(function(t){ return !used[t.id]; }).forEach(function(t){ h+='<div class="xcard"><div class="xch">Бригадир: <b>'+esc(whoBase(t.data.brig))+'</b> <span class="xno">список бригады не подан</span></div><div class="xtask"><b>Задание:</b> '+esc(t.data.tasks||'').replace(/\n/g,'<br>')+' <small class="note">('+esc(whoBase(t.who))+')</small></div></div>'; });
-    h+='</div>';
+    bo.filter(function(b){ return !usedB[b.id]; }).forEach(function(b){ usedB[b.id]=1;
+      cards+='<div class="xcard"><div class="xch">Бригадир: <b>'+esc(whoBase(b.data.lead))+'</b> · '+(b.data.nums||[]).length+' чел. <span class="xno">наряд-задание не выдано</span></div>'+members(b)+'</div>';
+    });
+    if(!cards) return; any=true;
+    h+='<div class="xobj"><div class="xobjh">'+esc(o)+' <small>бригадиров: '+to.length+' · чел.: '+bo.reduce(function(s,x){ return s+(x.data.nums||[]).length; },0)+'</small></div>'+cards+'</div>';
   });
-  if(!any) h+='<p class="note">За этот день бригады и наряд-задания не поданы.</p>';
+  if(!any) h+='<p class="note">На этот день наряд-задания не выданы и численность не подана.</p>';
   /* 3. наряд-допуски и инструктажи */
   var nds=ndAll(ndSt(),'');
   h+='<h3 class="tbth3">3. Наряд-допуски и инструктажи (TBT)</h3><div class="xtw"><table class="xt xnd"><thead><tr><th>Объект</th><th>Наряд-допуск</th><th>Инструктаж TBT</th></tr></thead><tbody>'+
@@ -2960,12 +2966,12 @@ function bdRender(){
 function xClick(a,el){
   if(a==='brgsend'){ brgSend(); return; }
   if(a==='tksend'){ tkSend(); return; }
-  if(a==='tkdel'){ if(!confirm('Удалить это наряд-задание?')) return; var d=tkDate||today(); call({action:'bdel',id:el.dataset.id}).then(function(){ bdFetch(d,true); }).catch(function(e){ toast('Не удалено: '+((e&&e.message)||'')); }); return; }
-  if(a==='tkday'){ tkDate=addDays(tkDate||today(),Number(el.dataset.d)); renderX(); return; }
+  if(a==='tkdel'){ if(!confirm('Удалить это наряд-задание?')) return; var d=tkDate||tkDef(); call({action:'bdel',id:el.dataset.id}).then(function(){ bdFetch(d,true); }).catch(function(e){ toast('Не удалено: '+((e&&e.message)||'')); }); return; }
+  if(a==='tkday'){ tkDate=addDays(tkDate||tkDef(),Number(el.dataset.d)); renderX(); return; }
   if(a==='bdday'){ bdDate=addDays(bdDate||today(),Number(el.dataset.d)); renderX(); return; }
 }
 document.addEventListener('input',function(e){ var t=e.target; if(t&&t.id==='brg_nums'){ var o=brgSt(); o.nums=t.value; brgSave(o); var box=t.parentNode.querySelector('.xlist'); if(box) box.innerHTML=parseNums(t.value).map(function(n,i){ var x=anyPerson(n); return '<div class="xrow"><b>'+(i+1)+'.</b> '+esc(n)+' '+(x?esc(x.p.name)+' <small>'+esc(x.p.role||'')+'</small>':'<span class="xno">нет в табеле</span>')+'</div>'; }).join(''); } },true);
-document.addEventListener('change',function(e){ var t=e.target; if(t&&t.id==='tk_obj'){ var o=brgSt(); o.tobj=t.value; brgSave(o); renderX(); } if(t&&t.id==='brg_obj'){ var o2=brgSt(); o2.obj=t.value; brgSave(o2); } },true);
+document.addEventListener('change',function(e){ var t=e.target; if(t&&t.id==='tk_obj'){ var o=brgSt(); o.tobj=t.value; brgSave(o); } if(t&&t.id==='brg_obj'){ var o2=brgSt(); o2.obj=t.value; brgSave(o2); } },true);
 
 applyRole(); if(!auth) showLogin('');
 })();
