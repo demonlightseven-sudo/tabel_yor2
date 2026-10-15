@@ -402,7 +402,7 @@ body.only-month .list2>button:not([data-a=month]):not([data-a=install]):not([dat
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='59';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='60';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -924,8 +924,7 @@ function renderBanner(){
 
 /* ------------------------------------------------------------- отрисовка */
 function rowHtml(p){
-  if(firedOn(p,ui.date)) return '<li class="row s-fired" data-id="'+esc(p.id)+'"><div class="head"><div class="who"><b>'+(p.num?'<span class="tn">'+esc(p.num)+'</span>':'')+esc(p.name)+'</b>'+(p.role?'<span>'+esc(p.role)+'</span>':'')+'</div>'+
-    '<button class="more" data-a="pedit" data-id="'+esc(p.id)+'" aria-label="Изменить: дата увольнения">⋯</button></div><div class="firedb">Уволен с '+firedDmy(p)+'</div></li>';
+  if(firedOn(p,ui.date)) return '<li class="row s-fired" data-id="'+esc(p.id)+'"><div class="head"><div class="who"><b>'+(p.num?'<span class="tn">'+esc(p.num)+'</span>':'')+esc(p.name)+'</b>'+(p.role?'<span>'+esc(p.role)+'</span>':'')+'</div></div><div class="firedb">Уволен с '+firedDmy(p)+'</div></li>';
   var r=dayRec(ui.date)[p.id], st=r?r.s:'', id=esc(p.id);
   var off=planOff(p,ui.date), plan='';
   if(off!==null){
@@ -944,7 +943,7 @@ function rowHtml(p){
     '<div class="head"><div class="who"><b>'+(p.num?'<span class="tn">'+esc(p.num)+'</span>':'')+esc(p.name)+'</b>'+(p.role?'<span>'+esc(p.role)+'</span>':'')+'</div>'+
       '<button class="more" data-a="more" data-id="'+id+'" aria-label="Ещё: отпуск, отпуск без ЗП, больничный" aria-expanded="'+!!open+'">⋯</button></div>'+plan+
     '<div class="btns">'+b('work','Пришёл')+b('off','Выходной')+b('ab','Прогул')+'</div>'+
-    (open?'<div class="extra">'+b('pl','Отпуск')+b('ul','Отпуск без ЗП')+b('sick','Больничный')+'</div><div class="extra fx2"><button class="firebtn" data-a="pedit" data-id="'+id+'">Уволен с…</button></div>':'')+hours+'</li>';
+    (open?'<div class="extra">'+b('pl','Отпуск')+b('ul','Отпуск без ЗП')+b('sick','Больничный')+'</div>':'')+hours+'</li>';
 }
 function matches(p,q){
   if(!q) return true;
