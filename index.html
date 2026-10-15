@@ -427,7 +427,7 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='65';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='66';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2821,6 +2821,7 @@ document.addEventListener('keydown',function(e){ if(e.key==='Enter'&&e.target&&e
 function brgSt(){ var o={}; try{ o=JSON.parse(localStorage.getItem(BRG_KEY)||'{}')||{}; }catch(e){ o={}; } return o; }
 function brgSave(o){ try{ localStorage.setItem(BRG_KEY,JSON.stringify(o)); }catch(e){} }
 function whoBase(s){ return String(s||'').split(' · ')[0].trim(); }
+function fioKey(s){ return whoBase(s).toLowerCase().replace(/ё/g,'е').replace(/\s+/g,' ').trim(); }
 function nameKey(s){ return whoBase(s).toLowerCase().replace(/ё/g,'е').split(/\s+/)[0]||''; }
 /* человек по табельному номеру в обоих табелях */
 function anyPerson(num){
@@ -2873,7 +2874,7 @@ function tkDef(){ return role()==='mont'?today():addDays(today(),1); }
 var bdLeads=[], bdLeadsAt=0;
 function bdLeadsFetch(){ if(!syncOn()||Date.now()-bdLeadsAt<120000) return; bdLeadsAt=Date.now(); call({action:'blist'}).then(function(j){ bdLeads=Array.isArray(j.list)?j.list:[]; if(ui.view==='task') { var dl=$('tk_brigs'); if(dl) dl.innerHTML=tkLeadOpts(); } }).catch(function(){}); }
 function tkLeadOpts(){ var o=brgSt(), seen={}, out=[]; (bdLeads||[]).concat(o.tbrigs||[]).forEach(function(n){ n=whoBase(n); var k=n.toLowerCase(); if(n&&!seen[k]){ seen[k]=1; out.push(n); } }); return out.map(function(n){ return '<option value="'+esc(n)+'">'; }).join(''); }
-function myTasks(d){ return bdItems(d).filter(function(x){ return x.kind==='task'&&nameKey(x.data.brig)===nameKey(sync.who); }); }
+function myTasks(d){ return bdItems(d).filter(function(x){ return x.kind==='task'&&fioKey(x.data.brig)===fioKey(sync.who); }); }
 /* --- бригада (бригадир): численность на сегодня по своему наряд-заданию --- */
 function brgRender(){
   var d=today(), o=brgSt(); bdFetch(d,false);
@@ -2911,14 +2912,12 @@ function tkCard(x){
 function tkRender(){
   var d=tkDate||tkDef(); bdFetch(d,false);
   var tasks=bdItems(d).filter(function(x){ return x.kind==='task'; });
-  if(role()==='mont'){ tasks=tasks.filter(function(x){ return nameKey(x.data.brig)===nameKey(sync.who); });
+  if(role()==='mont'){ tasks=tasks.filter(function(x){ return fioKey(x.data.brig)===fioKey(sync.who); });
     return '<h2 class="dh2">Наряд-задание</h2>'+navDate('tkday',d)+(tasks.length?tasks.map(tkCard).join(''):'<p class="note">Заданий на этот день нет.</p>'); }
-  bdLeadsFetch();
   var o=brgSt(), obj=o.tobj||ND_OBJS[0];
   var h='<h2 class="dh2">Наряд-задание</h2>'+navDate('tkday',d)+
     (d===addDays(today(),1)?'<p class="note">Задания выдаются сегодня на завтра. Завтра бригадир подаст численность бригады по своему заданию.</p>':(d<today()?'<p class="xno">Прошедший день</p>':''))+
-    '<div class="tbtf"><label for="tk_brig">Бригадир</label><input id="tk_brig" list="tk_brigs" placeholder="Фамилия бригадира" autocomplete="off" value="">'+
-    '<datalist id="tk_brigs">'+tkLeadOpts()+'</datalist>'+
+    '<div class="tbtf"><label for="tk_brig">Бригадир</label><select id="tk_brig"><option value="">— выберите бригадира —</option>'+BRIG_NAMES.map(function(n){ var has=tasks.some(function(x){ return fioKey(x.data.brig)===fioKey(n); }); return '<option value="'+esc(n)+'">'+esc(n)+(has?' ✓':'')+'</option>'; }).join('')+'</select>'+
     '<label for="tk_obj">Объект</label>'+objSelect('tk_obj',obj)+
     '<label for="tk_text">Задачи</label><textarea id="tk_text" rows="4" placeholder="Что нужно сделать, объёмы, где"></textarea>'+
     '<button class="tbtdl" data-a="tksend">Выдать наряд-задание</button><p class="note" id="tk_msg"></p></div>'+
@@ -2929,7 +2928,7 @@ function tkSend(){
   var d=tkDate||tkDef(), o=brgSt(), msg=$('tk_msg');
   var obj=$('tk_obj').value, brig=$('tk_brig').value.trim(), text=$('tk_text').value.trim();
   o.tobj=obj; brgSave(o);
-  if(!brig){ msg.textContent='Укажите бригадира.'; return; } if(!text){ msg.textContent='Впишите задачи.'; return; }
+  if(BRIG_NAMES.indexOf(brig)<0){ msg.textContent='Выберите бригадира из списка.'; return; } if(!text){ msg.textContent='Впишите задачи.'; return; }
   if(!syncOn()){ msg.textContent='Нет связи с сервером.'; return; }
   o.tbrigs=[brig].concat((o.tbrigs||[]).filter(function(n){ return n.toLowerCase()!==brig.toLowerCase(); })).slice(0,40); brgSave(o);
   msg.textContent='Отправляю…';
@@ -2953,7 +2952,7 @@ function bdRender(){
     var to=tasks.filter(function(x){ return x.obj===o; }), bo=brigs.filter(function(x){ return x.obj===o; });
     var cards='';
     to.forEach(function(t){
-      var b=brigs.filter(function(x){ return nameKey(x.data.lead)===nameKey(t.data.brig); })[0]; if(b) usedB[b.id]=1;
+      var b=brigs.filter(function(x){ return fioKey(x.data.lead)===fioKey(t.data.brig); })[0]; if(b) usedB[b.id]=1;
       cards+='<div class="xcard"><div class="xch">Бригадир: <b>'+esc(whoBase(t.data.brig))+'</b>'+(b?' · <span class="xok">'+(b.data.nums||[]).length+' чел.</span>'+(b.obj!==o?' <small class="xno">подал на '+esc(b.obj)+'</small>':'')+' <small class="note">подано '+new Date(b.t).toTimeString().slice(0,5)+'</small>':' · <span class="xno">численность не подана</span>')+'</div>'+
         '<div class="xtask"><b>Задание:</b> '+esc(t.data.tasks||'').replace(/\n/g,'<br>')+' <small class="note">('+esc(whoBase(t.who))+')</small></div>'+(b?members(b):'')+'</div>';
     });
