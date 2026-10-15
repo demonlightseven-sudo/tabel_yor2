@@ -427,7 +427,7 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='64';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='65';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -593,7 +593,8 @@ var auth=loadAuth();
 var BRG_KEY='tabel-brig-v1', bdCache={}, bdBusy={}, bdDate='', tkDate='';
 var ST_N={work:'пришёл',off:'выходной',ab:'прогул',sick:'больничный',pl:'отпуск',ul:'отпуск без ЗП'};
 var bdPulled={};
-if(!auth&&sync.code){ sync.code=''; saveSync(); }   /* вход сброшен: старый общий код больше не используется */
+if(!auth&&sync.code){ sync.code=''; saveSync(); }
+if(auth&&auth.role==='mont'&&!auth.locked){ auth=null; try{ localStorage.removeItem(AUTH_KEY); }catch(e){} sync.code=''; saveSync(); }   /* бригадиры входят заново: по ФИО из списка */   /* вход сброшен: старый общий код больше не используется */
 function saveAuth(){ try{ if(auth) localStorage.setItem(AUTH_KEY,JSON.stringify(auth)); else localStorage.removeItem(AUTH_KEY); }catch(e){} }
 function role(){ return auth?auth.role:''; }
 function isAdmin(){ var r=role(); return r==='nach'||r==='tech'; }
@@ -632,31 +633,42 @@ function applyRole(){
 }
 setInterval(function(){ if(!auth||document.hidden) return; var was=document.body.classList.contains('ro-day'); applyRole(); if(was!==document.body.classList.contains('ro-day')&&ui.view==='day') render(); },60000);
 var lgSel='';
+var BRIG_NAMES=['Айдинов Пулатжон Азизович','Кавурас Роман Эдуардович','Горбач Евгений Владимирович','Тюрин Даниил Павлович','Шефер Сергей Александрович','Золотницин Владимир Александрович','Стрельцов Иван Александрович','Катруш Павел Сергеевич','Новокрещенов Антон Павлович','Рафиков Вадим Витальевич'];
 function showLogin(msg){
   var w=document.getElementById('login'); if(!w){ w=document.createElement('div'); w.id='login'; document.body.appendChild(w); }
   w.hidden=false; document.body.classList.add('lg-open');
-  w.innerHTML='<div class="lgbox"><h2>Табель — вход</h2><p class="lgsub">Выберите свой уровень доступа и введите пароль.</p><div class="lgroles">'+
-    ROLES.map(function(r){ return '<button data-a="lgrole" data-r="'+r.id+'" aria-pressed="'+(lgSel===r.id)+'">'+esc(r.name)+'</button>'; }).join('')+
-    '</div><input type="text" name="lguser" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"><label for="lgpass">Пароль</label><input id="lgpass" name="lgpass" type="password" inputmode="numeric" autocomplete="new-password">'+
-    '<label for="lgwho">Ваша фамилия (видна в отметках)</label><input id="lgwho" maxlength="40" autocomplete="off" value="'+esc(sync.who||'')+'">'+
+  var m=lgSel==='mont';
+  w.innerHTML='<div class="lgbox"><h2>Табель — вход</h2><p class="lgsub">Выберите свой уровень доступа'+(m?' и своё ФИО.':' и введите пароль.')+'</p><div class="lgroles">'+
+    ROLES.map(function(r){ return '<button data-a="lgrole" data-r="'+r.id+'" aria-pressed="'+(lgSel===r.id)+'">'+esc(r.name)+'</button>'; }).join('')+'</div>'+
+    (m?'<label for="lgfio">Ваше ФИО</label><select id="lgfio"><option value="">— выберите из списка —</option>'+BRIG_NAMES.map(function(n){ return '<option value="'+esc(n)+'">'+esc(n)+'</option>'; }).join('')+'</select>'+
+       '<p class="lgsub">После входа ФИО запоминается на этом телефоне. Сменить его можно только с паролем.</p>'
+      :'<input type="text" name="lguser" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"><label for="lgpass">Пароль</label><input id="lgpass" name="lgpass" type="password" inputmode="numeric" autocomplete="new-password">'+
+       '<label for="lgwho">Ваша фамилия (видна в отметках)</label><input id="lgwho" maxlength="40" autocomplete="off" value="'+esc(sync.who||'')+'">')+
     '<button class="lggo" data-a="lggo">Войти</button><p class="lgmsg" id="lgmsg">'+esc(msg||'')+'</p></div>';
 }
 function lgSubmit(){
-  var pass=$('lgpass').value.trim(), who=$('lgwho').value.trim().slice(0,40), msg=$('lgmsg');
+  var msg=$('lgmsg'), m=lgSel==='mont', pass='', who='', fio='';
   if(!lgSel){ msg.textContent='Выберите уровень доступа.'; return; }
-  if(!pass){ msg.textContent='Введите пароль.'; return; }
+  if(m){ fio=($('lgfio')||{}).value||''; if(BRIG_NAMES.indexOf(fio)<0){ msg.textContent='Выберите своё ФИО из списка — без этого войти нельзя.'; return; } }
+  else{ pass=$('lgpass').value.trim(); who=$('lgwho').value.trim().slice(0,40); if(!pass){ msg.textContent='Введите пароль.'; return; } }
   msg.textContent='Проверяю…';
   fetch('api.json?t='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.json():null; }).catch(function(){ return null; }).then(function(o){
     var u=o&&typeof o.url==='string'&&CF_RE.test(o.url.trim())?o.url.trim():(CF_RE.test(sync.url||'')?sync.url:API_DEFAULT);
-    return fetch(u,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'login',role:lgSel,pass:pass,app:APP_VER}),cache:'no-store'})
+    return fetch(u,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(m?{action:'login',role:'mont',name:fio,app:APP_VER}:{action:'login',role:lgSel,pass:pass,app:APP_VER}),cache:'no-store'})
       .then(function(r){ return r.json(); }).then(function(j){
-        if(!j||!j.ok){ msg.textContent=j&&j.error==='bad_pass'?'Неверный пароль.':(j&&j.error==='too_many'?'Слишком много попыток. Подождите 15 минут.':'Не удалось войти: '+((j&&j.error)||'ошибка')); return; }
-        auth={role:j.role,token:j.token,at:Date.now()}; saveAuth();
-        sync.url=u; sync.code=j.token; if(who) sync.who=who; sync.rev={}; syncErr=''; saveSync();
+        if(!j||!j.ok){ msg.textContent=j&&j.error==='bad_pass'?'Неверный пароль.':(j&&j.error==='bad_name'?'Этого ФИО нет в списке бригадиров.':(j&&j.error==='too_many'?'Слишком много попыток. Подождите 15 минут.':'Не удалось войти: '+((j&&j.error)||'ошибка'))); return; }
+        auth={role:j.role,token:j.token,at:Date.now()}; if(m){ auth.locked=1; auth.fio=fio; } saveAuth();
+        sync.url=u; sync.code=j.token; if(m) sync.who=fio; else if(who) sync.who=who; sync.rev={}; syncErr=''; saveSync();
         $('login').hidden=true; $('login').innerHTML=''; document.body.classList.remove('lg-open');
-        clearAutofill(); setTimeout(clearAutofill,500); render(); syncNow(); toast('Вход выполнен: '+roleById(j.role).name);
+        clearAutofill(); setTimeout(clearAutofill,500); render(); syncNow(); toast('Вход выполнен: '+roleById(j.role).name+(m?' · '+fio:''));
       });
   }).catch(function(){ msg.textContent='Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.'; });
+}
+/* бригадир выходит (и меняет ФИО) только с паролем */
+function lockedLogout(){
+  var p=prompt('Выход и смена ФИО — введите пароль:'); if(p==null) return; p=String(p).trim(); if(!p) return;
+  if(!syncOn()){ toast('Нужен интернет, чтобы проверить пароль'); return; }
+  call({action:'unlock',pass:p}).then(function(){ logout(''); }).catch(function(e){ toast(e&&e.message==='too_many'?'Слишком много попыток. Подождите 15 минут.':'Неверный пароль'); });
 }
 /* браузер может вписать сохранённый адрес в поле «Табельный №» — убираем */
 function clearAutofill(){ var q=document.getElementById('q'); if(q&&/^https?:|script\.google|\/exec/i.test(q.value)){ q.value=''; ui.q=''; if(auth) render(); } }
@@ -1440,7 +1452,7 @@ window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); d
 function sheetMenu(){
   var s=stats();
   openSheet('Меню','<div class="list2">'+
-    '<button data-a="logout">'+esc(auth?roleById(auth.role).name:'Вход')+(sync.who?' · '+esc(sync.who):'')+'<small>Выйти / сменить уровень доступа</small></button>'+
+    '<button data-a="logout">'+esc(auth?roleById(auth.role).name:'Вход')+(sync.who?' · '+esc(sync.who):'')+'<small>'+(auth&&auth.locked?'Выйти / сменить ФИО (нужен пароль)':'Выйти / сменить уровень доступа')+'</small></button>'+
     '<button data-a="fill">Остальных отметить по графику<small>Рабочий день: «Пришёл», выходной по графику: «Выходной». Без отметки: '+s.unm+'</small></button>'+
     '<button data-a="report">Отчёт за день<small>Текст, который можно отправить в мессенджер</small></button>'+
     '<button data-a="month">Табель за месяц<small>Файл для Excel (CSV)</small></button>'+
@@ -2458,9 +2470,9 @@ function ndChange(t){
 document.addEventListener('click',function(e){
   var el=e.target.closest?e.target.closest('[data-a]'):null; if(!el) return;
   var a=el.dataset.a, id=el.dataset.id;
-  if(a==='lgrole'){ lgSel=el.dataset.r; document.querySelectorAll('[data-a=lgrole]').forEach(function(b){ b.setAttribute('aria-pressed',String(b===el)); }); var pw=$('lgpass'); if(pw) pw.focus(); return; }
+  if(a==='lgrole'){ lgSel=el.dataset.r; showLogin(''); var pw=$('lgpass')||$('lgfio'); if(pw) pw.focus(); return; }
   if(a==='lggo'){ lgSubmit(); return; }
-  if(a==='logout'){ closeSheet(); if(confirm('Выйти и сменить уровень доступа?')) logout(''); return; }
+  if(a==='logout'){ closeSheet(); if(auth&&auth.locked){ lockedLogout(); return; } if(confirm('Выйти и сменить уровень доступа?')) logout(''); return; }
   if(!roleClick(a,el)) return;
   if(a.indexOf('tbt')===0){ tbtClick(a,el); return; }
   if(a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'){ xClick(a,el); return; }
