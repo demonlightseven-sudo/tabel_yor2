@@ -427,7 +427,7 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='61';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='62';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -590,6 +590,9 @@ var API_DEFAULT='https://tabel-uor2.demonlightseven.workers.dev/';
 function roleById(id){ for(var i=0;i<ROLES.length;i++) if(ROLES[i].id===id) return ROLES[i]; return null; }
 function loadAuth(){ try{ var o=JSON.parse(localStorage.getItem(AUTH_KEY)||'null'); if(o&&roleById(o.role)&&typeof o.token==='string') return o; }catch(e){} return null; }
 var auth=loadAuth();
+var BRG_KEY='tabel-brig-v1', bdCache={}, bdBusy={}, bdDate='', tkDate='';
+var ST_N={work:'пришёл',off:'выходной',ab:'прогул',sick:'больничный',pl:'отпуск',ul:'отпуск без ЗП'};
+var bdPulled={};
 if(!auth&&sync.code){ sync.code=''; saveSync(); }   /* вход сброшен: старый общий код больше не используется */
 function saveAuth(){ try{ if(auth) localStorage.setItem(AUTH_KEY,JSON.stringify(auth)); else localStorage.removeItem(AUTH_KEY); }catch(e){} }
 function role(){ return auth?auth.role:''; }
@@ -2802,7 +2805,7 @@ document.addEventListener('change',function(e){ var t=e.target; if(t&&t.closest&
 document.addEventListener('keydown',function(e){ if(e.key==='Enter'&&e.target&&e.target.id==='tbt_q'){ e.preventDefault(); tbtAddFromQuery(); } });
 
 /* ------------------------------------------------------------- бригада, наряд-задание, доска руководителя */
-var BRG_KEY='tabel-brig-v1', bdCache={}, bdBusy={}, bdDate='', tkDate='';
+
 function brgSt(){ var o={}; try{ o=JSON.parse(localStorage.getItem(BRG_KEY)||'{}')||{}; }catch(e){ o={}; } return o; }
 function brgSave(o){ try{ localStorage.setItem(BRG_KEY,JSON.stringify(o)); }catch(e){} }
 function whoBase(s){ return String(s||'').split(' · ')[0].trim(); }
@@ -2814,7 +2817,7 @@ function anyPerson(num){
   return out;
 }
 function shortName(name){ var a=String(name||'').trim().split(/\s+/); return a.length<2?a.join(''):a[0]+' '+a.slice(1,3).map(function(x){ return x.charAt(0).toUpperCase()+'.'; }).join(''); }
-var ST_N={work:'пришёл',off:'выходной',ab:'прогул',sick:'больничный',pl:'отпуск',ul:'отпуск без ЗП'};
+
 function personDayStat(x,d){ var r=((root.books[x.b].records||{})[d]||{})[x.p.id]; if(r) return r.s==='work'?'пришёл · '+fmtH(r.h)+' ч':ST_N[r.s]||r.s; if(firedOn(x.p,d)) return 'уволен'; if(planOff(x.p,d)===true) return 'DO'; return 'нет отметки'; }
 /* записи доски за день: бригады, задания, инструктажи */
 function bdItems(d){ return (bdCache[d]&&bdCache[d].items)||[]; }
@@ -2910,7 +2913,7 @@ function bookDay(b,d){
   });
   return c;
 }
-var bdPulled={};
+
 function bdPullDay(d){
   if(!syncOn()) return; var k=d; if(bdPulled[k]&&Date.now()-bdPulled[k]<60000) return; bdPulled[k]=Date.now();
   ['rf','are'].forEach(function(b){ call({action:'pull',book:b,date:d}).then(function(j){ applyServer(j); if(mergePull(b,d,j.items||[])){ save(); if(ui.view==='board') renderX(); } }).catch(function(){}); });
