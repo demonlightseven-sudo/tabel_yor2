@@ -372,6 +372,7 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 #tabbar button{white-space:normal;line-height:1.1;font-size:clamp(11px,3.1vw,15px)}
 #xv{max-width:760px;margin:0 auto;padding:0 0 90px}
 .xnav{display:flex;align-items:center;gap:8px;margin:6px 0 10px}.xnav b{flex:1;text-align:center}.xnav button{flex:0 0 48px}
+#hnav{display:none;flex:1;min-width:0}body.vboard #hnav{display:flex}#hnav .xnav{flex:1;margin:0;min-width:0}#hnav .xnav b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:clamp(13px,3.9vw,17px)}
 .xok{color:var(--work-t);font-weight:700;margin:4px 0}.xno{color:var(--ab-t);font-weight:600}
 .xlist{display:flex;flex-direction:column;gap:2px;margin:6px 0}.xrow{font-size:14px;padding:3px 0;border-bottom:1px dashed var(--line)}.xrow small{color:var(--muted)}
 .xrow.xbad{color:var(--ab-t)}
@@ -412,6 +413,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
       <button role="tab" data-a="book" data-b="are">АРЕ</button>
     </div>
     <button id="dateBtn" data-a="date" aria-label="Выбрать день"></button>
+    <div id="hnav"></div>
     <button id="menuBtn" data-a="menu" aria-label="Меню">☰</button>
   </div>
   <div class="row2">
@@ -444,7 +446,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='78';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='79';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1073,6 +1075,7 @@ function render(){
   document.body.classList.toggle('vdocs',ui.view==='docs');
   document.body.classList.toggle('vnd',ui.view==='nd');
   document.body.classList.toggle('vx',ui.view==='brig'||ui.view==='task'||ui.view==='board');
+  document.body.classList.toggle('vboard',ui.view==='board');
   renderTop(); renderBanner(); renderSyncBar();
   if(ui.view==='month') renderMonth(); else if(ui.view==='docs') renderDocs(); else if(ui.view==='nd') renderNd(); else if(ui.view==='brig'||ui.view==='task'||ui.view==='board') renderX(); else { renderStats(); renderList(); }
 }
@@ -3074,7 +3077,8 @@ function bdRender(){
   var d=bdDate||today(); bdFetch(d,false); bdFetch(addDays(d,-1),false); bdPullDay(d);
   var cols=[['list','В списке'],['work','Пришли'],['ab','Прогул'],['off','Выходной'],['dob','DO по графику'],['sick','Больничный'],['pl','Отпуск'],['ul','Отпуск без ЗП'],['unm','Без отметки'],['fired','Уволены'],['ot','Сверхурочка']];
   var rf=bookDay('rf',d), ar=bookDay('are',d), tot={}; cols.forEach(function(c){ tot[c[0]]=rf[c[0]]+ar[c[0]]; });
-  var h='<h2 class="dh2">Доска руководителя</h2>'+navDate('bdday',d)+
+  var hn=$('hnav'); if(hn) hn.innerHTML=navDate('bdday',d);
+  var h=
     '<h3 class="tbth3">1. Явка</h3><div class="xtw"><table class="xt"><thead><tr><th></th>'+cols.map(function(c){ return '<th>'+c[1]+'</th>'; }).join('')+'</tr></thead><tbody>'+
     [['РФ',rf],['АРЕ',ar],['Всего',tot]].map(function(r){ return '<tr'+(r[0]==='Всего'?' class="xtot"':'')+'><th>'+r[0]+'</th>'+cols.map(function(c){ var v=r[1][c[0]]; return '<td class="'+(c[0]==='ab'&&v?'xbad':c[0]==='work'?'xgood':'')+'">'+(v||'')+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></div>';
   /* 2. наряд-задания по бригадирам и поданная ими численность */
