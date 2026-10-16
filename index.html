@@ -442,7 +442,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='76';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='77';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2385,16 +2385,18 @@ function ndComp(e,d){
   return {b:b,out:out,inn:inn,baseTxt:baseTxt,base:base};
 }
 function numsNames(list){ return list.map(function(n){ var p=anyPerson(n); return esc(n)+(p?' '+esc(shortName(p.p.name)):''); }).join(', '); }
-function ndCompPct(c){ var b=Object.keys(c.base||{}).length, cur=(c.b.data.nums||[]).length, den=Math.max(b,cur,1); return {n:c.out.length+c.inn.length, den:den, pct:Math.round((c.out.length+c.inn.length)*100/den)}; }
+/* процент — всегда от начальной численности по наряду (как при выдаче) */
+function ndN0(e){ return Number(e.n0)||(e.team||[]).length||1; }
+function ndCompPct(c,e){ var den=ndN0(e), n=c.out.length+c.inn.length; return {n:n, den:den, pct:Math.round(n*100/den)}; }
 function ndCompHtml(e,d){
   var c=ndComp(e,d);
   if(!c) return '<small class="ndcmp no">Бригада по этому наряду на '+esc(tbtDmy(d))+' не подана</small>';
   var who='Бригадир '+esc(whoBase(c.b.data.lead))+': ';
   if(!c.out.length&&!c.inn.length) return '<small class="ndcmp ok">'+who+'✔ состав совпадает с '+c.baseTxt+' ('+(c.b.data.nums||[]).length+' чел.)</small>';
-  var p=ndCompPct(c), big=p.pct>=50, edit=role()&&role()!=='mont';
+  var p=ndCompPct(c,e), big=p.pct>=50, edit=role()&&role()!=='mont';
   return '<small class="ndcmp '+(big?'big':'ch')+'">'+who+'изменение состава (по сравнению с '+c.baseTxt+'):'+
     (c.out.length?'<br><b>Вывести из наряда:</b> '+numsNames(c.out):'')+(c.inn.length?'<br><b>Завести в наряд:</b> '+numsNames(c.inn):'')+
-    '<br><b>Изменилось '+p.n+' из '+p.den+' чел. ('+p.pct+'%)</b> — '+(big?'больше половины бригады: <b>нужен новый наряд-допуск</b>, этот наряд закрывается.':'меньше половины: можно внести изменения в наряд вручную (ручкой).')+
+    '<br><b>Изменения: '+p.n+' чел. при начальной численности по наряду '+p.den+' чел. ('+p.pct+'%)</b> — '+(big?'больше половины бригады: <b>нужен новый наряд-допуск</b>, этот наряд закрывается.':'меньше половины: можно внести изменения в наряд вручную (ручкой).')+
     (edit?(big?'<button class="ndapply" data-a="ndrenew" data-id="'+esc(e.id)+'" data-d="'+esc(d)+'">Закрыть наряд и оформить новый</button>'
       :'<button class="ndapply" data-a="ndmanual" data-id="'+esc(e.id)+'" data-d="'+esc(d)+'">Изменения внесены в наряд вручную</button><button class="ndapply alt" data-a="ndapply" data-id="'+esc(e.id)+'" data-d="'+esc(d)+'">Перенести изменения в наряд и скачать файл</button>'):'')+'</small>';
 }
@@ -2407,7 +2409,7 @@ function ndApplyComp(id,d,mode){
   var outS={}; c.out.forEach(function(n){ outS[n]=1; });
   var team=(e.team||[]).filter(function(t){ return !outS[normNum(t.num)]; });
   c.inn.forEach(function(n){ var x=anyPerson(n); team.push(x?{num:x.p.num||n,name:x.p.name,role:x.p.role||'',b:x.b}:{num:n,name:'№ '+n,role:'',b:''}); });
-  var e2=JSON.parse(JSON.stringify(e)); e2.team=team; e2.upd=Date.now(); e2.ed=sync.who||''; e2.ap=d;
+  var e2=JSON.parse(JSON.stringify(e)); e2.n0=ndN0(e); e2.team=team; e2.upd=Date.now(); e2.ed=sync.who||''; e2.ap=d;
   e2.chg=(Array.isArray(e.chg)?e.chg:[]).concat([{d:d,out:c.out,inn:c.inn,by:sync.who||'',t:Date.now(),m:mode==='manual'?1:0}]).slice(-60);
   var s=ndSt(); s.q=s.q.filter(function(x){ return x.id!==e2.id||x._del; }); s.q.push(e2); s.list=s.list.filter(function(x){ return x.id!==e2.id; }); ndSave(s); ndFlush();
   if(ui.view==='nd') renderNd(); else if(ui.view==='board') renderX();
