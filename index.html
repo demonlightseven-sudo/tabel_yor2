@@ -398,6 +398,8 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 .ndcmp{display:block;margin-top:6px;padding:6px 8px;border-radius:8px;font-size:13px;line-height:1.35}.ndcmp.ok{background:var(--work-bg);color:var(--work-t)}.ndcmp.ch{background:var(--ul-bg);color:var(--ul-t)}.ndcmp.no{background:var(--off-bg);color:var(--off-t)}
 
 .ndapply{display:block;width:100%;margin-top:8px;min-height:40px;font-weight:700;font-size:14px}
+
+.ndcmp.big{background:var(--ab-bg);color:var(--ab-t)}.ndapply.alt{font-weight:600;opacity:.9}.ndoff{color:var(--muted);font-size:12px;border:1px solid var(--line);border-radius:6px;padding:0 4px}
 </style>
 </head>
 <body>
@@ -440,7 +442,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='75';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='76';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2322,8 +2324,8 @@ function ndLog(st){
   if(!all.length) return head+'<p class="note">'+(syncOn()?'Пока пусто. Наряды, оформленные на любом телефоне, появятся здесь.':'Пока пусто. Подключите таблицу, чтобы журнал был общим для всех телефонов.')+'</p>';
   if(!list.length) return head+'<p class="note">Ничего не найдено.</p>';
   return head+'<div class="mlist" id="ndlog">'+show.map(function(e){
-    var until=ndIso(e.d2), act=until&&until>=t;
-    return '<div class="ndj"><div class="ndjt"><b>№ '+esc(e.no)+' · '+esc(ND_SHORT[e.kind]||'')+(ndObjOf(e)?' · '+esc(ndObjOf(e)):'')+'</b><span>'+esc(e.d1||'')+'–'+esc(e.d2||'')+(act?' <span class="ndon">действует</span>':'')+'</span>'+
+    var until=ndIso(e.d2), act=until&&until>=t&&!(e.closed&&e.closed<=t);
+    return '<div class="ndj"><div class="ndjt"><b>№ '+esc(e.no)+' · '+esc(ND_SHORT[e.kind]||'')+(ndObjOf(e)?' · '+esc(ndObjOf(e)):'')+'</b><span>'+esc(e.d1||'')+'–'+esc(e.d2||'')+(act?' <span class="ndon">действует</span>':'')+(e.closed?' <span class="ndoff">закрыт '+esc(tbtDmy(e.closed))+'</span>':'')+'</span>'+
       '<small>'+esc([e.works,e.code,(e.team||[]).length+' чел.',e.rel?'к наряду № '+e.rel:'',e.who].filter(Boolean).join(' · '))+(e.upd?' · изменён '+esc(new Date(e.upd).toLocaleDateString('ru-RU'))+(e.ed?' ('+esc(e.ed)+')':''):'')+'</small>'+
       (qid[e.id]?'<small class="ndwarn">⏳ ещё не записан в таблицу'+(syncOn()?'':' — таблица не подключена')+'</small>':'')+
       (e.dup?'<small class="ndwarn">⚠ такой номер уже есть в журнале</small>':'')+(act&&ndIso(e.d1)<=t?ndCompHtml(e,t):'')+'</div>'+
@@ -2356,7 +2358,7 @@ function nameAr(name){
   return out.join(' ');
 }
 /* ------------------------------------------------------------- состав наряда ↔ фактическая бригада бригадира */
-function ndOpenOn(d,obj){ return ndAll(ndSt(),'').filter(function(e){ var a=ndIso(e.d1), b=ndIso(e.d2)||a; return a&&a<=d&&d<=b&&(!obj||ndGuessObj(e.code)===obj); }); }
+function ndOpenOn(d,obj){ return ndAll(ndSt(),'').filter(function(e){ var a=ndIso(e.d1), b=ndIso(e.d2)||a; return a&&a<=d&&d<=b&&!(e.closed&&e.closed<=d)&&(!obj||ndGuessObj(e.code)===obj); }); }
 function numSet(arr){ var s={}; (arr||[]).forEach(function(n){ n=normNum(n); if(n&&n!=='0') s[n]=1; }); return s; }
 function ndTeamSet(e){ return numSet((e.team||[]).map(function(t){ return t.num; })); }
 function overlapN(a,b){ var n=0; Object.keys(a).forEach(function(k){ if(b[k]) n++; }); return n; }
@@ -2380,32 +2382,55 @@ function ndComp(e,d){
   if(e.ap&&e.ap>=pd){ base=ndTeamSet(e); baseTxt='составом наряда'; }   // изменения уже перенесены в наряд
   else if(prev){ base=numSet(prev.data.nums); baseTxt='вчерашним составом'; } else base=ndTeamSet(e);
   var out=Object.keys(base).filter(function(n){ return !cur[n]&&n!==lead; }), inn=Object.keys(cur).filter(function(n){ return !base[n]&&n!==lead; });
-  return {b:b,out:out,inn:inn,baseTxt:baseTxt};
+  return {b:b,out:out,inn:inn,baseTxt:baseTxt,base:base};
 }
 function numsNames(list){ return list.map(function(n){ var p=anyPerson(n); return esc(n)+(p?' '+esc(shortName(p.p.name)):''); }).join(', '); }
+function ndCompPct(c){ var b=Object.keys(c.base||{}).length, cur=(c.b.data.nums||[]).length, den=Math.max(b,cur,1); return {n:c.out.length+c.inn.length, den:den, pct:Math.round((c.out.length+c.inn.length)*100/den)}; }
 function ndCompHtml(e,d){
   var c=ndComp(e,d);
   if(!c) return '<small class="ndcmp no">Бригада по этому наряду на '+esc(tbtDmy(d))+' не подана</small>';
   var who='Бригадир '+esc(whoBase(c.b.data.lead))+': ';
   if(!c.out.length&&!c.inn.length) return '<small class="ndcmp ok">'+who+'✔ состав совпадает с '+c.baseTxt+' ('+(c.b.data.nums||[]).length+' чел.)</small>';
-  return '<small class="ndcmp ch">'+who+'изменение состава (по сравнению с '+c.baseTxt+'):'+
+  var p=ndCompPct(c), big=p.pct>=50, edit=role()&&role()!=='mont';
+  return '<small class="ndcmp '+(big?'big':'ch')+'">'+who+'изменение состава (по сравнению с '+c.baseTxt+'):'+
     (c.out.length?'<br><b>Вывести из наряда:</b> '+numsNames(c.out):'')+(c.inn.length?'<br><b>Завести в наряд:</b> '+numsNames(c.inn):'')+
-    (role()&&role()!=='mont'?'<button class="ndapply" data-a="ndapply" data-id="'+esc(e.id)+'" data-d="'+esc(d)+'">Перенести изменения в наряд и скачать файл</button>':'')+'</small>';
+    '<br><b>Изменилось '+p.n+' из '+p.den+' чел. ('+p.pct+'%)</b> — '+(big?'больше половины бригады: <b>нужен новый наряд-допуск</b>, этот наряд закрывается.':'меньше половины: можно внести изменения в наряд вручную (ручкой).')+
+    (edit?(big?'<button class="ndapply" data-a="ndrenew" data-id="'+esc(e.id)+'" data-d="'+esc(d)+'">Закрыть наряд и оформить новый</button>'
+      :'<button class="ndapply" data-a="ndmanual" data-id="'+esc(e.id)+'" data-d="'+esc(d)+'">Изменения внесены в наряд вручную</button><button class="ndapply alt" data-a="ndapply" data-id="'+esc(e.id)+'" data-d="'+esc(d)+'">Перенести изменения в наряд и скачать файл</button>'):'')+'</small>';
 }
 
 /* перенести «вывести/завести» в состав наряда, сохранить в журнал и пересобрать Word */
-function ndApplyComp(id,d){
+function ndApplyComp(id,d,mode){
   var st=ndSt(), e=ndFind(st,id); if(!e){ toast('Наряд не найден в журнале'); return; }
   var c=ndComp(e,d); if(!c||(!c.out.length&&!c.inn.length)){ toast('Изменений нет'); return; }
-  if(!confirm('Наряд № '+e.no+': вывести '+c.out.length+' чел., завести '+c.inn.length+' чел. Сохранить и скачать новый файл?')) return;
+  if(!confirm('Наряд № '+e.no+': вывести '+c.out.length+' чел., завести '+c.inn.length+' чел. '+(mode==='manual'?'Отметить, что изменения внесены в бумажный наряд вручную?':'Сохранить и скачать новый файл?'))) return;
   var outS={}; c.out.forEach(function(n){ outS[n]=1; });
   var team=(e.team||[]).filter(function(t){ return !outS[normNum(t.num)]; });
   c.inn.forEach(function(n){ var x=anyPerson(n); team.push(x?{num:x.p.num||n,name:x.p.name,role:x.p.role||'',b:x.b}:{num:n,name:'№ '+n,role:'',b:''}); });
   var e2=JSON.parse(JSON.stringify(e)); e2.team=team; e2.upd=Date.now(); e2.ed=sync.who||''; e2.ap=d;
-  e2.chg=(Array.isArray(e.chg)?e.chg:[]).concat([{d:d,out:c.out,inn:c.inn,by:sync.who||'',t:Date.now()}]).slice(-60);
+  e2.chg=(Array.isArray(e.chg)?e.chg:[]).concat([{d:d,out:c.out,inn:c.inn,by:sync.who||'',t:Date.now(),m:mode==='manual'?1:0}]).slice(-60);
   var s=ndSt(); s.q=s.q.filter(function(x){ return x.id!==e2.id||x._del; }); s.q.push(e2); s.list=s.list.filter(function(x){ return x.id!==e2.id; }); ndSave(s); ndFlush();
   if(ui.view==='nd') renderNd(); else if(ui.view==='board') renderX();
+  if(mode==='manual'){ toast('Наряд № '+e2.no+': состав обновлён (изменения внесены вручную)'); return; }
   ndDownload(e2,function(r,name){ toast('Состав наряда № '+e2.no+' обновлён'+(r!=='cancel'?' · файл '+name:'')); }).catch(function(){ toast('Состав сохранён, но бланк не загрузился — скачайте наряд из журнала позже'); });
+}
+
+/* больше 50% замен: старый наряд закрывается, новый оформляется по образцу с фактической бригадой */
+function ndRenew(id,d){
+  var st=ndSt(), e=ndFind(st,id); if(!e){ toast('Наряд не найден в журнале'); return; }
+  var c=ndComp(e,d); if(!c) return;
+  if(!confirm('Наряд № '+e.no+' будет закрыт '+tbtDmy(d)+'. Откроется новый наряд того же вида с фактической бригадой ('+(c.b.data.nums||[]).length+' чел.) — проверьте его и сохраните. Продолжить?')) return;
+  var e2=JSON.parse(JSON.stringify(e)); e2.closed=d; e2.upd=Date.now(); e2.ed=sync.who||'';
+  e2.chg=(Array.isArray(e.chg)?e.chg:[]).concat([{d:d,out:c.out,inn:c.inn,by:sync.who||'',t:Date.now(),close:1}]).slice(-60);
+  var s=ndSt(); s.q=s.q.filter(function(x){ return x.id!==e2.id||x._del; }); s.q.push(e2); s.list=s.list.filter(function(x){ return x.id!==e2.id; }); ndSave(s); ndFlush();
+  ndUse(id);
+  var s2=ndSt(), sl=ndSl(s2,e.kind), dr=s2.draft[sl]||{}, want=numSet(c.b.data.nums), keys=[], found={};
+  ndPeople().forEach(function(x){ var n=normNum(x.p.num); if(n&&want[n]&&!found[n]){ found[n]=1; keys.push(x.key); } });
+  dr.team=keys; dr.teamX=Object.keys(want).filter(function(n){ return !found[n]; }).map(function(n){ return {num:n,name:'№ '+n,role:'',b:''}; });
+  dr.d1=d;
+  s2.draft[sl]=dr; ndSave(s2);
+  if(ui.view!=='nd') setView('nd'); else renderNd();
+  window.scrollTo(0,0); toast('Наряд № '+e.no+' закрыт. Проверьте новый наряд и сохраните');
 }
 function ndBuild(tpl,e){
   var doc=tpl.files['word/document.xml'], on={}, o=e.o||{};
@@ -2567,7 +2592,8 @@ document.addEventListener('click',function(e){
   if(a==='logout'){ closeSheet(); if(auth&&auth.locked){ lockedLogout(); return; } if(confirm('Выйти и сменить уровень доступа?')) logout(''); return; }
   if(!roleClick(a,el)) return;
   if(a.indexOf('tbt')===0){ tbtClick(a,el); return; }
-  if(a==='ndapply'){ ndApplyComp(el.dataset.id,el.dataset.d); return; }
+  if(a==='ndapply'||a==='ndmanual'){ ndApplyComp(el.dataset.id,el.dataset.d,a==='ndmanual'?'manual':'file'); return; }
+  if(a==='ndrenew'){ ndRenew(el.dataset.id,el.dataset.d); return; }
   if(a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'){ xClick(a,el); return; }
   switch(a){
     case 'book': if(root.cur!==el.dataset.b){ root.cur=el.dataset.b; save(); ui.q=''; $('q').value=''; ui.open={}; clearMsg(); render(); window.scrollTo(0,0); pull(); } break;
