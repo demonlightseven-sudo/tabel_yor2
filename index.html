@@ -381,6 +381,8 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 .xtask{margin-top:6px;padding:8px;border-radius:8px;background:var(--work-bg)}
 .xobjs{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;align-items:start;margin:8px 0 16px}
 .xobj{border:2px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--bg);min-width:0}.xobj .xcard{margin:8px 0}
+.ndk4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}.ndk4b{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:58px;padding:6px 4px;border:2px solid var(--line);border-radius:10px;text-align:center;font-size:13px;line-height:1.2}.ndk4b small{font-size:11px;color:var(--muted)}.ndk4b small.xok{color:var(--work-t,#3c9)}
+@media (max-width:420px){.ndk4{grid-template-columns:repeat(2,1fr)}}
 .xfoot{margin-top:10px;padding-top:6px;border-top:1px dashed var(--line)}.xfh{font-weight:700;margin:6px 0 2px}.xfi{margin:2px 0 4px}.xfi .ndcmp{display:block;margin-top:2px}
 body.vboard main{max-width:1600px}
 @media (max-width:700px){.xobjs{grid-template-columns:1fr}}
@@ -451,7 +453,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='80';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='81';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2097,6 +2099,17 @@ var ND_TITLE={hz:'Наряд-допуск на опасные работы',fire
 var ND_FILE={hz:'Опасные',fire:'Огневые',lift:'ПС',conc:'Бетонные'};
 var ND_TPL={hz:'nd-hz.json',fire:'nd-fire.json',lift:'nd-lift.json'};   // для каких нарядов уже есть бланк
 var ND_KEY='tabel-nd-v1';
+var ND_ISSUER='Head of the site Tiurin V.P.', ND_FM=['Site Foreman Borodin M.K.','Site Foreman Glushko V.N.'], ND_FMS=['Borodin M.K.','Glushko V.N.'];
+/* постоянные ответственные: выдающий — всегда начальник участка; руководитель работ и инструктаж — один из двух мастеров */
+function ndFix(k,f,v){
+  if(f==='issuer') return ND_ISSUER;
+  if(f==='head'&&k!=='fire'||k==='fire'&&(f==='prep'||f==='exec')) return ND_FM.indexOf(v)>=0?v:ND_FM[0];
+  if(f==='in'){ var L=k==='lift'?ND_FM:ND_FMS; return L.indexOf(v)>=0?v:L[0]; }
+  if(f==='ir'&&k!=='lift') return 'Site Foreman';
+  return v;
+}
+function ndSel(st,k,f,label,opts){ var v=ndV(st,k,f); return '<div class="fld"><label for="nd_'+f+'">'+label+'</label><select id="nd_'+f+'" data-nd="'+f+'">'+opts.map(function(o){ return '<option'+(o===v?' selected':'')+'>'+esc(o)+'</option>'; }).join('')+'</select></div>'; }
+function ndFixed(label,v){ return '<div class="fld"><label>'+label+'</label><input type="text" value="'+esc(v)+'" disabled></div>'; }
 var ND_OBJS=['91UYE','91UYF','92UYF','11UZU','13UYE'];   // объекты: у каждого свой ППР и свои «последние» значения
 function ndGuessObj(code){ code=String(code||'').toUpperCase(); for(var i=0;i<ND_OBJS.length;i++) if(code.indexOf(ND_OBJS[i])>=0) return ND_OBJS[i]; return ''; }
 function ndObjOf(e){ return e&&ND_OBJS.indexOf(e.obj)>=0?e.obj:ndGuessObj(e&&e.code); }
@@ -2134,7 +2147,8 @@ function ndC(st,k){
 }
 function ndEd(st,k){ return st.edit&&st.edit.kind===k&&st.edit.obj===st.obj?ndFind(st,st.edit.id):null; }
 /* значение поля: черновик → последние использованные (из таблицы) → постоянные по умолчанию */
-function ndV(st,k,f){ var d=ndDr(st,k), c=ndC(st,k); if(typeof d[f]==='string') return d[f]; if(typeof c[f]==='string') return c[f]; var b=ND_BASEK[k]||{}; return b[f]!=null?b[f]:(ND_BASE[f]||''); }
+function ndV(st,k,f){ return ndFix(k,f,ndV0(st,k,f)); }
+function ndV0(st,k,f){ var d=ndDr(st,k), c=ndC(st,k); if(typeof d[f]==='string') return d[f]; if(typeof c[f]==='string') return c[f]; var b=ND_BASEK[k]||{}; return b[f]!=null?b[f]:(ND_BASE[f]||''); }
 function ndDmy(s){ var a=String(s||'').split('-'); return a.length===3?a[2]+'.'+a[1]+'.'+a[0]:''; }
 function ndIso(dmy){ var a=String(dmy||'').split('.'); return a.length===3?a[2]+'-'+a[1]+'-'+a[0]:''; }
 /* даты наряда (ГГГГ-ММ-ДД): опасные — дата + дни; огневые — до даты окончания (по умолчанию — до конца основного наряда) */
@@ -2267,11 +2281,11 @@ function renderNd(){
     ndField(st,k,'works','Описание работ','Cutting metal …','works')+
     ndField(st,k,'code','Место проведения работ','91UYE','code')+
     '<h3 class="dh3">Ответственные</h3>'+
-    ndField(st,k,'issuer','Наряд выдал','Head of the site …','issuer')+
-    ndField(st,k,'prep','Ответственный за подготовку огневых работ','Site Foreman …','prep')+
-    ndField(st,k,'exec','Ответственный за проведение огневых работ','Site Foreman …','exec')+
+    ndFixed('Наряд выдал',ND_ISSUER)+
+    ndSel(st,k,'prep','Ответственный за подготовку огневых работ',ND_FM)+
+    ndSel(st,k,'exec','Ответственный за проведение огневых работ (руководитель работ)',ND_FM)+
     ndField(st,k,'hse','Специалист по ОТ (регистрирует наряд)','Engineer of HSE Department …','hse')+
-    '<div class="dgrid">'+ndField(st,k,'ir','Инструктаж провёл: должность','Мастер участка','ir')+ndField(st,k,'in','ФИО (Фамилия И.О.)','Фамилия И.О.','in')+'</div>';
+    ndSel(st,k,'in','Инструктаж провёл: Site Foreman',ND_FMS);
   else if(k==='lift') form=
     '<div class="dgrid">'+noF+ndField(st,k,'code','Место работ (код объекта)','91UYE/91UYF','code')+'</div>'+
     '<div class="dgrid"><div class="fld"><label for="nd_d1">Начало работ</label><input type="date" id="nd_d1" data-nd="d1" value="'+esc(d1)+'"></div>'+ndField(st,k,'t1','Время начала','','','time')+'</div>'+
@@ -2281,10 +2295,10 @@ function renderNd(){
     ndField(st,k,'tech','Вид, марка и рег. № подъёмного сооружения','Mobile Telescopic Crane …','tech')+
     '<div class="fld"><label for="nd_doc">ППР / ТК — каждый документ с новой строки</label><textarea id="nd_doc" data-nd="doc" rows="3" maxlength="400" placeholder="ED.A.…">'+esc(ndV(st,k,'doc'))+'</textarea></div>'+
     '<h3 class="dh3">Ответственные</h3>'+
-    ndField(st,k,'issuer','Выдающий наряд-допуск','Head of the site …','issuer')+
-    ndField(st,k,'head','Руководитель работ (ответственный за безопасное производство работ с ПС)','Site Foreman …','head')+
+    ndFixed('Выдающий наряд-допуск',ND_ISSUER)+
+    ndSel(st,k,'head','Руководитель работ (ответственный за безопасное производство работ с ПС)',ND_FM)+
     ndField(st,k,'exec','Ответственный производитель работ','Installer of … category …','exec')+
-    ndField(st,k,'in','Инструктаж бригаде провёл (ФИО полностью)','Фамилия Имя Отчество','in');
+    ndSel(st,k,'in','Инструктаж бригаде провёл',ND_FM);
   else form=
     '<div class="dgrid">'+noF+
       ndField(st,k,'code','Объект (код)','11UZU(13UXP)','code')+'</div>'+
@@ -2297,11 +2311,11 @@ function renderNd(){
     ndField(st,k,'doc','Работы по документу (ППР, ТК…)','ED.…','doc')+
     ndField(st,k,'tech','Техника: вид, марка, рег. №','EXCAVATOR …','tech')+
     '<h3 class="dh3">Ответственные</h3>'+
-    ndField(st,k,'head','Руководитель работ: должность и ФИО','Site Foreman …','head')+
+    ndSel(st,k,'head','Руководитель работ',ND_FM)+
     ndField(st,k,'exec','Ответственный исполнитель: должность и ФИО','Installer of … category …','exec')+
     ndField(st,k,'hse','Специалист по ОТ (регистрирует, допускает к работе)','Engineer of HSE Department …','hse')+
-    ndField(st,k,'issuer','Наряд выдал','Head of the site …','issuer')+
-    '<div class="dgrid">'+ndField(st,k,'ir','Инструктаж провёл: должность','Мастер участка','ir')+ndField(st,k,'in','ФИО (Фамилия И.О.)','Фамилия И.О.','in')+'</div>'+
+    ndFixed('Наряд выдал',ND_ISSUER)+
+    ndSel(st,k,'in','Инструктаж провёл: Site Foreman',ND_FMS)+
     ndField(st,k,'comb','Совмещённые работы: кто допускает','нет');
   el.innerHTML='<div class="dwrap">'+kinds+head+ndDatalists(st,k)+
     '<p class="note">Поля заполнены как в прошлом наряде по объекту '+esc(st.obj)+'. Должности и ФИО — как в бланке, по-английски.</p>'+form+
@@ -2608,7 +2622,7 @@ document.addEventListener('click',function(e){
   if(a.indexOf('tbt')===0){ tbtClick(a,el); return; }
   if(a==='ndapply'||a==='ndmanual'){ ndApplyComp(el.dataset.id,el.dataset.d,a==='ndmanual'?'manual':'file'); return; }
   if(a==='ndrenew'){ ndRenew(el.dataset.id,el.dataset.d); return; }
-  if(a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'){ xClick(a,el); return; }
+  if(a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'||a==='ndfrom'){ xClick(a,el); return; }
   switch(a){
     case 'book': if(root.cur!==el.dataset.b){ root.cur=el.dataset.b; save(); ui.q=''; $('q').value=''; ui.open={}; clearMsg(); render(); window.scrollTo(0,0); pull(); } break;
     case 'date': sheetDate(); break;
@@ -3050,7 +3064,8 @@ function ackHtml(x){
 function tkCard(x){
   var dd=x.data||{};
   return '<div class="xcard"><div class="xch"><b>'+esc(x.obj)+'</b> · бригадир: <b>'+esc(whoBase(dd.brig)||'—')+'</b>'+(role()!=='mont'&&(isAdmin()||x.role===role())?'<button class="tbtx" data-a="tkdel" data-id="'+esc(x.id)+'" aria-label="Удалить задание">✕</button>':'')+'</div>'+
-    '<div class="xtask">'+esc(dd.tasks||'').replace(/\n/g,'<br>')+'</div><small class="note">Выдал: '+esc(whoBase(x.who))+' · '+fmtDT(x.t)+'</small>'+ackHtml(x)+'</div>';
+    '<div class="xtask">'+esc(dd.tasks||'').replace(/\n/g,'<br>')+'</div><small class="note">Выдал: '+esc(whoBase(x.who))+' · '+fmtDT(x.t)+'</small>'+ackHtml(x)+
+    (isAdmin()?ndKinds4(x.obj,x.d,bdItems(x.d).filter(function(y){ return y.kind==='brig'&&fioKey(y.data.lead)===fioKey(dd.brig); })[0]||null,dd.brig):'')+'</div>';
 }
 function tkRender(){
   var d=tkDate||tkDef(); bdFetch(d,false);
@@ -3100,10 +3115,10 @@ function bdRender(){
     to.forEach(function(t){
       var b=brigs.filter(function(x){ return fioKey(x.data.lead)===fioKey(t.data.brig); })[0]; if(b) usedB[b.id]=1;
       cards+='<div class="xcard"><div class="xch">Бригадир: <b>'+esc(whoBase(t.data.brig))+'</b>'+(b?' · <span class="xok">'+(b.data.nums||[]).length+' чел.</span>'+(b.obj!==o?' <small class="xno">подал на '+esc(b.obj)+'</small>':'')+' <small class="note">подано '+new Date(b.t).toTimeString().slice(0,5)+'</small>':' · <span class="xno">численность не подана</span>')+'</div>'+
-        '<div class="xtask"><b>Задание:</b> '+esc(t.data.tasks||'').replace(/\n/g,'<br>')+' <small class="note">('+esc(whoBase(t.who))+')</small></div>'+ackHtml(t)+(b?members(b):'')+'</div>';
+        '<div class="xtask"><b>Задание:</b> '+esc(t.data.tasks||'').replace(/\n/g,'<br>')+' <small class="note">('+esc(whoBase(t.who))+')</small></div>'+ackHtml(t)+(b?members(b):'')+ndKinds4(o,d,b,t.data.brig)+'</div>';
     });
     bo.filter(function(b){ return !usedB[b.id]; }).forEach(function(b){ usedB[b.id]=1;
-      cards+='<div class="xcard"><div class="xch">Бригадир: <b>'+esc(whoBase(b.data.lead))+'</b> · '+(b.data.nums||[]).length+' чел. <span class="xno">наряд-задание не выдано</span></div>'+members(b)+'</div>';
+      cards+='<div class="xcard"><div class="xch">Бригадир: <b>'+esc(whoBase(b.data.lead))+'</b> · '+(b.data.nums||[]).length+' чел. <span class="xno">наряд-задание не выдано</span></div>'+members(b)+ndKinds4(o,d,b,b.data.lead)+'</div>';
     });
     if(!cards&&!open.length&&!tb.length){ empty.push(o); return; }
     var foot='<div class="xfoot"><div class="xfh">Наряд-допуски</div>'+(open.length?open.map(function(e){ return '<div class="xfi"><span class="xyes">✔</span> № '+esc(e.no)+' <small>'+(ND_KBTN[e.kind]||'')+' до '+esc(e.d2||'')+'</small>'+ndCompHtml(e,d)+'</div>'; }).join(''):'<div class="xfi"><span class="xnot">✘</span> нет открытых</div>')+
@@ -3115,7 +3130,34 @@ function bdRender(){
   if(empty.length) h+='<p class="note">Без наряд-заданий, нарядов и TBT: '+empty.map(esc).join(', ')+'</p>';
   return h;
 }
+/* четыре рамки нарядов под бригадой: нажатие — новый наряд с людьми бригады и следующим номером */
+var ND_K4=[['hz','Опасные работы'],['fire','Огневые работы'],['lift','Подъёмные механизмы'],['conc','Бетонные работы']];
+function ndBrigOpen(b,d,obj,k){ if(!b) return []; return ndOpenOn(d,obj).filter(function(e){ if(e.kind!==k) return false; var x=ndBrigOf(e,d); return x&&x.id===b.id; }); }
+function ndKinds4(obj,d,b,lead){
+  if(!isAdmin()) return '';
+  return '<div class="ndk4">'+ND_K4.map(function(x){
+    var op=ndBrigOpen(b,d,obj,x[0]);
+    return '<button class="ndk4b" data-a="ndfrom" data-k="'+x[0]+'" data-o="'+esc(obj)+'" data-d="'+esc(d)+'" data-b="'+esc(b?b.id:'')+'" data-l="'+esc(lead||'')+'"><b>'+x[1]+'</b>'+
+      (op.length?'<small class="xok">открыт № '+op.map(function(e){ return esc(e.no); }).join(', ')+'</small>':'<small>оформить</small>')+'</button>';
+  }).join('')+'</div>';
+}
+function ndFromBrig(k,obj,d,bid,lead){
+  var b=bid?bdItems(d).filter(function(x){ return x.id===bid; })[0]:null;
+  var st=ndSt(); if(st.edit) ndEndEdit(st);
+  st.obj=obj; st.kind=k; if(ND_TITLE[k]) st.lastKind=k;
+  var dr={only:true,team:[],teamX:[]}, miss=[], seen={};
+  if(b) [b.data.lnum].concat(b.data.nums||[]).forEach(function(n){ if(!n) return; var p=anyPerson(n); if(!p){ miss.push(n); return; } var key=p.b+'|'+p.p.id; if(!seen[key]){ seen[key]=1; dr.team.push(key); } });
+  var nx=ndNext(st,k); if(nx) dr.no=nx;
+  dr.d1=d<today()?today():d;
+  if(k==='fire'){ var hz=ndBrigOpen(b,d,obj,'hz'); if(hz.length) dr.rel=String(hz[0].no); }
+  st.draft[obj+'|'+k]=dr; ndSave(st);
+  ndQ=''; ndMsg=b?'Бригада '+whoBase(lead)+': отмечено '+dr.team.length+' чел.'+(miss.length?' Нет в табеле: '+miss.join(', ')+'.':''):'Бригадир '+whoBase(lead)+' не подал численность — отметьте людей вручную.';
+  ndFetchAt=0; setView('nd'); renderNd(); window.scrollTo(0,0);
+  toast(ndMsg);
+  if(k==='fire'&&!dr.rel) toast('Открытого наряда на опасные работы у этой бригады на '+esc(tbtDmy(d))+' нет');
+}
 function xClick(a,el){
+  if(a==='ndfrom'){ ndFromBrig(el.dataset.k,el.dataset.o,el.dataset.d,el.dataset.b,el.dataset.l); return; }
   if(a==='tkack'){ var tid=el.dataset.id, td=el.dataset.d; if(!syncOn()){ toast('Нет связи с сервером'); return; } el.disabled=true; el.textContent='Отправляю…';
     bdPut({kind:'ack',d:td,obj:'',id:('ack|'+tid).slice(0,60),data:{tid:tid,fio:sync.who}}).then(function(){ toast('Получение наряд-задания подтверждено'); bdFetch(td,true); }).catch(function(e){ el.disabled=false; el.textContent='Наряд-задание получил'; toast('Не отправлено: '+((e&&e.message)||'')); }); return; }
   if(a==='brgsend'){ brgSend(); return; }
