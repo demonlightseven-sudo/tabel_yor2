@@ -396,6 +396,8 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 }
 
 .ndcmp{display:block;margin-top:6px;padding:6px 8px;border-radius:8px;font-size:13px;line-height:1.35}.ndcmp.ok{background:var(--work-bg);color:var(--work-t)}.ndcmp.ch{background:var(--ul-bg);color:var(--ul-t)}.ndcmp.no{background:var(--off-bg);color:var(--off-t)}
+
+.ndapply{display:block;width:100%;margin-top:8px;min-height:40px;font-weight:700;font-size:14px}
 </style>
 </head>
 <body>
@@ -438,7 +440,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='74';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='75';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2375,7 +2377,8 @@ function ndComp(e,d){
   var b=ndBrigOf(e,d); if(!b) return null;
   var lead=normNum(b.data.lnum), cur=numSet(b.data.nums), base, baseTxt='составом наряда';
   var pd=addDays(d,-1), prev=pd>=ndIso(e.d1)?bdItems(pd).filter(function(x){ return x.kind==='brig'&&fioKey(x.data.lead)===fioKey(b.data.lead); })[0]:null;
-  if(prev){ base=numSet(prev.data.nums); baseTxt='вчерашним составом'; } else base=ndTeamSet(e);
+  if(e.ap&&e.ap>=pd){ base=ndTeamSet(e); baseTxt='составом наряда'; }   // изменения уже перенесены в наряд
+  else if(prev){ base=numSet(prev.data.nums); baseTxt='вчерашним составом'; } else base=ndTeamSet(e);
   var out=Object.keys(base).filter(function(n){ return !cur[n]&&n!==lead; }), inn=Object.keys(cur).filter(function(n){ return !base[n]&&n!==lead; });
   return {b:b,out:out,inn:inn,baseTxt:baseTxt};
 }
@@ -2386,7 +2389,23 @@ function ndCompHtml(e,d){
   var who='Бригадир '+esc(whoBase(c.b.data.lead))+': ';
   if(!c.out.length&&!c.inn.length) return '<small class="ndcmp ok">'+who+'✔ состав совпадает с '+c.baseTxt+' ('+(c.b.data.nums||[]).length+' чел.)</small>';
   return '<small class="ndcmp ch">'+who+'изменение состава (по сравнению с '+c.baseTxt+'):'+
-    (c.out.length?'<br><b>Вывести из наряда:</b> '+numsNames(c.out):'')+(c.inn.length?'<br><b>Завести в наряд:</b> '+numsNames(c.inn):'')+'</small>';
+    (c.out.length?'<br><b>Вывести из наряда:</b> '+numsNames(c.out):'')+(c.inn.length?'<br><b>Завести в наряд:</b> '+numsNames(c.inn):'')+
+    (role()&&role()!=='mont'?'<button class="ndapply" data-a="ndapply" data-id="'+esc(e.id)+'" data-d="'+esc(d)+'">Перенести изменения в наряд и скачать файл</button>':'')+'</small>';
+}
+
+/* перенести «вывести/завести» в состав наряда, сохранить в журнал и пересобрать Word */
+function ndApplyComp(id,d){
+  var st=ndSt(), e=ndFind(st,id); if(!e){ toast('Наряд не найден в журнале'); return; }
+  var c=ndComp(e,d); if(!c||(!c.out.length&&!c.inn.length)){ toast('Изменений нет'); return; }
+  if(!confirm('Наряд № '+e.no+': вывести '+c.out.length+' чел., завести '+c.inn.length+' чел. Сохранить и скачать новый файл?')) return;
+  var outS={}; c.out.forEach(function(n){ outS[n]=1; });
+  var team=(e.team||[]).filter(function(t){ return !outS[normNum(t.num)]; });
+  c.inn.forEach(function(n){ var x=anyPerson(n); team.push(x?{num:x.p.num||n,name:x.p.name,role:x.p.role||'',b:x.b}:{num:n,name:'№ '+n,role:'',b:''}); });
+  var e2=JSON.parse(JSON.stringify(e)); e2.team=team; e2.upd=Date.now(); e2.ed=sync.who||''; e2.ap=d;
+  e2.chg=(Array.isArray(e.chg)?e.chg:[]).concat([{d:d,out:c.out,inn:c.inn,by:sync.who||'',t:Date.now()}]).slice(-60);
+  var s=ndSt(); s.q=s.q.filter(function(x){ return x.id!==e2.id||x._del; }); s.q.push(e2); s.list=s.list.filter(function(x){ return x.id!==e2.id; }); ndSave(s); ndFlush();
+  if(ui.view==='nd') renderNd(); else if(ui.view==='board') renderX();
+  ndDownload(e2,function(r,name){ toast('Состав наряда № '+e2.no+' обновлён'+(r!=='cancel'?' · файл '+name:'')); }).catch(function(){ toast('Состав сохранён, но бланк не загрузился — скачайте наряд из журнала позже'); });
 }
 function ndBuild(tpl,e){
   var doc=tpl.files['word/document.xml'], on={}, o=e.o||{};
@@ -2548,6 +2567,7 @@ document.addEventListener('click',function(e){
   if(a==='logout'){ closeSheet(); if(auth&&auth.locked){ lockedLogout(); return; } if(confirm('Выйти и сменить уровень доступа?')) logout(''); return; }
   if(!roleClick(a,el)) return;
   if(a.indexOf('tbt')===0){ tbtClick(a,el); return; }
+  if(a==='ndapply'){ ndApplyComp(el.dataset.id,el.dataset.d); return; }
   if(a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'){ xClick(a,el); return; }
   switch(a){
     case 'book': if(root.cur!==el.dataset.b){ root.cur=el.dataset.b; save(); ui.q=''; $('q').value=''; ui.open={}; clearMsg(); render(); window.scrollTo(0,0); pull(); } break;
