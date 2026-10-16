@@ -388,10 +388,12 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 
 .xack{margin-top:8px;padding:8px 10px;border-radius:8px;font-weight:700}.xack.ok{background:var(--work-bg);color:var(--work-t)}.xack.no{background:var(--ul-bg);color:var(--ul-t)}.xackbtn{margin-top:8px;width:100%}
 
-/* 6 вкладок (начальник участка, техник-помощник): 2 ряда по 3 */
-body.r-nach #tabbar,body.r-tech #tabbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line)}
-body.r-nach #tabbar button,body.r-tech #tabbar button{min-height:48px;padding:4px 6px;font-size:clamp(13px,3.6vw,15px);line-height:1.15;background:var(--surface);white-space:normal;text-align:center}
-body.r-nach,body.r-tech{padding-bottom:calc(118px + env(safe-area-inset-bottom))}
+/* 6 вкладок (начальник участка, техник-помощник): на телефоне 2 низких ряда по 3, на компьютере — один ряд */
+@media (max-width:700px){
+body.r-nach #tabbar,body.r-tech #tabbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);padding-bottom:env(safe-area-inset-bottom)}
+body.r-nach #tabbar button,body.r-tech #tabbar button{min-height:36px;padding:2px 3px;font-size:clamp(11px,3.4vw,13px);line-height:1.1;letter-spacing:-.01em;overflow-wrap:anywhere;background:var(--surface);white-space:normal;text-align:center;border-top-width:2px}
+body.r-nach,body.r-tech{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+}
 </style>
 </head>
 <body>
@@ -434,7 +436,7 @@ body.r-nach,body.r-tech{padding-bottom:calc(118px + env(safe-area-inset-bottom))
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='68';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='69';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
