@@ -390,9 +390,9 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 
 /* 6 вкладок (начальник участка, техник-помощник): на телефоне 2 низких ряда по 3, вплотную к низу экрана; на компьютере — один ряд */
 @media (max-width:700px){
-body.r-nach #tabbar,body.r-tech #tabbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;background:var(--surface);padding:0 env(safe-area-inset-right) calc(env(safe-area-inset-bottom) * 0.35) env(safe-area-inset-left)}
+body.r-nach #tabbar,body.r-tech #tabbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;background:var(--surface);padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left)}
 body.r-nach #tabbar button,body.r-tech #tabbar button{min-height:36px;padding:2px 3px;font-size:clamp(11px,3.4vw,13px);line-height:1.1;letter-spacing:-.01em;overflow-wrap:anywhere;background:var(--surface);white-space:normal;text-align:center;border-top-width:2px;box-shadow:inset 1px 0 0 var(--line),inset 0 -1px 0 var(--line)}
-body.r-nach,body.r-tech{padding-bottom:calc(80px + env(safe-area-inset-bottom) * 0.35)}
+body.r-nach,body.r-tech{padding-bottom:80px}
 }
 </style>
 </head>
@@ -436,7 +436,7 @@ body.r-nach,body.r-tech{padding-bottom:calc(80px + env(safe-area-inset-bottom) *
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='70';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='71';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
