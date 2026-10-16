@@ -379,7 +379,12 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 .xcard{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;background:var(--surface)}
 .xch{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.xch .tbtx{margin-left:auto}
 .xtask{margin-top:6px;padding:8px;border-radius:8px;background:var(--work-bg)}
-.xobj{margin:10px 0 16px}.xobjh{font-weight:800;font-size:17px;border-bottom:2px solid var(--ink);padding-bottom:4px}.xobjh small{font-weight:400;color:var(--muted);font-size:13px}
+.xobjs{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;align-items:start;margin:8px 0 16px}
+.xobj{border:2px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--bg);min-width:0}.xobj .xcard{margin:8px 0}
+.xfoot{margin-top:10px;padding-top:6px;border-top:1px dashed var(--line)}.xfh{font-weight:700;margin:6px 0 2px}.xfi{margin:2px 0 4px}.xfi .ndcmp{display:block;margin-top:2px}
+body.vboard main{max-width:1600px}
+@media (max-width:700px){.xobjs{grid-template-columns:1fr}}
+.xobjx{margin:10px 0 16px}.xobjh{font-weight:800;font-size:17px;border-bottom:2px solid var(--ink);padding-bottom:4px}.xobjh small{font-weight:400;color:var(--muted);font-size:13px}
 .xtw{overflow-x:auto}.xt{border-collapse:collapse;width:100%;font-size:14px}.xt th,.xt td{border:1px solid var(--line);padding:6px 6px;text-align:center}
 .xt thead th{font-size:12px;color:var(--muted);font-weight:600}.xt tbody th{text-align:left}.xt .xtot td,.xt .xtot th{font-weight:800}
 .xt td.xbad{color:var(--ab-t);font-weight:700}.xt td.xgood{color:var(--work-t);font-weight:700}
@@ -446,7 +451,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='79';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='80';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3085,10 +3090,12 @@ function bdRender(){
   var items=bdItems(d), brigs=items.filter(function(x){ return x.kind==='brig'; }), tasks=items.filter(function(x){ return x.kind==='task'; }), usedB={};
   var objs=ND_OBJS.slice(); items.forEach(function(x){ if(x.obj&&objs.indexOf(x.obj)<0) objs.push(x.obj); });
   function members(x){ var dd=x.data||{}; return '<div class="xlist">'+(dd.nums||[]).map(function(n,i){ var p=anyPerson(n), st=p?personDayStat(p,d):''; return '<div class="xrow'+(st==='прогул'?' xbad':'')+'"><b>'+(i+1)+'.</b> '+esc(n)+' '+(p?esc(shortName(p.p.name))+' <small>'+esc(p.p.role||'')+' · '+esc(st)+'</small>':'<span class="xno">нет в табеле</span>')+'</div>'; }).join('')+'</div>'; }
-  h+='<h3 class="tbth3">2. Наряд-задания по бригадирам</h3>';
-  var any=false;
+  h+='<h3 class="tbth3">2. Объекты: наряд-задания, бригады, наряд-допуски, TBT</h3>';
+  var nds=ndAll(ndSt(),''), frames='', empty=[];
   objs.forEach(function(o){
     var to=tasks.filter(function(x){ return x.obj===o; }), bo=brigs.filter(function(x){ return x.obj===o; });
+    var open=nds.filter(function(e){ var a1=ndIso(e.d1), b1=ndIso(e.d2)||a1; return ndGuessObj(e.code)===o&&a1&&a1<=d&&d<=b1; });
+    var tb=items.filter(function(x){ return x.kind==='tbt'&&x.obj===o; });
     var cards='';
     to.forEach(function(t){
       var b=brigs.filter(function(x){ return fioKey(x.data.lead)===fioKey(t.data.brig); })[0]; if(b) usedB[b.id]=1;
@@ -3098,19 +3105,14 @@ function bdRender(){
     bo.filter(function(b){ return !usedB[b.id]; }).forEach(function(b){ usedB[b.id]=1;
       cards+='<div class="xcard"><div class="xch">Бригадир: <b>'+esc(whoBase(b.data.lead))+'</b> · '+(b.data.nums||[]).length+' чел. <span class="xno">наряд-задание не выдано</span></div>'+members(b)+'</div>';
     });
-    if(!cards) return; any=true;
-    h+='<div class="xobj"><div class="xobjh">'+esc(o)+' <small>бригадиров: '+to.length+' · чел.: '+bo.reduce(function(s,x){ return s+(x.data.nums||[]).length; },0)+'</small></div>'+cards+'</div>';
+    if(!cards&&!open.length&&!tb.length){ empty.push(o); return; }
+    var foot='<div class="xfoot"><div class="xfh">Наряд-допуски</div>'+(open.length?open.map(function(e){ return '<div class="xfi"><span class="xyes">✔</span> № '+esc(e.no)+' <small>'+(ND_KBTN[e.kind]||'')+' до '+esc(e.d2||'')+'</small>'+ndCompHtml(e,d)+'</div>'; }).join(''):'<div class="xfi"><span class="xnot">✘</span> нет открытых</div>')+
+      '<div class="xfh">Инструктаж TBT</div>'+(tb.length?tb.map(function(x){ return '<div class="xfi"><span class="xyes">✔</span> '+esc(whoBase(x.who))+' <small>'+new Date(x.t).toTimeString().slice(0,5)+(x.data&&x.data.n?' · '+x.data.n+' чел.':'')+'</small></div>'; }).join(''):'<div class="xfi"><span class="xnot">✘</span> не проведён</div>')+'</div>';
+    frames+='<div class="xobj"><div class="xobjh">'+esc(o)+' <small>бригадиров: '+to.length+' · чел.: '+bo.reduce(function(s,x){ return s+(x.data.nums||[]).length; },0)+'</small></div>'+
+      (cards||'<p class="note">Наряд-заданий и бригад нет.</p>')+foot+'</div>';
   });
-  if(!any) h+='<p class="note">На этот день наряд-задания не выданы и численность не подана.</p>';
-  /* 3. наряд-допуски и инструктажи */
-  var nds=ndAll(ndSt(),'');
-  h+='<h3 class="tbth3">3. Наряд-допуски и инструктажи (TBT)</h3><div class="xtw"><table class="xt xnd"><thead><tr><th>Объект</th><th>Наряд-допуск</th><th>Инструктаж TBT</th></tr></thead><tbody>'+
-    ND_OBJS.map(function(o){
-      var open=nds.filter(function(e){ var a=ndIso(e.d1), b=ndIso(e.d2)||a; return ndGuessObj(e.code)===o&&a&&a<=d&&d<=b; });
-      var tb=items.filter(function(x){ return x.kind==='tbt'&&x.obj===o; });
-      return '<tr><th>'+o+'</th><td>'+(open.length?'<span class="xyes">✔</span> '+open.map(function(e){ return '№ '+esc(e.no)+' <small>'+(ND_KBTN[e.kind]||'')+' до '+esc(e.d2||'')+'</small>'+ndCompHtml(e,d); }).join('<br>'):'<span class="xnot">✘</span> нет открытых')+'</td>'+
-        '<td>'+(tb.length?'<span class="xyes">✔</span> '+tb.map(function(x){ return esc(whoBase(x.who))+' <small>'+new Date(x.t).toTimeString().slice(0,5)+(x.data&&x.data.n?' · '+x.data.n+' чел.':'')+'</small>'; }).join('<br>'):'<span class="xnot">✘</span> не проведён')+'</td></tr>';
-    }).join('')+'</tbody></table></div>';
+  h+=frames?'<div class="xobjs">'+frames+'</div>':'<p class="note">На этот день наряд-задания не выданы и численность не подана.</p>';
+  if(empty.length) h+='<p class="note">Без наряд-заданий, нарядов и TBT: '+empty.map(esc).join(', ')+'</p>';
   return h;
 }
 function xClick(a,el){
