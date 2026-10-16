@@ -374,6 +374,7 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 .xnav{display:flex;align-items:center;gap:8px;margin:6px 0 10px}.xnav b{flex:1;text-align:center}.xnav button{flex:0 0 48px}
 #hnav{display:none;flex:1;min-width:0}body.vboard #hnav{display:flex}#hnav .xnav{flex:1;margin:0;min-width:0}#hnav .xnav b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:clamp(13px,3.9vw,17px)}
 .xok{color:var(--work-t);font-weight:700;margin:4px 0}.xno{color:var(--ab-t);font-weight:600}
+.xmem{margin:6px 0}.xmem>summary{cursor:pointer;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-weight:600;font-size:14px;list-style:none}.xmem>summary::-webkit-details-marker{display:none}.xmem>summary::before{content:'▸ ';}.xmem[open]>summary::before{content:'▾ ';}.xmem .xbad{color:var(--ab-t,#e66)}
 .xlist{display:flex;flex-direction:column;gap:2px;margin:6px 0}.xrow{font-size:14px;padding:3px 0;border-bottom:1px dashed var(--line)}.xrow small{color:var(--muted)}
 .xrow.xbad{color:var(--ab-t)}
 .xcard{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;background:var(--surface)}
@@ -454,7 +455,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='83';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='84';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3132,6 +3133,8 @@ function tkSend(){
   bdPut({kind:'task',d:d,obj:obj,data:{brig:brig,tasks:text.slice(0,3000),by:sync.who}}).then(function(){ toast('Наряд-задание выдано: '+brig+', '+dmyLong(d)); var t=$('tk_text'); if(t) t.value=''; var b=$('tk_brig'); if(b) b.value=''; bdFetch(d,true); })
     .catch(function(e){ msg.textContent='Не отправлено: '+((e&&e.message)||'ошибка'); });
 }
+var bdMemOpen={};   // какие списки бригад развёрнуты (сохраняется между обновлениями доски)
+document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classList&&t.classList.contains('xmem')) bdMemOpen[t.dataset.bid]=t.open; },true);
 function bdRender(){
   var d=bdDate||today(); bdFetch(d,false); bdFetch(addDays(d,-1),false); bdPullDay(d);
   var cols=[['list','В списке'],['work','Пришли'],['ab','Прогул'],['off','Выходной'],['dob','DO по графику'],['sick','Больничный'],['pl','Отпуск'],['ul','Отпуск без ЗП'],['unm','Без отметки'],['fired','Уволены'],['ot','Сверхурочка']];
@@ -3143,7 +3146,9 @@ function bdRender(){
   /* 2. наряд-задания по бригадирам и поданная ими численность */
   var items=bdItems(d), brigs=items.filter(function(x){ return x.kind==='brig'; }), tasks=items.filter(function(x){ return x.kind==='task'; }), usedB={};
   var objs=ND_OBJS.slice(); items.forEach(function(x){ if(x.obj&&objs.indexOf(x.obj)<0) objs.push(x.obj); });
-  function members(x){ var dd=x.data||{}; return '<div class="xlist">'+(dd.nums||[]).map(function(n,i){ var p=anyPerson(n), st=p?personDayStat(p,d):''; return '<div class="xrow'+(st==='прогул'?' xbad':'')+'"><b>'+(i+1)+'.</b> '+esc(n)+' '+(p?esc(shortName(p.p.name))+' <small>'+esc(p.p.role||'')+' · '+esc(st)+'</small>':'<span class="xno">нет в табеле</span>')+'</div>'; }).join('')+'</div>'; }
+  function members(x){ var dd=x.data||{}, bad=0, no=0;
+    var list=(dd.nums||[]).map(function(n,i){ var p=anyPerson(n), st=p?personDayStat(p,d):''; if(st==='прогул') bad++; if(!p) no++; return '<div class="xrow'+(st==='прогул'?' xbad':'')+'"><b>'+(i+1)+'.</b> '+esc(n)+' '+(p?esc(shortName(p.p.name))+' <small>'+esc(p.p.role||'')+' · '+esc(st)+'</small>':'<span class="xno">нет в табеле</span>')+'</div>'; }).join('');
+    return '<details class="xmem" data-bid="'+esc(x.id)+'"'+(bdMemOpen[x.id]?' open':'')+'><summary>Состав бригады: '+(dd.nums||[]).length+' чел.'+(bad?' · <span class="xbad">прогул: '+bad+'</span>':'')+(no?' · <span class="xno">нет в табеле: '+no+'</span>':'')+'</summary><div class="xlist">'+list+'</div></details>'; }
   h+='<h3 class="tbth3">2. Объекты: наряд-задания, бригады, наряд-допуски, TBT</h3>';
   var nds=ndAll(ndSt(),''), frames='', empty=[];
   objs.forEach(function(o){
