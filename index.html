@@ -400,6 +400,8 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 .ndapply{display:block;width:100%;margin-top:8px;min-height:40px;font-weight:700;font-size:14px}
 
 .ndcmp.big{background:var(--ab-bg);color:var(--ab-t)}.ndapply.alt{font-weight:600;opacity:.9}.ndoff{color:var(--muted);font-size:12px;border:1px solid var(--line);border-radius:6px;padding:0 4px}
+
+.btns.two{grid-template-columns:1fr 1fr}.stlock{margin-top:6px;padding:6px 10px;border-radius:8px;background:var(--off-bg);color:var(--off-t);font-weight:600;font-size:14px}
 </style>
 </head>
 <body>
@@ -442,7 +444,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='77';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='78';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -993,7 +995,7 @@ function rowHtml(p){
     plan='<div class="plan'+(off?' po':'')+'">'+esc(schedById(p.sched).short)+': '+(hol?'праздничный день':off?'выходной':'рабочий день'+(ph&&ph!==bk().defH?' ('+ph+' ч)':''))+((off&&st==='work')?' · вышел в '+(hol?'праздник':'выходной'):'')+'</div>';
   }
   function b(s,label){ return '<button class="'+s+'" data-a="set" data-id="'+id+'" data-s="'+s+'" aria-pressed="'+(st===s)+'">'+label+'</button>'; }
-  var open=ui.open[p.id]||st==='pl'||st==='ul'||st==='sick';
+  var full=isAdmin(), open=full&&(ui.open[p.id]||st==='pl'||st==='ul'||st==='sick');
   var hours='';
   if(st==='work'){
     hours='<div class="hours"><button class="step" data-a="hstep" data-id="'+id+'" data-d="-0.5" aria-label="Минус полчаса">−</button>'+
@@ -1002,9 +1004,10 @@ function rowHtml(p){
   }
   return '<li class="row'+(st?' s-'+st:'')+'" data-id="'+id+'">'+
     '<div class="head"><div class="who"><b>'+(p.num?'<span class="tn">'+esc(p.num)+'</span>':'')+esc(p.name)+'</b>'+(p.role?'<span>'+esc(p.role)+'</span>':'')+'</div>'+
-      '<button class="more" data-a="more" data-id="'+id+'" aria-label="Ещё: отпуск, отпуск без ЗП, больничный" aria-expanded="'+!!open+'">⋯</button></div>'+plan+
-    '<div class="btns">'+b('work','Пришёл')+b('off','Выходной')+b('ab','Прогул')+'</div>'+
-    (open?'<div class="extra">'+b('pl','Отпуск')+b('ul','Отпуск без ЗП')+b('sick','Больничный')+'</div>':'')+hours+'</li>';
+      (full?'<button class="more" data-a="more" data-id="'+id+'" aria-label="Ещё: отпуск, отпуск без ЗП, больничный" aria-expanded="'+!!open+'">⋯</button>':'')+'</div>'+plan+
+    (full?'<div class="btns">'+b('work','Пришёл')+b('off','Выходной')+b('ab','Прогул')+'</div>'+
+      (open?'<div class="extra">'+b('pl','Отпуск')+b('ul','Отпуск без ЗП')+b('sick','Больничный')+'</div>':'')
+     :'<div class="btns two">'+b('work','Пришёл')+b('ab','Прогул')+'</div>'+(st&&st!=='work'&&st!=='ab'?'<div class="stlock">Отмечено: '+esc(ST_FULL[st]||st)+'</div>':''))+hours+'</li>';
 }
 function matches(p,q){
   if(!q) return true;
@@ -1289,7 +1292,7 @@ function dayObj(d,create){
   return r[d]||{};
 }
 function dropEmpty(d){ var r=bk().records; if(r[d]&&!Object.keys(r[d]).length) delete r[d]; }
-function setStatus(id,s){ if(!canDay(true)) return;
+function setStatus(id,s){ if(!canDay(true)) return; if(!isAdmin()&&s!=='work'&&s!=='ab'){ toast('Прораб отмечает только «Пришёл» или «Прогул»'); return; }
   var day=dayObj(ui.date,true), cur=day[id];
   if(cur&&cur.s===s) delete day[id];
   else day[id]={s:s,h:s==='work'?(cur&&cur.s==='work'?cur.h:bk().defH):0,t:Date.now()};
@@ -1299,11 +1302,12 @@ function setHours(id,h){ if(!canDay(true)) return;
   var day=dayObj(ui.date,false), r=day[id]; if(!r||r.s!=='work') return;
   r.h=clampH(h); r.t=Date.now(); save(); track(root.cur,ui.date,id); updateRow(id);
 }
+var ST_FULL={off:'Выходной',pl:'Отпуск',ul:'Отпуск без ЗП',sick:'Больничный'};
 function fillBySchedule(){ if(!canDay(true)) return;
   var day=dayObj(ui.date,true), nw=0, no=0, now=Date.now(), made=[];
   activePeople().forEach(function(p){
     if(day[p.id]||firedOn(p,ui.date)) return;
-    if(planOff(p,ui.date)===true){ day[p.id]={s:'off',h:0,t:now}; no++; } else { day[p.id]={s:'work',h:planHours(p,ui.date)||bk().defH,t:now}; nw++; }
+    if(planOff(p,ui.date)===true){ if(!isAdmin()) return; day[p.id]={s:'off',h:0,t:now}; no++; } else { day[p.id]={s:'work',h:planHours(p,ui.date)||bk().defH,t:now}; nw++; }
     made.push(p.id);
   });
   dropEmpty(ui.date); save(); made.forEach(function(id){ track(root.cur,ui.date,id); }); render();
