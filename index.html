@@ -383,6 +383,7 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 .xobj{border:2px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--bg);min-width:0}.xobj .xcard{margin:8px 0}
 .ndk4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}.ndk4b{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:58px;padding:6px 4px;border:2px solid var(--line);border-radius:10px;text-align:center;font-size:13px;line-height:1.2}.ndk4b small{font-size:11px;color:var(--muted)}.ndk4b small.xok{color:var(--work-t,#3c9)}
 @media (max-width:420px){.ndk4{grid-template-columns:repeat(2,1fr)}}
+.ndtbtb{display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;margin-top:6px;min-height:64px;padding:8px;border:2px solid var(--line);border-radius:10px;text-align:center;font-size:15px}.ndtbtb small{font-size:12px;color:var(--muted)}.ndtbtb small.xok{color:var(--work-t,#3c9)}
 .xfoot{margin-top:10px;padding-top:6px;border-top:1px dashed var(--line)}.xfh{font-weight:700;margin:6px 0 2px}.xfi{margin:2px 0 4px}.xfi .ndcmp{display:block;margin-top:2px}
 body.vboard main{max-width:1600px}
 @media (max-width:700px){.xobjs{grid-template-columns:1fr}}
@@ -453,7 +454,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='81';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='82';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2622,7 +2623,7 @@ document.addEventListener('click',function(e){
   if(a.indexOf('tbt')===0){ tbtClick(a,el); return; }
   if(a==='ndapply'||a==='ndmanual'){ ndApplyComp(el.dataset.id,el.dataset.d,a==='ndmanual'?'manual':'file'); return; }
   if(a==='ndrenew'){ ndRenew(el.dataset.id,el.dataset.d); return; }
-  if(a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'||a==='ndfrom'){ xClick(a,el); return; }
+  if(a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'||a==='ndfrom'||a==='ndtbt'){ xClick(a,el); return; }
   switch(a){
     case 'book': if(root.cur!==el.dataset.b){ root.cur=el.dataset.b; save(); ui.q=''; $('q').value=''; ui.open={}; clearMsg(); render(); window.scrollTo(0,0); pull(); } break;
     case 'date': sheetDate(); break;
@@ -3139,7 +3140,29 @@ function ndKinds4(obj,d,b,lead){
     var op=ndBrigOpen(b,d,obj,x[0]);
     return '<button class="ndk4b" data-a="ndfrom" data-k="'+x[0]+'" data-o="'+esc(obj)+'" data-d="'+esc(d)+'" data-b="'+esc(b?b.id:'')+'" data-l="'+esc(lead||'')+'"><b>'+x[1]+'</b>'+
       (op.length?'<small class="xok">открыт № '+op.map(function(e){ return esc(e.no); }).join(', ')+'</small>':'<small>оформить</small>')+'</button>';
-  }).join('')+'</div>';
+  }).join('')+'</div>'+ndTbtBtn(obj,d,b,lead);
+}
+/* все открытые на бригаду наряды (любого вида) и люди из них без повторов */
+function ndBrigAll(b,d,obj){ var out=[]; ND_K4.forEach(function(x){ out=out.concat(ndBrigOpen(b,d,obj,x[0])); }); return out; }
+function ndTeamUnion(nds){ var seen={}, out=[]; nds.forEach(function(e){ (e.team||[]).forEach(function(t){ var k=t.num?'n'+normNum(t.num):'f'+String(t.name||'').toLowerCase(); if(seen[k]) return; seen[k]=1; out.push(t); }); }); return out; }
+function ndTbtBtn(obj,d,b,lead){
+  var nds=ndBrigAll(b,d,obj), ppl=ndTeamUnion(nds), done=bdItems(d).filter(function(x){ return x.kind==='tbt'&&x.obj===obj; });
+  return '<button class="ndtbtb" data-a="ndtbt" data-o="'+esc(obj)+'" data-d="'+esc(d)+'" data-b="'+esc(b?b.id:'')+'" data-l="'+esc(lead||'')+'"><b>Инструктаж перед началом работ (TBT)</b>'+
+    '<small>'+(nds.length?'Наряды: '+nds.map(function(e){ return '№ '+esc(e.no)+' ('+(ND_SHORT[e.kind]||'')+')'; }).join(', ')+' · '+ppl.length+' чел. без повторов':'Открытых нарядов на эту бригаду нет')+'</small>'+
+    (done.length?'<small class="xok">✔ проведён: '+done.map(function(x){ return esc(whoBase(x.who))+' '+new Date(x.t).toTimeString().slice(0,5); }).join(', ')+'</small>':'')+'</button>';
+}
+function ndTbtFromBrig(obj,d,bid,lead){
+  var b=bid?bdItems(d).filter(function(x){ return x.id===bid; })[0]:null, nds=ndBrigAll(b,d,obj), ppl=ndTeamUnion(nds);
+  var o=tbtSt(), t=tbtDraft(o,obj);
+  t.date=d<today()?today():d; t.place=tbtPlace(obj);
+  t.no=nds.map(function(e){ return String(e.no); }).join(', ');
+  t.rows=ppl.map(function(x){ var y=x.num?tbtPerson(x.num):null; if(y) return tbtRowOf(y); var pr=tbtProf(x.role,x.b||''); return {num:String(x.num||''),ru:String(x.name||''),lat:tbtLat(x.name),p1:pr.p1,p2:pr.p2}; });
+  var ins=nds.map(function(e){ var v=String(e['in']||''); return ND_FM.indexOf(v)>=0?v:ND_FMS.indexOf(v)>=0?'Site Foreman '+v:''; }).filter(Boolean)[0];
+  t.resp=ins||(ND_FM.indexOf(t.resp)>=0?t.resp:ND_FM[0]);
+  tbtSave(o);
+  var st=ndSt(); if(st.edit) ndEndEdit(st); st.obj=obj; st.kind='tbt'; ndSave(st);
+  tbtMsg=nds.length?'Из нарядов '+t.no+' ('+whoBase(lead)+'): '+t.rows.length+' чел. без повторов.':'На бригаду '+whoBase(lead)+' нет открытых нарядов — добавьте людей вручную.';
+  setView('nd'); renderNd(); window.scrollTo(0,0); toast(tbtMsg);
 }
 function ndFromBrig(k,obj,d,bid,lead){
   var b=bid?bdItems(d).filter(function(x){ return x.id===bid; })[0]:null;
@@ -3157,6 +3180,7 @@ function ndFromBrig(k,obj,d,bid,lead){
   if(k==='fire'&&!dr.rel) toast('Открытого наряда на опасные работы у этой бригады на '+esc(tbtDmy(d))+' нет');
 }
 function xClick(a,el){
+  if(a==='ndtbt'){ ndTbtFromBrig(el.dataset.o,el.dataset.d,el.dataset.b,el.dataset.l); return; }
   if(a==='ndfrom'){ ndFromBrig(el.dataset.k,el.dataset.o,el.dataset.d,el.dataset.b,el.dataset.l); return; }
   if(a==='tkack'){ var tid=el.dataset.id, td=el.dataset.d; if(!syncOn()){ toast('Нет связи с сервером'); return; } el.disabled=true; el.textContent='Отправляю…';
     bdPut({kind:'ack',d:td,obj:'',id:('ack|'+tid).slice(0,60),data:{tid:tid,fio:sync.who}}).then(function(){ toast('Получение наряд-задания подтверждено'); bdFetch(td,true); }).catch(function(e){ el.disabled=false; el.textContent='Наряд-задание получил'; toast('Не отправлено: '+((e&&e.message)||'')); }); return; }
