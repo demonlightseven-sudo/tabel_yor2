@@ -459,7 +459,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='87';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='88';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3154,7 +3154,9 @@ function tkRender(){
     '<label for="tk_obj">Объект</label>'+objSelect('tk_obj',obj)+
     '<label for="tk_text">Задачи</label><textarea id="tk_text" rows="4" placeholder="Что нужно сделать, объёмы, где"></textarea>'+
     '<button class="tbtdl" data-a="tksend">Выдать наряд-задание</button><p class="note" id="tk_msg"></p></div>'+
-    '<h3 class="tbth3">Выдано на '+esc(dmyLong(d))+' ('+tasks.length+')</h3>'+(tasks.length?tasks.map(tkCard).join(''):'<p class="note">Пока нет.</p>');
+    '<h3 class="tbth3">Выдано на '+esc(dmyLong(d))+' ('+tasks.length+')</h3>'+(tasks.length?tasks.map(tkCard).join(''):'<p class="note">Пока нет.</p>')+
+    (ndOk()?(function(){ var nb=bdItems(d).filter(function(x){ return x.kind==='brig'&&!tasks.some(function(t){ return fioKey(t.data.brig)===fioKey(x.data.lead); }); });
+      return nb.length?'<h3 class="tbth3">Подали численность, но без наряд-задания ('+nb.length+')</h3>'+nb.map(function(b){ return '<div class="xcard"><div class="xch"><b>'+esc(b.obj)+'</b> · бригадир: <b>'+esc(whoBase(b.data.lead))+'</b></div><div class="xbrgn">Бригада: <b class="xok">'+(b.data.nums||[]).length+' чел.</b> <small class="note">подано '+new Date(b.t).toTimeString().slice(0,5)+'</small> · <span class="xno">наряд-задание не выдано</span></div>'+brigMembers(b,d)+ndKinds4(b.obj,d,b,b.data.lead)+'</div>'; }).join(''):''; })():'');
   return h;
 }
 function tkSend(){
@@ -3247,6 +3249,20 @@ function ndTbtFromBrig(obj,d,bid,lead){
   tbtMsg=nds.length?'Из нарядов '+t.no+' ('+whoBase(lead)+'): '+t.rows.length+' чел. без повторов.':'На бригаду '+whoBase(lead)+' нет открытых нарядов — добавьте людей вручную.';
   setView('nd'); renderNd(); window.scrollTo(0,0); toast(tbtMsg);
 }
+/* бригадир как человек из табеля: по табельному номеру из поданной численности, иначе по ФИО */
+function brigLeadPerson(b,lead){
+  var x=b&&b.data&&b.data.lnum?anyPerson(b.data.lnum):null; if(x) return x;
+  var key=fioKey(lead||(b&&b.data&&b.data.lead)||''); if(!key) return null;
+  var hit=ndPeople().filter(function(y){ return fioKey(y.p.name)===key; })[0];
+  if(!hit){ var fam=String(lead||'').trim().split(/\s+/)[0].toLowerCase(); var c=ndPeople().filter(function(y){ return String(y.p.name||'').toLowerCase().split(/\s+/)[0]===fam; }); if(c.length===1) hit=c[0]; }
+  return hit?{b:hit.b,p:hit.p}:null;
+}
+/* «Арматурщик 5 разряда», «Айдинов Пулатжон Азизович» -> «Reinforcement worker 5th category Aidinov P. A.» */
+function execEn(p){
+  var pos=tbtProf(p.role,'rf').p2, a=tbtLat(p.name).trim().split(/\s+/);
+  var nm=a[0]+(a.length>1?' '+a.slice(1,3).map(function(w){ return w.charAt(0).toUpperCase()+'.'; }).join(' '):'');
+  return (pos?pos+' ':'')+nm;
+}
 function ndFromBrig(k,obj,d,bid,lead){
   var b=bid?bdItems(d).filter(function(x){ return x.id===bid; })[0]:null;
   var st=ndSt(); if(st.edit) ndEndEdit(st);
@@ -3256,8 +3272,10 @@ function ndFromBrig(k,obj,d,bid,lead){
   var nx=ndNext(st,k); if(nx) dr.no=nx;
   dr.d1=d<today()?today():d;
   if(k==='fire'){ var hz=ndBrigOpen(b,d,obj,'hz'); if(hz.length) dr.rel=String(hz[0].no); }
+  var lp=brigLeadPerson(b,lead), ex=lp?execEn(lp.p):'';
+  if(ex&&k!=='fire') dr.exec=ex;
   st.draft[obj+'|'+k]=dr; ndSave(st);
-  ndQ=''; ndMsg=b?'Бригада '+whoBase(lead)+': отмечено '+dr.team.length+' чел.'+(miss.length?' Нет в табеле: '+miss.join(', ')+'.':''):'Бригадир '+whoBase(lead)+' не подал численность — отметьте людей вручную.';
+  ndQ=''; ndMsg=(b?'Бригада '+whoBase(lead)+': отмечено '+dr.team.length+' чел.'+(miss.length?' Нет в табеле: '+miss.join(', ')+'.':''):'Бригадир '+whoBase(lead)+' не подал численность — отметьте людей вручную.')+(dr.exec&&k!=='fire'?' Ответственный исполнитель: '+dr.exec+'.':'');
   ndFetchAt=0; setView('nd'); renderNd(); window.scrollTo(0,0);
   toast(ndMsg);
   if(k==='fire'&&!dr.rel) toast('Открытого наряда на опасные работы у этой бригады на '+esc(tbtDmy(d))+' нет');
