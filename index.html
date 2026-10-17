@@ -470,7 +470,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='92';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='93';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2304,7 +2304,7 @@ function ndMemDel(el){ var v=el.dataset.v; if(!confirm('Удалить из па
 function ndMemNew(el){ var f=el.dataset.f, i=$('ndmemin_'+f), v=i?i.value.trim():''; if(!v){ if(i) i.focus(); toast('Впишите, что добавить'); return; } ndMemOp('add',f,v); }
 function ndMemChips(f,mem,isOn,act){
   var can=ndMemCan();
-  return '<div class="ndmem"><small>Из памяти — нажмите, чтобы '+(f==='hse'?'подставить':f==='works'?'добавить (через запятую)':'добавить строкой')+(can?'; × — удалить из памяти':'')+':</small>'+
+  return '<div class="ndmem"><small>Из памяти — нажмите, чтобы '+(f==='hse'?'подставить':(f==='works'||f==='tech')?'добавить (через запятую)':'добавить строкой')+(can?'; × — удалить из памяти':'')+':</small>'+
     mem.map(function(m){ return '<span class="ndchipw"><button type="button" class="ndchip'+(isOn(m)?' on':'')+'" data-a="'+act+'" data-f="'+f+'" data-v="'+esc(m)+'">'+esc(m)+'</button>'+(can?'<button type="button" class="ndchipx" data-a="ndmemdel" data-f="'+f+'" data-v="'+esc(m)+'" aria-label="Удалить из памяти">×</button>':'')+'</span>'; }).join('')+
     (can?'<div class="ndmemadd"><input id="ndmemin_'+f+'" maxlength="300" placeholder="Новый пункт в память"><button type="button" data-a="ndmemadd" data-f="'+f+'">+ В память</button></div>':'')+'</div>';
 }
@@ -2319,7 +2319,7 @@ function ndMemDerived(st,f){
 }
 function ndMulti(st,k,f,label,ph){
   ndMemFetch(false);
-  var v=ndV(st,k,f), have={}, one=f==='hse', comma=f==='works';
+  var v=ndV(st,k,f), have={}, one=f==='hse', comma=f==='works'||f==='tech';
   String(v).split(/\r?\n/).forEach(function(l){ have[l.trim().toLowerCase()]=1; });
   var mem=ndMemList(st,f);
   return '<div class="fld"><label for="nd_'+f+'">'+label+(one?'':comma?' — через запятую':' — каждая с новой строки')+'</label>'+
@@ -2330,7 +2330,7 @@ function ndMulti(st,k,f,label,ph){
 function ndMemAdd(el){
   var f=el.dataset.f, v=el.dataset.v, t=$('nd_'+f); if(!t) return;
   if(f==='hse'){ t.value=v; document.querySelectorAll('.ndchip[data-f="hse"]').forEach(function(b){ b.classList.toggle('on',b===el); }); }
-  else if(f==='works'){ var cur=t.value.replace(/\s*\n\s*/g,', ').trim();
+  else if(f==='works'||f==='tech'){ var cur=t.value.replace(/\s*\n\s*/g,', ').trim();
     if(ndHasWork(cur,v)){ var i0=cur.toLowerCase().indexOf(v.toLowerCase()); cur=(cur.slice(0,i0)+cur.slice(i0+v.length)).replace(/^\s*,\s*|\s*,\s*$/g,'').replace(/\s*,\s*,\s*/g,', '); el.classList.remove('on'); }
     else { cur=cur.replace(/[\s,]+$/,''); cur=cur?cur+', '+v:v; el.classList.add('on'); }
     t.value=cur; }
@@ -3412,7 +3412,7 @@ function ndFromBrig(k,obj,d,bid,lead){
   var nx=ndNext(st,k); if(nx) dr.no=nx;
   dr.d1=d<today()?today():d;
   if(k==='fire'){ var hz=ndBrigOpen(b,d,obj,'hz'); if(hz.length) dr.rel=String(hz[0].no); }
-  if(b&&b.data&&k!=='fire'){ if(Array.isArray(b.data.tech)&&b.data.tech.length) dr.tech=b.data.tech.join('\n'); if(Array.isArray(b.data.doc)&&b.data.doc.length) dr.doc=b.data.doc.join('\n'); }
+  if(b&&b.data&&k!=='fire'){ if(Array.isArray(b.data.tech)&&b.data.tech.length) dr.tech=b.data.tech.join(', '); if(Array.isArray(b.data.doc)&&b.data.doc.length) dr.doc=b.data.doc.join('\n'); }
   var lp=brigLeadPerson(b,lead), ex=lp?execEn(lp.p):'';
   if(ex) dr.exec=ex;
   st.draft[obj+'|'+k]=dr; ndSave(st);
