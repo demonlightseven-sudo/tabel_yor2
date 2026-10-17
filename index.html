@@ -386,8 +386,10 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 @media (max-width:420px){.ndk4{grid-template-columns:repeat(2,1fr)}}
 .ndtbtb{display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;margin-top:6px;min-height:64px;padding:8px;border:2px solid var(--line);border-radius:10px;text-align:center;font-size:15px}.ndtbtb small{font-size:12px;color:var(--muted)}.ndtbtb small.xok{color:var(--work-t,#3c9)}
 .xfoot{margin-top:10px;padding-top:6px;border-top:1px dashed var(--line)}.xfh{font-weight:700;margin:6px 0 2px}.xfi{margin:2px 0 4px}.xfi .ndcmp{display:block;margin-top:2px}
-body.vboard main{max-width:1600px}
+body.vboard main{max-width:1600px}body.vboard #xv{max-width:none}
 @media (max-width:700px){.xobjs{grid-template-columns:1fr}}
+@media (min-width:701px) and (max-width:1099px){.xobjs{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}}
+@media (min-width:1100px){body.vboard main{max-width:none;padding:0 16px}.xobjs{grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.xobj{padding:8px 10px}.xobj .ndk4{grid-template-columns:1fr 1fr}.xobj .xch,.xobj .xtask{font-size:14px}}
 .xobjx{margin:10px 0 16px}.xobjh{font-weight:800;font-size:17px;border-bottom:2px solid var(--ink);padding-bottom:4px}.xobjh small{font-weight:400;color:var(--muted);font-size:13px}
 .xtw{overflow-x:auto}.xt{border-collapse:collapse;width:100%;font-size:14px}.xt th,.xt td{border:1px solid var(--line);padding:6px 6px;text-align:center}
 .xt thead th{font-size:12px;color:var(--muted);font-weight:600}.xt tbody th{text-align:left}.xt .xtot td,.xt .xtot th{font-weight:800}
@@ -455,7 +457,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='84';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='85';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
