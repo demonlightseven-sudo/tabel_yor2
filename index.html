@@ -390,6 +390,11 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 .xdone{margin-top:8px;padding:8px 10px;border-radius:8px;font-size:14px}.xdone.ok{background:var(--work-bg);color:var(--work-t)}.xdone.part{background:var(--off-bg);color:var(--off-t)}.xdone.no{background:var(--ab-bg);color:var(--ab-t)}.xdone small{opacity:.8}
 .xdonef{margin-top:8px;padding:8px;border:1px dashed var(--line);border-radius:10px}.xdlbl{font-weight:700;font-size:14px;margin-bottom:6px}.xdonef textarea{width:100%}.xdbtns{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}.xdb{min-height:40px;font-weight:700;font-size:13px}.xdb.on{outline:2px solid var(--ink)}.xdb.ok{color:var(--work-t)}.xdb.part{color:var(--off-t)}.xdb.no{color:var(--ab-t)}.tkdedit{margin-top:6px;font-size:13px;min-height:34px;width:100%}
 .logday{margin:12px 0 4px;font-size:15px}.logrow{padding:6px 0;border-bottom:1px dashed var(--line)}.logh{font-size:13px;color:var(--muted)}.logh b{color:var(--ink)}.logt{font-size:14px;margin-top:2px;word-break:break-word}
+.xmore{margin-top:8px}.xmore>summary{cursor:pointer;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;list-style:none;line-height:1.35}.xmore>summary::-webkit-details-marker{display:none}.xmore>summary::before{content:'▸ ';}.xmore[open]>summary::before{content:'▾ ';}.xmorein{padding-top:2px}
+.xobj,.xcard,.xmore,.xmorein,.xdonef,.xfoot,.ndk4,.xdbtns{min-width:0;max-width:100%;box-sizing:border-box}
+.xcard{overflow-wrap:anywhere}.xcard button,.xobj button{min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.2}
+.xcard textarea,.xcard input,.xcard select{max-width:100%;box-sizing:border-box}
+.xdbtns{grid-template-columns:repeat(auto-fit,minmax(min(100%,84px),1fr))}.xdb{padding:4px 6px;font-size:13px}
 .xfoot{margin-top:10px;padding-top:6px;border-top:1px dashed var(--line)}.xfh{font-weight:700;margin:6px 0 2px}.xfi{margin:2px 0 4px}.xfi .ndcmp{display:block;margin-top:2px}
 body.vboard main{max-width:1600px}body.vboard #xv{max-width:none}
 @media (max-width:700px){.xobjs{grid-template-columns:1fr}}
@@ -462,7 +467,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='90';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='91';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3246,10 +3251,20 @@ function tkSend(){
     .catch(function(e){ msg.textContent='Не отправлено: '+((e&&e.message)||'ошибка'); });
 }
 var bdMemOpen={};
+/* сворачиваемая часть карточки на доске; в заголовке — коротко: люди, наряды, TBT, выполнение */
+function bdMore(id,obj,d,b,t){
+  var parts=[];
+  if(b) parts.push((b.data.nums||[]).length+' чел.');
+  var nds=b?ndBrigAll(b,d,obj):[]; parts.push(nds.length?'нарядов: '+nds.length:'<span class="xno">нет нарядов</span>');
+  var tb=bdItems(d).some(function(x){ return x.kind==='tbt'&&x.obj===obj; }); parts.push(tb?'TBT ✔':'<span class="xno">TBT ✘</span>');
+  if(t){ var dn=tkDone(t); parts.push(dn?((dn.data||{}).st==='ok'?'<span class="xok">выполнено</span>':(dn.data||{}).st==='part'?'частично':'<span class="xno">не выполнено</span>'):'выполнение не отмечено'); }
+  var k='m|'+id;
+  return '<details class="xmore" data-bid="'+esc(k)+'"'+(bdMemOpen[k]?' open':'')+'><summary>Подробнее · '+parts.join(' · ')+'</summary><div class="xmorein">';
+}
 function brigMembers(x,d){ var dd=x.data||{}, bad=0, no=0;
   var list=(dd.nums||[]).map(function(n,i){ var p=anyPerson(n), st=p?personDayStat(p,d):''; if(st==='прогул') bad++; if(!p) no++; return '<div class="xrow'+(st==='прогул'?' xbad':'')+'"><b>'+(i+1)+'.</b> '+esc(n)+' '+(p?esc(shortName(p.p.name))+' <small>'+esc(p.p.role||'')+' · '+esc(st)+'</small>':'<span class="xno">нет в табеле</span>')+'</div>'; }).join('');
   return '<details class="xmem" data-bid="'+esc(x.id)+'"'+(bdMemOpen[x.id]?' open':'')+'><summary>Состав бригады: '+(dd.nums||[]).length+' чел.'+(bad?' · <span class="xbad">прогул: '+bad+'</span>':'')+(no?' · <span class="xno">нет в табеле: '+no+'</span>':'')+'</summary><div class="xlist">'+list+'</div></details>'; }   // какие списки бригад развёрнуты (сохраняется между обновлениями доски)
-document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classList&&t.classList.contains('xmem')) bdMemOpen[t.dataset.bid]=t.open; },true);
+document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classList&&(t.classList.contains('xmem')||t.classList.contains('xmore'))) bdMemOpen[t.dataset.bid]=t.open; },true);
 function bdRender(){
   var d=bdDate||today(); bdFetch(d,false); bdFetch(addDays(d,-1),false); bdPullDay(d);
   var cols=[['list','В списке'],['work','Пришли'],['ab','Прогул'],['off','Выходной'],['dob','DO по графику'],['sick','Больничный'],['pl','Отпуск'],['ul','Отпуск без ЗП'],['unm','Без отметки'],['fired','Уволены'],['ot','Сверхурочка']];
@@ -3275,10 +3290,11 @@ function bdRender(){
     to.forEach(function(t){
       var b=brigs.filter(function(x){ return fioKey(x.data.lead)===fioKey(t.data.brig); })[0]; if(b) usedB[b.id]=1;
       cards+='<div class="xcard"><div class="xch">Бригадир: <b>'+esc(whoBase(t.data.brig))+'</b>'+(b?' · <span class="xok">'+(b.data.nums||[]).length+' чел.</span>'+(b.obj!==o?' <small class="xno">подал на '+esc(b.obj)+'</small>':'')+' <small class="note">подано '+new Date(b.t).toTimeString().slice(0,5)+'</small>':' · <span class="xno">численность не подана</span>')+'</div>'+
-        '<div class="xtask"><b>Задание:</b> '+esc(t.data.tasks||'').replace(/\n/g,'<br>')+' <small class="note">('+esc(whoBase(t.who))+')</small></div>'+ackHtml(t)+(b?members(b):'')+ndKinds4(o,d,b,t.data.brig)+'</div>';
+        '<div class="xtask"><b>Задание:</b> '+esc(t.data.tasks||'').replace(/\n/g,'<br>')+' <small class="note">('+esc(whoBase(t.who))+')</small></div>'+ackHtml0(t)+
+        bdMore(t.id,o,d,b,t)+doneHtml(t)+(b?members(b):'')+ndKinds4(o,d,b,t.data.brig)+'</div></details></div>';
     });
     bo.filter(function(b){ return !usedB[b.id]; }).forEach(function(b){ usedB[b.id]=1;
-      cards+='<div class="xcard"><div class="xch">Бригадир: <b>'+esc(whoBase(b.data.lead))+'</b> · '+(b.data.nums||[]).length+' чел. <span class="xno">наряд-задание не выдано</span></div>'+members(b)+ndKinds4(o,d,b,b.data.lead)+'</div>';
+      cards+='<div class="xcard"><div class="xch">Бригадир: <b>'+esc(whoBase(b.data.lead))+'</b> · '+(b.data.nums||[]).length+' чел. <span class="xno">наряд-задание не выдано</span></div>'+bdMore(b.id,o,d,b,null)+members(b)+ndKinds4(o,d,b,b.data.lead)+'</div></details></div>';
     });
     if(!cards&&!open.length&&!tb.length){ empty.push(o); return; }
     var foot='<div class="xfoot"><div class="xfh">Наряд-допуски</div>'+(open.length?open.map(function(e){ return '<div class="xfi"><span class="xyes">✔</span> № '+esc(e.no)+' <small>'+(ND_KBTN[e.kind]||'')+' до '+esc(e.d2||'')+'</small>'+ndCompHtml(e,d)+'</div>'; }).join(''):'<div class="xfi"><span class="xnot">✘</span> нет открытых</div>')+
