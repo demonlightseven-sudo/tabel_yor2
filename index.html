@@ -398,6 +398,7 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 .ndchipw{display:inline-flex;max-width:100%;align-items:stretch}.ndchipw .ndchip{border-top-right-radius:0;border-bottom-right-radius:0}.ndchipx{min-height:32px;min-width:30px;padding:0 8px;border:1px solid var(--line);border-left:0;border-radius:0 16px 16px 0;color:var(--ab-t,#e66);font-size:16px}.ndchipw .ndchip:only-child{border-radius:16px}
 .ndmemadd{display:flex;gap:6px;width:100%;margin-top:4px}.ndmemadd input{flex:1;min-width:0}.ndmemadd button{min-height:36px;white-space:nowrap}
 .xbrgx{font-size:13px;margin-top:4px;overflow-wrap:anywhere}
+.sgg{margin:10px 0;padding:8px;border:1px solid var(--line);border-radius:10px}.sgh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}.sgh button{min-height:36px}.sgrow{margin:6px 0}.sgline{display:flex;gap:6px;align-items:stretch}.sgline textarea{flex:1;min-width:0}.sgdel{min-width:40px;padding:0 8px;color:var(--ab-t,#e66)}
 .xfoot{margin-top:10px;padding-top:6px;border-top:1px dashed var(--line)}.xfh{font-weight:700;margin:6px 0 2px}.xfi{margin:2px 0 4px}.xfi .ndcmp{display:block;margin-top:2px}
 body.vboard main{max-width:1600px}body.vboard #xv{max-width:none}
 @media (max-width:700px){.xobjs{grid-template-columns:1fr}}
@@ -470,7 +471,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='93';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='94';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1938,7 +1939,7 @@ var MEMO_HDR_F=[
   ['s4Pos','Последняя подпись в записке о работе в выходной день — должность','Директор управления','Директор управления'],
   ['s4','Последняя подпись в записке о работе в выходной день — ФИО','И.О. Фамилия']];
 var MEMO_POS={}; MEMO_HDR_F.forEach(function(f){ if(f[3]!=null) MEMO_POS[f[0]]=f[3]; });
-var MEMO_NEED={ot:['addr','fromName','s1','s2','s3'],rvd:['addr','fromName','s1','s2','s4']};
+var MEMO_NEED={ot:['addr','fromName'],rvd:['addr','fromName']};
 /* на экране — одно поле «должность и ФИО», в Word — как в образце: должность отдельно, ФИО отдельно */
 var MEMO_ONE=[['addr','addrPos','Кому — должность, организация и ФИО (кому?)','Генеральному директору АО «…» Фамилии И.О.'],
   ['fromName','fromPos','От кого — должность и ФИО (кого?)','Начальника участка … Фамилии Имени Отчества'],
@@ -1946,7 +1947,25 @@ var MEMO_ONE=[['addr','addrPos','Кому — должность, организ
   ['s2','s2Pos','Согласовано — должность и ФИО','Директор по строительству И.О. Фамилия'],
   ['s3','s3Pos','Утверждает (сверхурочная работа) — должность и ФИО','Заместитель директора управления И.О. Фамилия'],
   ['s4','s4Pos','Утверждает (выходной день) — должность и ФИО','Директор управления И.О. Фамилия']];
-var MEMO_SHOW={ot:['addr','fromName','s1','s2','s3'],rvd:['addr','fromName','s1','s2','s4']};
+var MEMO_SHOW={ot:['addr','fromName'],rvd:['addr','fromName']};
+/* подписи: кто подписывает, кто согласовывает, кто утверждает — списки, у каждой записки свои */
+var SG_G=[['sign','Подписывает'],['agree','Согласовано'],['appr','Утверждает']];
+function memoSigners(t){
+  var h=memoHdr(), all={}; try{ all=JSON.parse(h.signers||'{}')||{}; }catch(e){ all={}; }
+  var o=all[t];
+  if(!o||typeof o!=='object') o={sign:[memoOneV(h,'s1')],agree:[memoOneV(h,'s2')],appr:[memoOneV(h,t==='rvd'?'s4':'s3')]};
+  SG_G.forEach(function(g){ if(!Array.isArray(o[g[0]])) o[g[0]]=[]; });
+  return o;
+}
+function memoSignersSave(t,o){ var h=memoHdr(), all={}; try{ all=JSON.parse(h.signers||'{}')||{}; }catch(e){ all={}; } all[t]=o; h.signers=JSON.stringify(all); memoHdrSave(h); memoHdrPush(); }
+function memoSignersHtml(t){
+  var sg=memoSigners(t);
+  return SG_G.map(function(g){ var L=sg[g[0]];
+    return '<div class="sgg"><div class="sgh"><b>'+g[1]+'</b><button data-a="sgadd" data-g="'+g[0]+'">+ Добавить</button></div>'+
+      (L.length?L.map(function(v,i){ return '<div class="sgrow"><div class="sgline"><textarea data-sg="'+g[0]+'|'+i+'" rows="2" maxlength="400" placeholder="Должность и ФИО, например «Директор по строительству И.О. Фамилия»">'+esc(v)+'</textarea><button class="sgdel" data-a="sgdel" data-g="'+g[0]+'" data-i="'+i+'" aria-label="Убрать">✕</button></div><small class="mhp" id="sgp_'+g[0]+'_'+i+'">'+memoSplitNote('s2',v)+'</small></div>'; }).join('')
+        :'<p class="note">'+(g[0]==='sign'?'Добавьте хотя бы одного, кто подписывает.':'Никого — этого блока в записке не будет.')+'</p>')+'</div>';
+  }).join('');
+}
 var MEMO_NAME_RE=/(?:[А-ЯЁ]\.\s?[А-ЯЁ]\.\s?[А-ЯЁ][а-яё]+(?:-[А-ЯЁ][а-яё]+)?|[А-ЯЁ][а-яё]+(?:-[А-ЯЁ][а-яё]+)?\s+(?:[А-ЯЁ]\.\s?[А-ЯЁ]\.?|[А-ЯЁ][а-яё]+\s+[А-ЯЁ][а-яё]+))\s*$/;
 function memoFlat(v){ return String(v||'').replace(/\s+/g,' ').trim(); }
 /* разделить «должность … ФИО»: для «Кому» — по организации (АО, ООО, «…»), иначе — ФИО в конце */
@@ -1967,6 +1986,7 @@ function memoHdrFetch(){
   call({action:'memocfg'}).then(function(j){
     var c=j.cfg||{}, h=memoHdr(), ch=false;
     MEMO_HDR_F.forEach(function(f){ var k=f[0]; if(typeof c[k]==='string'&&c[k]!==h[k]){ h[k]=c[k]; ch=true; } });
+    if(typeof c.signers==='string'&&c.signers!==h.signers){ h.signers=c.signers; ch=true; }
     if(ch){ memoHdrSave(h); if(ui.view==='docs') renderDocs(); }
   }).catch(function(){ memoHdrLoaded=false; });
 }
@@ -2072,7 +2092,8 @@ function renderDocs(){
     '<details class="mhdr"'+(MEMO_NEED[memoType()].some(function(k){ return !memoHdr()[k]; })?' open':'')+'><summary>Шапка и подписи</summary><p class="note">Хранятся в вашей Google Таблице и одинаковы на всех телефонах.</p>'+
       MEMO_ONE.filter(function(f){ return MEMO_SHOW[memoType()].indexOf(f[0])>=0; }).map(function(f){ var v=memoOneV(memoHdr(),f[0]);
         return '<div class="fld"><label for="mh_'+f[0]+'">'+f[2]+'</label><textarea id="mh_'+f[0]+'" data-mhc="'+f[0]+'" rows="'+Math.min(4,Math.max(2,Math.ceil(v.length/34)))+'" maxlength="400" placeholder="'+esc(f[3])+'">'+esc(v)+'</textarea><small class="mhp" id="mhp_'+f[0]+'">'+memoSplitNote(f[0],v)+'</small></div>'; }).join('')+
-      '<p class="note">Пишите должность и ФИО подряд. В записке должность встанет на своё место, ФИО — на своё (под строкой видно, как разделится).</p></details>'+
+      '<h3 class="dh3">Подписи</h3>'+memoSignersHtml(memoType())+
+      '<p class="note">Пишите должность и ФИО подряд. В записке должность встанет на своё место, ФИО — на своё (под строкой видно, как разделится). Кнопка «✕» убирает человека, «+ Добавить» — добавляет.</p></details>'+
     '<div class="acts"><button class="primary" data-a="memodoc">Скачать служебную записку (Word)</button></div>'+
     '<p class="note" id="m_msg" role="status" aria-live="polite"></p></div>';
 }
@@ -2106,6 +2127,22 @@ function zipStore(files){
   e.setUint32(12,csize,true); e.setUint32(16,off,true);
   return new Blob(parts.concat(central,[e.buffer]),{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
 }
+function memoSignTable(doc,sg){
+  var i=doc.indexOf('{{S1POS}}'); if(i<0||!sg) return doc;
+  var a=doc.lastIndexOf('<w:tbl>',i), b=doc.indexOf('</w:tbl>',i); if(a<0||b<0) return doc;
+  var tbl=doc.slice(a,b), rows=tbl.match(/<w:tr[ >][\s\S]*?<\/w:tr>/g)||[];
+  var find=function(k){ return rows.filter(function(x){ return x.indexOf(k)>=0; })[0]; };
+  var rS=find('{{S1POS}}'), rA=find('{{S2POS}}'), rP=find('{{S3POS}}')||find('{{S4POS}}'), rH=find('СОГЛАСОВАНО');
+  if(!rS||!rA||!rP) return doc;
+  var sp=rows[rows.indexOf(rS)+1]||'', head=tbl.slice(0,tbl.indexOf(rows[0])), pk=/\{\{(S\d)POS\}\}/.exec(rP)[1];
+  var fill=function(row,key,text,nk){ var q=memoSplit(nk,text), pos=xesc(q.pos).split(/\r?\n/).join('</w:t><w:br /><w:t xml:space="preserve">');
+    return row.split('{{'+key+'POS}}').join(pos).split('{{'+key+'}}').join(xesc(q.name)); };
+  var out=[];
+  sg.sign.forEach(function(v,k){ if(k) out.push(sp); out.push(fill(rS,'S1',v,'s1')); });
+  if(sg.agree.length){ out.push(sp); if(rH) out.push(rH,sp); sg.agree.forEach(function(v,k){ if(k) out.push(sp); out.push(fill(rA,'S2',v,'s2')); }); }
+  sg.appr.forEach(function(v){ out.push(sp,fill(rP,pk,v,pk.toLowerCase())); });
+  return doc.slice(0,a)+head+out.join('')+doc.slice(b);
+}
 function memoBuild(tpl,data){
   var doc=tpl.files['word/document.xml'];
   var rows=data.people.map(function(x){
@@ -2117,6 +2154,7 @@ function memoBuild(tpl,data){
       o.works.split(/\r?\n/).filter(function(l){ return l.trim(); }).map(function(l){ return tpl.pline.replace('{{TEXT}}',xesc(l.trim())); }).join('');
   }).join('');
   var hd=data.hdr||{};
+  doc=memoSignTable(doc,data.sg);
   var MPH={addr:'{{ADDR}}',fromName:'{{FROMNAME}}',s1:'{{S1}}',s2:'{{S2}}',s3:'{{S3}}',s4:'{{S4}}',addrPos:'{{ADDRPOS}}',fromPos:'{{FROMPOS}}',s1Pos:'{{S1POS}}',s2Pos:'{{S2POS}}',s3Pos:'{{S3POS}}',s4Pos:'{{S4POS}}'};
   Object.keys(MPH).forEach(function(k){ var v=xesc(memoHdrV(hd,k)).split(/\r?\n/).join('</w:t><w:br /><w:t xml:space="preserve">'); doc=doc.split(MPH[k]).join(v); });
   doc=doc.replace('<!--ROWS-->',function(){ return rows; }).replace('<!--WORKS-->',function(){ return works; }).replace('{{RESP}}',function(){ return xesc(data.resp); });
@@ -2132,12 +2170,14 @@ function memoMake(){
   if(!c.resp.trim()){ msg.textContent='Укажите ответственного.'; $('m_resp').focus(); return; }
   var mt=memoType(), hdr=memoHdr(), miss=MEMO_HDR_F.filter(function(f){ return MEMO_NEED[mt].indexOf(f[0])>=0&&!String(hdr[f[0]]||'').trim(); });
   if(miss.length){ msg.textContent='Заполните «Шапка и подписи» (должность и ФИО): '+miss.map(function(f){ var o=MEMO_ONE.filter(function(x){ return x[0]===f[0]; })[0]; return o?o[2].split(' — ')[0]:f[1]; }).join(', ')+'.'; var dd=document.querySelector('.mhdr'); if(dd) dd.open=true; return; }
+  var sg0=memoSigners(mt), sg={}; SG_G.forEach(function(g){ sg[g[0]]=sg0[g[0]].map(function(v){ return String(v||'').trim(); }).filter(Boolean); });
+  if(!sg.sign.length){ msg.textContent='Добавьте в «Шапка и подписи» хотя бы одного, кто подписывает.'; var dd0=document.querySelector('.mhdr'); if(dd0) dd0.open=true; return; }
   var a=ui.date.split('-'), date=a[2]+'.'+a[1]+'.'+a[0];
   var people=list.map(function(x){ var t=memoTimes(x,c); return {num:x.p.num||'',name:x.p.name,role:x.p.role||'',from:t.from,to:t.to,bf:t.bf,bt:t.bt,h:t.h}; });
   if(people.some(function(x){ return !(x.h>0); })){ msg.textContent='Проверьте время: у кого-то получилось 0 часов.'; return; }
   msg.textContent='Готовлю файл…';
   memoTemplate(mt).then(function(tpl){
-    var blob=memoBuild(tpl,{hdr:hdr,date:date,people:people,objs:objs,resp:c.resp.trim()});
+    var blob=memoBuild(tpl,{hdr:hdr,date:date,people:people,objs:objs,resp:c.resp.trim(),sg:sg});
     var name=(mt==='rvd'?'РВД_':'Сверхурочная_работа_')+a[2]+'_'+a[1]+'_'+a[0].slice(2)+(root.cur==='are'?'_АРЕ':'')+'.docx';
     return saveFile(name,blob.type,blob).then(function(r){ if($('m_msg')) $('m_msg').textContent=r==='cancel'?'':'Готово: '+name+' ('+people.length+' чел.)'; reportDone(r); });
   }).catch(function(){ if($('m_msg')) $('m_msg').textContent='Не удалось загрузить образец записки. Нужен интернет при первом запуске.'; });
@@ -2759,6 +2799,8 @@ document.addEventListener('click',function(e){
     case 'menu': sheetMenu(); break;
     case 'scan': openScan(); break;
     case 'memodoc': memoMake(); break;
+    case 'sgadd': { var at=memoType(), ao=memoSigners(at); ao[el.dataset.g].push(''); memoSignersSave(at,ao); renderDocs(); var dd1=document.querySelector('.mhdr'); if(dd1) dd1.open=true; var ta=document.querySelector('[data-sg="'+el.dataset.g+'|'+(ao[el.dataset.g].length-1)+'"]'); if(ta) ta.focus(); break; }
+    case 'sgdel': { var dt=memoType(), dob=memoSigners(dt), L=dob[el.dataset.g], di=Number(el.dataset.i); if(String(L[di]||'').trim()&&!confirm('Убрать из подписей?\n\n'+L[di])) break; L.splice(di,1); memoSignersSave(dt,dob); renderDocs(); var dd2=document.querySelector('.mhdr'); if(dd2) dd2.open=true; break; }
     case 'absdoc': absMake(); break;
     case 'ndobj': { var no2=ndSt(); no2.obj=el.dataset.o; if(no2.kind==='log') no2.kind=no2.lastKind; ndSave(no2); ndQ=''; ndMsg=''; ndFetchAt=0; renderNd(); break; }
     case 'ndmem': ndMemAdd(el); break;
@@ -2864,7 +2906,7 @@ document.addEventListener('click',function(e){
 });
 $('q').addEventListener('input',function(){ ui.q=this.value; renderList(); });
 document.addEventListener('toggle',function(e){ if(e.target&&e.target.id==='offgrp') ui.offOpen=e.target.open; },true);
-document.addEventListener('input',function(e){ var t=e.target; if(ui.view==='nd'&&ndInput(t)) return; if(t.dataset&&t.dataset.mo!=null){ var os=memoCfg().objs, k=Number(t.dataset.mo); if(os[k]){ os[k][t.dataset.mf]=t.value; memoSet('objs',os); } } if(t.id==='m_resp') memoSet('resp',t.value); if(t.dataset&&t.dataset.mh){ var h=memoHdr(); h[t.dataset.mh]=t.value; memoHdrSave(h); memoHdrPush(); } if(t.dataset&&t.dataset.mhc){ var h2=memoHdr(), sp=memoSplit(t.dataset.mhc,t.value); h2[sp.pk]=sp.pos; h2[t.dataset.mhc]=sp.name; memoHdrSave(h2); memoHdrPush(); var pn=$('mhp_'+t.dataset.mhc); if(pn) pn.innerHTML=memoSplitNote(t.dataset.mhc,t.value); } });
+document.addEventListener('input',function(e){ var t=e.target; if(t.dataset&&t.dataset.sg){ var sgk=t.dataset.sg.split('|'), sgt=memoType(), so=memoSigners(sgt); so[sgk[0]][Number(sgk[1])]=t.value; memoSignersSave(sgt,so); var sn=$('sgp_'+sgk[0]+'_'+sgk[1]); if(sn) sn.innerHTML=memoSplitNote('s2',t.value); return; } if(ui.view==='nd'&&ndInput(t)) return; if(t.dataset&&t.dataset.mo!=null){ var os=memoCfg().objs, k=Number(t.dataset.mo); if(os[k]){ os[k][t.dataset.mf]=t.value; memoSet('objs',os); } } if(t.id==='m_resp') memoSet('resp',t.value); if(t.dataset&&t.dataset.mh){ var h=memoHdr(); h[t.dataset.mh]=t.value; memoHdrSave(h); memoHdrPush(); } if(t.dataset&&t.dataset.mhc){ var h2=memoHdr(), sp=memoSplit(t.dataset.mhc,t.value); h2[sp.pk]=sp.pos; h2[t.dataset.mhc]=sp.name; memoHdrSave(h2); memoHdrPush(); var pn=$('mhp_'+t.dataset.mhc); if(pn) pn.innerHTML=memoSplitNote(t.dataset.mhc,t.value); } });
 $('q').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); submitEntry(); } });
 $('file').addEventListener('change',function(){ if(this.files&&this.files[0]) handleFile(this.files[0]); });
 $('mfin').addEventListener('change',function(){ if(this.files&&this.files[0]) mfUpload(this.files[0]); });
