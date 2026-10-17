@@ -387,6 +387,9 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 .ndtbtb{display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;margin-top:6px;min-height:64px;padding:8px;border:2px solid var(--line);border-radius:10px;text-align:center;font-size:15px}.ndtbtb small{font-size:12px;color:var(--muted)}.ndtbtb small.xok{color:var(--work-t,#3c9)}
 .ndmem{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.ndmem small{width:100%;color:var(--muted)}.ndchip{min-height:32px;padding:4px 10px;border:1px solid var(--line);border-radius:16px;font-size:13px;text-align:left;max-width:100%}.ndchip.on{background:var(--work-bg);border-color:var(--work-t,#3c9)}
 .xbrgn{margin-top:8px;font-size:15px}
+.xdone{margin-top:8px;padding:8px 10px;border-radius:8px;font-size:14px}.xdone.ok{background:var(--work-bg);color:var(--work-t)}.xdone.part{background:var(--off-bg);color:var(--off-t)}.xdone.no{background:var(--ab-bg);color:var(--ab-t)}.xdone small{opacity:.8}
+.xdonef{margin-top:8px;padding:8px;border:1px dashed var(--line);border-radius:10px}.xdlbl{font-weight:700;font-size:14px;margin-bottom:6px}.xdonef textarea{width:100%}.xdbtns{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}.xdb{min-height:40px;font-weight:700;font-size:13px}.xdb.on{outline:2px solid var(--ink)}.xdb.ok{color:var(--work-t)}.xdb.part{color:var(--off-t)}.xdb.no{color:var(--ab-t)}.tkdedit{margin-top:6px;font-size:13px;min-height:34px;width:100%}
+.logday{margin:12px 0 4px;font-size:15px}.logrow{padding:6px 0;border-bottom:1px dashed var(--line)}.logh{font-size:13px;color:var(--muted)}.logh b{color:var(--ink)}.logt{font-size:14px;margin-top:2px;word-break:break-word}
 .xfoot{margin-top:10px;padding-top:6px;border-top:1px dashed var(--line)}.xfh{font-weight:700;margin:6px 0 2px}.xfi{margin:2px 0 4px}.xfi .ndcmp{display:block;margin-top:2px}
 body.vboard main{max-width:1600px}body.vboard #xv{max-width:none}
 @media (max-width:700px){.xobjs{grid-template-columns:1fr}}
@@ -459,7 +462,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='89';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='90';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1488,8 +1491,8 @@ function sheetMenu(){
   var s=stats();
   openSheet('Меню','<div class="list2">'+
     '<button data-a="logout">'+esc(auth?roleById(auth.role).name:'Вход')+(sync.who?' · '+esc(sync.who):'')+'<small>'+(auth&&auth.locked?'Выйти / сменить ФИО (нужен пароль)':'Выйти / сменить уровень доступа')+'</small></button>'+
-    '<button data-a="fill">Остальных отметить по графику<small>Рабочий день: «Пришёл», выходной по графику: «Выходной». Без отметки: '+s.unm+'</small></button>'+
-    '<button data-a="report">Отчёт за день<small>Текст, который можно отправить в мессенджер</small></button>'+
+    (isAdmin()?'<button data-a="auditlog">Журнал изменений<small>Кто, когда и что изменил: отметки, люди, наряды, задания</small></button>'+
+      '<button data-a="srvbk">Резервные копии базы<small>Сервер сохраняет копию каждый день, хранит 30 дней</small></button>':'')+
     '<button data-a="month">Табель за месяц<small>Файл для Excel (CSV)</small></button>'+
     '<button data-a="people">Люди<small>Добавить, изменить, убрать из списка</small></button>'+
     '<button data-a="syncsheet">Синхронизация с таблицей<small>'+(syncOn()?esc(statusText()[1]):'Не подключена: отметки видны только на этом телефоне')+'</small></button>'+
@@ -2694,7 +2697,7 @@ document.addEventListener('click',function(e){
   if(a.indexOf('tbt')===0){ tbtClick(a,el); return; }
   if(a==='ndapply'||a==='ndmanual'){ ndApplyComp(el.dataset.id,el.dataset.d,a==='ndmanual'?'manual':'file'); return; }
   if(a==='ndrenew'){ ndRenew(el.dataset.id,el.dataset.d); return; }
-  if(a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'||a==='ndfrom'||a==='ndtbt'){ xClick(a,el); return; }
+  if(a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'||a==='ndfrom'||a==='ndtbt'||a==='tkdone'||a==='tkdoneedit'){ xClick(a,el); return; }
   switch(a){
     case 'book': if(root.cur!==el.dataset.b){ root.cur=el.dataset.b; save(); ui.q=''; $('q').value=''; ui.open={}; clearMsg(); render(); window.scrollTo(0,0); pull(); } break;
     case 'date': sheetDate(); break;
@@ -2796,6 +2799,11 @@ document.addEventListener('click',function(e){
     case 'soffok': sync={url:'',code:'',who:sync.who,queue:{},lastOk:0,rev:{},pq:[],aq:[]}; saveSync(); syncErr=''; closeSheet(); render(); toast('Таблица отключена'); break;
     case 'defh': bk().defH=Math.min(24,Math.max(0.5,bk().defH+Number(el.dataset.d))); save(); $('defv').textContent=fmtH(bk().defH)+' ч'; break;
     case 'backup': sheetBackup(); break;
+    case 'auditlog': sheetLog(); break;
+    case 'logmore': logLoad(); break;
+    case 'srvbk': sheetSrvBk(); break;
+    case 'bknow': bkNow(el); break;
+    case 'bkget': bkGet(el.dataset.d); break;
     case 'bsave': saveFile('tabel-kopiya-'+today()+'.json','application/json',JSON.stringify(root,null,1)).then(reportDone); break;
     case 'pwsheet': sheetPassword(); break;
     case 'pwgo': loadEncrypted(); break;
@@ -3128,9 +3136,75 @@ function brgSend(){
 }
 /* --- наряд-задание: прораб выдаёт конкретному бригадиру, по умолчанию на завтра --- */
 /* подтверждение «Наряд-задание получил» */
+function tkDone(x){ return bdItems(x.d).filter(function(a){ return a.kind==='done'&&a.data&&a.data.tid===x.id; })[0]||null; }
+var DONE_ST={ok:'Выполнено',part:'Частично',no:'Не выполнено'}, tkDoneEdit={}, tkNotes={};
+function doneCan(x){ var r=role(); return r==='nach'||r==='tech'||r==='prorab'||(r==='mont'&&fioKey((x.data||{}).brig)===fioKey(sync.who)); }
+function doneHtml(x){
+  var dn=tkDone(x), cur=(dn&&dn.data)||{}, can=doneCan(x);
+  var head=dn?'<div class="xdone '+esc(cur.st||'')+'">'+(cur.st==='ok'?'✔':cur.st==='part'?'◐':'✘')+' <b>'+esc(DONE_ST[cur.st]||'')+'</b>'+(cur.note?': '+esc(cur.note):'')+' <small>'+esc(whoBase(cur.fio||dn.who))+' · '+fmtDT(dn.t)+'</small></div>'
+    :(can?'':'<div class="xack no">Выполнение за день ещё не отмечено</div>');
+  if(!can) return head;
+  if(dn&&!tkDoneEdit[x.id]) return head+'<button class="tkdedit" data-a="tkdoneedit" data-id="'+esc(x.id)+'">Изменить отметку о выполнении</button>';
+  var note=tkNotes[x.id]!=null?tkNotes[x.id]:(cur.note||'');
+  return head+'<div class="xdonef"><div class="xdlbl">Выполнение задания за день</div>'+
+    '<textarea id="tkn_'+esc(x.id)+'" data-tkn="'+esc(x.id)+'" rows="2" maxlength="500" placeholder="Комментарий: что сделано, что нет и почему">'+esc(note)+'</textarea>'+
+    '<div class="xdbtns">'+['ok','part','no'].map(function(k){ return '<button class="xdb '+k+(cur.st===k?' on':'')+'" data-a="tkdone" data-st="'+k+'" data-id="'+esc(x.id)+'" data-d="'+esc(x.d)+'" data-o="'+esc(x.obj||'')+'">'+DONE_ST[k]+'</button>'; }).join('')+'</div></div>';
+}
+function tkDoneSave(el){
+  var tid=el.dataset.id, d=el.dataset.d, st=el.dataset.st, ta=document.querySelector('[data-tkn="'+tid+'"]'), note=(ta?ta.value:(tkNotes[tid]||'')).trim();
+  if(!syncOn()){ toast('Нет связи с сервером'); return; }
+  if(st!=='ok'&&!note){ toast('Напишите комментарий: что не сделано и почему'); if(ta) ta.focus(); return; }
+  el.disabled=true;
+  bdPut({kind:'done',d:d,obj:el.dataset.o||'',id:('done|'+tid).slice(0,60),data:{tid:tid,st:st,note:note.slice(0,500),fio:sync.who}}).then(function(){ delete tkDoneEdit[tid]; delete tkNotes[tid]; toast('Отмечено: '+DONE_ST[st]); bdFetch(d,true); })
+    .catch(function(e){ el.disabled=false; toast('Не отправлено: '+((e&&e.message)||'')); });
+}
+document.addEventListener('input',function(e){ var t=e.target; if(t&&t.dataset&&t.dataset.tkn) tkNotes[t.dataset.tkn]=t.value; if(t&&t.id==='logq'){ clearTimeout(logQT); logQT=setTimeout(function(){ logState={list:[],q:t.value.trim(),more:true,busy:false}; logLoad(); },400); } },true);
+/* журнал изменений (только начальник участка и техник-помощник) */
+var logState={list:[],q:'',more:true,busy:false}, logQT=null;
+var LOG_A={push:'Отметки',addp:'Люди',purge:'Убраны из списка',people:'Список людей',clear:'Очистка',ndadd:'Наряд-допуск',nddel:'Удаление наряда',bput:'Доска',bdel:'Удаление',memocfg:'Настройки',ndcfg:'Настройки наряда'};
+function sheetLog(){
+  logState={list:[],q:'',more:true,busy:false};
+  openSheet('Журнал изменений','<input type="search" id="logq" placeholder="Поиск: фамилия, табельный №, № наряда" style="width:100%;margin-bottom:8px"><div id="loglist"><p class="note">Загружаю…</p></div>');
+  logLoad();
+}
+function logLoad(){
+  if(logState.busy) return; logState.busy=true;
+  var before=logState.list.length?logState.list[logState.list.length-1].id:0;
+  call({action:'loglist',q:logState.q,before:before,limit:100}).then(function(j){ logState.busy=false; var l=Array.isArray(j.list)?j.list:[]; logState.list=logState.list.concat(l); logState.more=l.length>=100; logRender(); })
+    .catch(function(e){ logState.busy=false; var el=$('loglist'); if(el) el.innerHTML='<p class="note">Не удалось загрузить: '+esc((e&&e.message)||'')+'</p>'; });
+}
+function logRender(){
+  var el=$('loglist'); if(!el) return;
+  if(!logState.list.length){ el.innerHTML='<p class="note">'+(logState.q?'Ничего не найдено.':'Записей пока нет: журнал ведётся с момента его включения.')+'</p>'; return; }
+  var last='';
+  el.innerHTML=logState.list.map(function(x){ var dt=new Date(x.t), day=dt.toLocaleDateString('ru-RU',{weekday:'short',day:'numeric',month:'long'}), h=day!==last?'<h3 class="logday">'+esc(day)+'</h3>':''; last=day;
+    return h+'<div class="logrow"><div class="logh"><b>'+dt.toTimeString().slice(0,5)+'</b> · '+esc(LOG_A[x.action]||x.action)+' · <span>'+esc(x.who||'')+'</span></div><div class="logt">'+esc(x.text||'')+'</div></div>'; }).join('')+
+    (logState.more?'<button data-a="logmore" class="tbtmanual">Показать ещё</button>':'');
+}
+/* резервные копии базы на сервере */
+function sheetSrvBk(){
+  openSheet('Резервные копии базы','<p class="note">Каждую ночь сервер сам сохраняет копию всей базы: отметки, люди, наряды, наряд-задания, численность, TBT. Копии хранятся 30 дней. Любую можно скачать файлом на телефон или компьютер.</p>'+
+    '<div class="acts" style="margin-top:0"><button data-a="bknow">Сделать копию сейчас</button></div><div id="bklist"><p class="note">Загружаю…</p></div>');
+  bkLoad();
+}
+function bkLoad(){
+  call({action:'bklist'}).then(function(j){ var el=$('bklist'); if(!el) return; var l=Array.isArray(j.list)?j.list:[];
+    el.innerHTML=l.length?'<div class="list2">'+l.map(function(x){ return '<button data-a="bkget" data-d="'+esc(x.d)+'">Копия за '+esc(tbtDmy(x.d))+'<small>'+Math.max(1,Math.round((x.size||0)/1024))+' КБ данных · сохранено '+fmtDT(x.t)+' · нажмите, чтобы скачать</small></button>'; }).join('')+'</div>'
+      :'<p class="note">Копий пока нет — первая появится ночью или по кнопке выше.</p>'; })
+    .catch(function(e){ var el=$('bklist'); if(el) el.innerHTML='<p class="note">Не удалось загрузить список: '+esc((e&&e.message)||'')+'</p>'; });
+}
+function bkNow(el){ el.disabled=true; el.textContent='Сохраняю…'; call({action:'bknow'}).then(function(j){ toast('Копия сохранена: '+Math.round((j.size||0)/1024)+' КБ'); el.disabled=false; el.textContent='Сделать копию сейчас'; bkLoad(); }).catch(function(e){ el.disabled=false; el.textContent='Сделать копию сейчас'; toast('Не удалось: '+((e&&e.message)||'')); }); }
+function bkGet(d){
+  toast('Готовлю файл…');
+  call({action:'bkget',d:d}).then(function(j){ var bin=atob(j.b64||''), a=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i);
+    return new Response(new Blob([a]).stream().pipeThrough(new DecompressionStream('gzip'))).blob(); })
+    .then(function(b){ var blob=new Blob([b],{type:'application/json'}); return saveFile('Табель_база_'+d+'.json','application/json',blob); })
+    .then(function(r){ reportDone(r); }).catch(function(e){ toast('Не удалось скачать: '+((e&&e.message)||'')); });
+}
 function tkAck(x){ return bdItems(x.d).filter(function(a){ return a.kind==='ack'&&a.data&&a.data.tid===x.id; })[0]||null; }
 function fmtDT(t){ return new Date(t).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
-function ackHtml(x){
+function ackHtml(x){ return ackHtml0(x)+doneHtml(x); }
+function ackHtml0(x){
   var a=tkAck(x), mine=role()==='mont'&&fioKey(x.data.brig)===fioKey(sync.who);
   if(a) return '<div class="xack ok">✓ Получил: '+esc(whoBase(a.data.fio||a.who))+' · '+fmtDT(a.t)+'</div>';
   if(mine) return '<button class="tbtdl xackbtn" data-a="tkack" data-id="'+esc(x.id)+'" data-d="'+esc(x.d)+'">Наряд-задание получил</button>';
@@ -3282,6 +3356,8 @@ function ndFromBrig(k,obj,d,bid,lead){
   if(k==='fire'&&!dr.rel) toast('Открытого наряда на опасные работы у этой бригады на '+esc(tbtDmy(d))+' нет');
 }
 function xClick(a,el){
+  if(a==='tkdone'){ tkDoneSave(el); return; }
+  if(a==='tkdoneedit'){ tkDoneEdit[el.dataset.id]=1; renderX(); return; }
   if(a==='ndtbt'){ ndTbtFromBrig(el.dataset.o,el.dataset.d,el.dataset.b,el.dataset.l); return; }
   if(a==='ndfrom'){ ndFromBrig(el.dataset.k,el.dataset.o,el.dataset.d,el.dataset.b,el.dataset.l); return; }
   if(a==='tkack'){ var tid=el.dataset.id, td=el.dataset.d; if(!syncOn()){ toast('Нет связи с сервером'); return; } el.disabled=true; el.textContent='Отправляю…';
