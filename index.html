@@ -459,7 +459,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='86';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='87';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2274,9 +2274,11 @@ function ndTeamList(st,k){
 function ndTeamRefresh(){ var st=ndSt(), k=st.kind, t=ndTeamState(st,k); if($('ndteam')) $('ndteam').innerHTML=ndTeamList(st,k); if($('ndonlyl')) $('ndonlyl').textContent=ndDmy(t.d1)+' ('+t.came+')'; if($('nd_nsel')) $('nd_nsel').textContent='('+ndTeamN(t.d)+' чел.)'; }
 function ndTeamN(d){ return (d.team||[]).length+(d.teamX||[]).length; }
 var ND_MEMF={works:1,tech:1,doc:1,hse:1};
+/* строки, убранные из памяти (сами наряды в журнале не меняются) */
+var ND_MEM_HIDE=['rebar reinforcement, installation and dismantling of formwork, grinding and concrete repair, manual excavation, excavation with an excavator'];
 /* всё, что раньше вписывали в наряды (все виды, все объекты): каждая строка — отдельный пункт, свежие первыми */
 function ndMemList(st,f){
-  var seen={}, out=[], add=function(v){ String(v||'').split(/\r?\n/).forEach(function(l){ l=l.trim(); var k=l.toLowerCase(); if(!l||seen[k]||/^(no|нет|-)$/i.test(l)) return; seen[k]=1; out.push(l); }); };
+  var seen={}, out=[], add=function(v){ String(v||'').split(/\r?\n/).forEach(function(l){ l=l.trim(); var k=l.toLowerCase(); if(!l||seen[k]||ND_MEM_HIDE.indexOf(k)>=0||/^(no|нет|-)$/i.test(l)) return; seen[k]=1; out.push(l); }); };
   if(f==='hse') add=(function(a){ return function(v){ v=String(v||'').trim(); var k=v.toLowerCase(); if(v&&!seen[k]){ seen[k]=1; out.push(v); } }; })();
   ndAll(st,'').forEach(function(e){ add(e[f]); });
   Object.keys(st.cfg||{}).forEach(function(sl){ add((st.cfg[sl]||{})[f]); });
