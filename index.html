@@ -459,7 +459,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='88';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='89';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2146,7 +2146,8 @@ var ND_ISSUER='Head of the site Tiurin V.P.', ND_FM=['Site Foreman Borodin M.K.'
 function ndFix(k,f,v){
   if(f==='issuer') return ND_ISSUER;
   if(f==='comb') return '';
-  if(f==='head'&&k!=='fire'||k==='fire'&&(f==='prep'||f==='exec')) return ND_FM.indexOf(v)>=0?v:ND_FM[0];
+  if(f==='head'&&k!=='fire'||k==='fire'&&f==='prep') return ND_FM.indexOf(v)>=0?v:ND_FM[0];
+  if(k==='fire'&&f==='exec') return String(v||'').trim()?v:ND_FM[0];
   if(f==='in'){ var L=k==='lift'?ND_FM:ND_FMS; return L.indexOf(v)>=0?v:L[0]; }
   if(f==='ir'&&k!=='lift') return 'Site Foreman';
   return v;
@@ -2355,7 +2356,7 @@ function renderNd(){
     '<h3 class="dh3">Ответственные</h3>'+
     ndFixed('Наряд выдал',ND_ISSUER)+
     ndSel(st,k,'prep','Ответственный за подготовку огневых работ',ND_FM)+
-    ndSel(st,k,'exec','Ответственный за проведение огневых работ (руководитель работ)',ND_FM)+
+    '<div class="fld"><label for="nd_exec">Ответственный за проведение огневых работ</label><input type="text" id="nd_exec" data-nd="exec" maxlength="400" list="ndl_fexec" value="'+esc(ndV(st,k,'exec'))+'"><datalist id="ndl_fexec">'+ND_FM.map(function(o){ return '<option value="'+esc(o)+'">'; }).join('')+'</datalist><small class="note">По бригаде подставляется бригадир; можно выбрать мастера из списка.</small></div>'+
     ndMulti(st,k,'hse','Специалист по ОТ (регистрирует наряд)','Engineer of HSE Department …')+
     ndSel(st,k,'in','Инструктаж провёл: Site Foreman',ND_FMS);
   else if(k==='lift') form=
@@ -3273,9 +3274,9 @@ function ndFromBrig(k,obj,d,bid,lead){
   dr.d1=d<today()?today():d;
   if(k==='fire'){ var hz=ndBrigOpen(b,d,obj,'hz'); if(hz.length) dr.rel=String(hz[0].no); }
   var lp=brigLeadPerson(b,lead), ex=lp?execEn(lp.p):'';
-  if(ex&&k!=='fire') dr.exec=ex;
+  if(ex) dr.exec=ex;
   st.draft[obj+'|'+k]=dr; ndSave(st);
-  ndQ=''; ndMsg=(b?'Бригада '+whoBase(lead)+': отмечено '+dr.team.length+' чел.'+(miss.length?' Нет в табеле: '+miss.join(', ')+'.':''):'Бригадир '+whoBase(lead)+' не подал численность — отметьте людей вручную.')+(dr.exec&&k!=='fire'?' Ответственный исполнитель: '+dr.exec+'.':'');
+  ndQ=''; ndMsg=(b?'Бригада '+whoBase(lead)+': отмечено '+dr.team.length+' чел.'+(miss.length?' Нет в табеле: '+miss.join(', ')+'.':''):'Бригадир '+whoBase(lead)+' не подал численность — отметьте людей вручную.')+(dr.exec?(k==='fire'?' Ответственный за проведение: ':' Ответственный исполнитель: ')+dr.exec+'.':'');
   ndFetchAt=0; setView('nd'); renderNd(); window.scrollTo(0,0);
   toast(ndMsg);
   if(k==='fire'&&!dr.rel) toast('Открытого наряда на опасные работы у этой бригады на '+esc(tbtDmy(d))+' нет');
