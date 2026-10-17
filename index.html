@@ -395,6 +395,9 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 .xcard{overflow-wrap:anywhere}.xcard button,.xobj button{min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.2}
 .xcard textarea,.xcard input,.xcard select{max-width:100%;box-sizing:border-box}
 .xdbtns{grid-template-columns:repeat(auto-fit,minmax(min(100%,84px),1fr))}.xdb{padding:4px 6px;font-size:13px}
+.ndchipw{display:inline-flex;max-width:100%;align-items:stretch}.ndchipw .ndchip{border-top-right-radius:0;border-bottom-right-radius:0}.ndchipx{min-height:32px;min-width:30px;padding:0 8px;border:1px solid var(--line);border-left:0;border-radius:0 16px 16px 0;color:var(--ab-t,#e66);font-size:16px}.ndchipw .ndchip:only-child{border-radius:16px}
+.ndmemadd{display:flex;gap:6px;width:100%;margin-top:4px}.ndmemadd input{flex:1;min-width:0}.ndmemadd button{min-height:36px;white-space:nowrap}
+.xbrgx{font-size:13px;margin-top:4px;overflow-wrap:anywhere}
 .xfoot{margin-top:10px;padding-top:6px;border-top:1px dashed var(--line)}.xfh{font-weight:700;margin:6px 0 2px}.xfi{margin:2px 0 4px}.xfi .ndcmp{display:block;margin-top:2px}
 body.vboard main{max-width:1600px}body.vboard #xv{max-width:none}
 @media (max-width:700px){.xobjs{grid-template-columns:1fr}}
@@ -467,7 +470,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='91';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='92';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -645,7 +648,7 @@ function canPeople(show){ var r=role(); if(r==='nach'||r==='tech'||r==='prorab')
 var DAY_A={set:1,hstep:1,hset:1,undo:1,go:1,scan:1,fill:1,fillok:1};
 var PEOPLE_A={padd:1,pbulk:1,pbulkok:1,pdel:1,pdelarch:1,pdelall:1,pdelok:1,pedit:1,psave:1,parch:1,imp:1,'import':1,pwgo:1,pwsheet:1,defh:1};
 var ADMIN_A={ssave:1,slink:1,lshare:1,lcopy:1,spl:1,splok:1,smonth:1,soff:1,soffok:1};
-var MONT_A={tkack:1,brgsend:1,tkday:1,book:1,view:1,mnav:1,mday:1,msort:1,msortx:1,mfile:1,mfget:1,mfshare:1,mfull:1,mexp:1,mexport:1,close:1,menu:1,snow:1,install:1,doinstall:1,month:1,mshift:1};
+var MONT_A={tkack:1,brgsend:1,brgpick:1,brgpickadd:1,tkdone:1,tkdoneedit:1,tkday:1,book:1,view:1,mnav:1,mday:1,msort:1,msortx:1,mfile:1,mfget:1,mfshare:1,mfull:1,mexp:1,mexport:1,close:1,menu:1,snow:1,install:1,doinstall:1,month:1,mshift:1};
 function roleClick(a,el){
   var r=role(); if(!r) return false;
   if(r==='mont'&&(!MONT_A[a]||(a==='view'&&['month','brig','task'].indexOf(el.dataset.v)<0)||(a==='book'&&el.dataset.b==='are'))){ if(a!=='mcell'&&a!=='mdayopen') toast(a==='book'?'Бригадиру доступен только табель РФ':'Недоступно для бригадира'); return false; }
@@ -2286,7 +2289,27 @@ var ND_MEMF={works:1,tech:1,doc:1,hse:1};
 /* строки, убранные из памяти (сами наряды в журнале не меняются) */
 var ND_MEM_HIDE=['rebar reinforcement, installation and dismantling of formwork, grinding and concrete repair, manual excavation, excavation with an excavator'];
 /* всё, что раньше вписывали в наряды (все виды, все объекты): каждая строка — отдельный пункт, свежие первыми */
-function ndMemList(st,f){
+var ndMemSrv=null, ndMemAt=0;
+function ndMemFetch(force){ if(!syncOn()) return; if(!force&&Date.now()-ndMemAt<60000) return; ndMemAt=Date.now();
+  call({action:'nmem'}).then(function(j){ ndMemSrv=(j&&j.mem)||{}; if(ui.view==='nd') renderNd(); else if(ui.view==='brig') renderX(); }).catch(function(){}); }
+function ndMemCan(){ var r=role(); return r==='nach'||r==='tech'||r==='prorab'; }
+/* память на сервере (общая для всех телефонов); пока её не правили — собирается из журнала нарядов */
+function ndMemList(st,f){ if(ndMemSrv&&Array.isArray(ndMemSrv[f])) return ndMemSrv[f].slice(); return ndMemDerived(st,f); }
+function ndMemOp(op,f,v){
+  if(!syncOn()){ toast('Нет связи с сервером'); return; }
+  call({action:'nmemset',op:op,f:f,v:v,seed:ndMemList(ndSt(),f)}).then(function(j){ ndMemSrv=j.mem||ndMemSrv; toast(op==='add'?'Добавлено в память':'Удалено из памяти'); if(ui.view==='nd') renderNd(); else renderX(); })
+    .catch(function(e){ toast('Не сохранено: '+((e&&e.message)||'')); });
+}
+function ndMemDel(el){ var v=el.dataset.v; if(!confirm('Удалить из памяти?\n\n'+v)) return; ndMemOp('del',el.dataset.f,v); }
+function ndMemNew(el){ var f=el.dataset.f, i=$('ndmemin_'+f), v=i?i.value.trim():''; if(!v){ if(i) i.focus(); toast('Впишите, что добавить'); return; } ndMemOp('add',f,v); }
+function ndMemChips(f,mem,isOn,act){
+  var can=ndMemCan();
+  return '<div class="ndmem"><small>Из памяти — нажмите, чтобы '+(f==='hse'?'подставить':f==='works'?'добавить (через запятую)':'добавить строкой')+(can?'; × — удалить из памяти':'')+':</small>'+
+    mem.map(function(m){ return '<span class="ndchipw"><button type="button" class="ndchip'+(isOn(m)?' on':'')+'" data-a="'+act+'" data-f="'+f+'" data-v="'+esc(m)+'">'+esc(m)+'</button>'+(can?'<button type="button" class="ndchipx" data-a="ndmemdel" data-f="'+f+'" data-v="'+esc(m)+'" aria-label="Удалить из памяти">×</button>':'')+'</span>'; }).join('')+
+    (can?'<div class="ndmemadd"><input id="ndmemin_'+f+'" maxlength="300" placeholder="Новый пункт в память"><button type="button" data-a="ndmemadd" data-f="'+f+'">+ В память</button></div>':'')+'</div>';
+}
+function ndHasWork(v,m){ return String(v||'').toLowerCase().indexOf(String(m).toLowerCase())>=0; }
+function ndMemDerived(st,f){
   var seen={}, out=[], add=function(v){ String(v||'').split(/\r?\n/).forEach(function(l){ l=l.trim(); var k=l.toLowerCase(); if(!l||seen[k]||ND_MEM_HIDE.indexOf(k)>=0||/^(no|нет|-)$/i.test(l)) return; seen[k]=1; out.push(l); }); };
   if(f==='hse') add=(function(a){ return function(v){ v=String(v||'').trim(); var k=v.toLowerCase(); if(v&&!seen[k]){ seen[k]=1; out.push(v); } }; })();
   ndAll(st,'').forEach(function(e){ add(e[f]); });
@@ -2295,17 +2318,22 @@ function ndMemList(st,f){
   return out.slice(0,60);
 }
 function ndMulti(st,k,f,label,ph){
-  var v=ndV(st,k,f), have={}, one=f==='hse';
+  ndMemFetch(false);
+  var v=ndV(st,k,f), have={}, one=f==='hse', comma=f==='works';
   String(v).split(/\r?\n/).forEach(function(l){ have[l.trim().toLowerCase()]=1; });
   var mem=ndMemList(st,f);
-  return '<div class="fld"><label for="nd_'+f+'">'+label+(one?'':' — каждая с новой строки')+'</label>'+
+  return '<div class="fld"><label for="nd_'+f+'">'+label+(one?'':comma?' — через запятую':' — каждая с новой строки')+'</label>'+
     (one?'<input type="text" id="nd_'+f+'" data-nd="'+f+'" maxlength="400" value="'+esc(v)+'" placeholder="'+esc(ph)+'">'
        :'<textarea id="nd_'+f+'" data-nd="'+f+'" rows="'+Math.min(6,Math.max(2,String(v).split(/\n/).length+1))+'" maxlength="1500" placeholder="'+esc(ph)+'">'+esc(v)+'</textarea>')+
-    (mem.length?'<div class="ndmem"><small>Из памяти — нажмите, чтобы '+(one?'подставить':'добавить строкой')+':</small>'+mem.map(function(m){ return '<button type="button" class="ndchip'+(have[m.toLowerCase()]?' on':'')+'" data-a="ndmem" data-f="'+f+'" data-v="'+esc(m)+'">'+esc(m)+'</button>'; }).join('')+'</div>':'')+'</div>';
+    ((mem.length||ndMemCan())?ndMemChips(f,mem,function(m){ return comma?ndHasWork(v,m):!!have[m.toLowerCase()]; },'ndmem'):'')+'</div>';
 }
 function ndMemAdd(el){
   var f=el.dataset.f, v=el.dataset.v, t=$('nd_'+f); if(!t) return;
   if(f==='hse'){ t.value=v; document.querySelectorAll('.ndchip[data-f="hse"]').forEach(function(b){ b.classList.toggle('on',b===el); }); }
+  else if(f==='works'){ var cur=t.value.replace(/\s*\n\s*/g,', ').trim();
+    if(ndHasWork(cur,v)){ var i0=cur.toLowerCase().indexOf(v.toLowerCase()); cur=(cur.slice(0,i0)+cur.slice(i0+v.length)).replace(/^\s*,\s*|\s*,\s*$/g,'').replace(/\s*,\s*,\s*/g,', '); el.classList.remove('on'); }
+    else { cur=cur.replace(/[\s,]+$/,''); cur=cur?cur+', '+v:v; el.classList.add('on'); }
+    t.value=cur; }
   else { var ls=t.value.split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean), i=ls.map(function(l){ return l.toLowerCase(); }).indexOf(v.toLowerCase());
     if(i>=0){ ls.splice(i,1); el.classList.remove('on'); } else { ls.push(v); el.classList.add('on'); }
     t.value=ls.join('\n'); t.rows=Math.min(6,Math.max(2,ls.length+1)); }
@@ -2702,7 +2730,7 @@ document.addEventListener('click',function(e){
   if(a.indexOf('tbt')===0){ tbtClick(a,el); return; }
   if(a==='ndapply'||a==='ndmanual'){ ndApplyComp(el.dataset.id,el.dataset.d,a==='ndmanual'?'manual':'file'); return; }
   if(a==='ndrenew'){ ndRenew(el.dataset.id,el.dataset.d); return; }
-  if(a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'||a==='ndfrom'||a==='ndtbt'||a==='tkdone'||a==='tkdoneedit'){ xClick(a,el); return; }
+  if(a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'||a==='ndfrom'||a==='ndtbt'||a==='tkdone'||a==='tkdoneedit'||a==='brgpick'||a==='brgpickadd'){ xClick(a,el); return; }
   switch(a){
     case 'book': if(root.cur!==el.dataset.b){ root.cur=el.dataset.b; save(); ui.q=''; $('q').value=''; ui.open={}; clearMsg(); render(); window.scrollTo(0,0); pull(); } break;
     case 'date': sheetDate(); break;
@@ -2734,6 +2762,8 @@ document.addEventListener('click',function(e){
     case 'absdoc': absMake(); break;
     case 'ndobj': { var no2=ndSt(); no2.obj=el.dataset.o; if(no2.kind==='log') no2.kind=no2.lastKind; ndSave(no2); ndQ=''; ndMsg=''; ndFetchAt=0; renderNd(); break; }
     case 'ndmem': ndMemAdd(el); break;
+    case 'ndmemdel': ndMemDel(el); break;
+    case 'ndmemadd': ndMemNew(el); break;
     case 'ndkind': { var ns=ndSt(); ns.kind=el.dataset.k; if(ND_TITLE[ns.kind]) ns.lastKind=ns.kind; ndSave(ns); ndQ=''; ndMsg=''; ndShowAll=false; ndFetchAt=0; renderNd(); break; }
     case 'ndedit': ndEdit(el.dataset.id); break;
     case 'ndsave': ndMake(el.dataset.dl?'dl':'save'); break;
@@ -3125,9 +3155,25 @@ function brgRender(){
     '<label for="brg_obj">Объект</label>'+objSelect('brg_obj',obj)+
     '<label for="brg_nums">Табельные номера работников (через пробел или запятую)</label><textarea id="brg_nums" rows="3" inputmode="numeric">'+esc(nums)+'</textarea>'+
     '<div class="xlist">'+list.map(function(n,i){ var x=anyPerson(n); return '<div class="xrow"><b>'+(i+1)+'.</b> '+esc(n)+' '+(x?esc(x.p.name)+' <small>'+esc(x.p.role||'')+'</small>':'<span class="xno">нет в табеле</span>')+'</div>'; }).join('')+'</div>'+
+    brgPick('tech','Техника, которую бригада использует сегодня',o,mine)+brgPick('doc','ППР / ТК для производства работ',o,mine)+
     '<button class="tbtdl" data-a="brgsend">'+(mine?'Обновить численность бригады':'Подать численность бригады')+'</button><p class="note" id="brg_msg"></p></div>'+
     (mine?(function(){ var nd=ndOpenOn(d,mine.obj).filter(function(e){ var b=ndBrigOf(e,d); return b&&b.id===mine.id; }); return '<h3 class="tbth3">Наряд-допуск</h3>'+(nd.length?nd.map(function(e){ return '<div class="xcard"><b>№ '+esc(e.no)+'</b> <small>'+(ND_KBTN[e.kind]||'')+' · до '+esc(e.d2||'')+'</small>'+ndCompHtml(e,d)+'</div>'; }).join(''):'<p class="note">Действующий наряд-допуск для вашей бригады не найден.</p>'); })():'');
   return h;
+}
+function brgSel(f,o,mine){ if(Array.isArray(o[f])) return o[f]; return (mine&&mine.data&&Array.isArray(mine.data[f]))?mine.data[f].slice():[]; }
+function brgPick(f,label,o,mine){
+  ndMemFetch(false);
+  var sel=brgSel(f,o,mine), low=sel.map(function(x){ return x.toLowerCase(); }), mem=ndMemList(ndSt(),f);
+  var extra=sel.filter(function(x){ return mem.map(function(m){ return m.toLowerCase(); }).indexOf(x.toLowerCase())<0; });
+  return '<label>'+label+'</label><div class="ndmem">'+(mem.length||extra.length?'<small>Нажмите, чтобы выбрать (можно несколько):</small>':'<small>Список пуст — впишите ниже</small>')+
+    extra.concat(mem).map(function(m){ return '<button type="button" class="ndchip'+(low.indexOf(m.toLowerCase())>=0?' on':'')+'" data-a="brgpick" data-f="'+f+'" data-v="'+esc(m)+'">'+esc(m)+'</button>'; }).join('')+
+    '<div class="ndmemadd"><input id="brgadd_'+f+'" maxlength="300" placeholder="'+(f==='tech'?'Другая техника: вид, марка, рег. №':'Другой ППР / ТК')+'"><button type="button" data-a="brgpickadd" data-f="'+f+'">+ Добавить</button></div></div>';
+}
+function brgPickToggle(f,v,force){
+  var o=brgSt(), d=today(), mine=bdItems(d).filter(function(x){ return x.kind==='brig'&&x.id===myBrigId(d); })[0];
+  var sel=brgSel(f,o,mine), i=sel.map(function(x){ return x.toLowerCase(); }).indexOf(v.toLowerCase());
+  if(i>=0&&!force) sel.splice(i,1); else if(i<0) sel.push(v);
+  o[f]=sel; brgSave(o); renderX();
 }
 function brgSend(){
   var o=brgSt(), d=today(), msg=$('brg_msg');
@@ -3136,7 +3182,8 @@ function brgSend(){
   if(!sync.who){ msg.textContent='Укажите фамилию: Меню → выйти и войти снова.'; return; }
   if(!syncOn()){ msg.textContent='Нет связи с сервером.'; return; }
   msg.textContent='Отправляю…';
-  bdPut({kind:'brig',d:d,obj:o.obj,id:myBrigId(d),data:{lead:sync.who,lnum:o.lnum,nums:nums,tid:myTasks(d).map(function(t){ return t.id; })}}).then(function(){ toast('Численность бригады подана'); bdFetch(d,true); })
+  var mine0=bdItems(d).filter(function(x){ return x.kind==='brig'&&x.id===myBrigId(d); })[0];
+  bdPut({kind:'brig',d:d,obj:o.obj,id:myBrigId(d),data:{lead:sync.who,lnum:o.lnum,nums:nums,tech:brgSel('tech',o,mine0),doc:brgSel('doc',o,mine0),tid:myTasks(d).map(function(t){ return t.id; })}}).then(function(){ toast('Численность бригады подана'); bdFetch(d,true); })
     .catch(function(e){ msg.textContent='Не отправлено: '+((e&&e.message)||'ошибка'); });
 }
 /* --- наряд-задание: прораб выдаёт конкретному бригадиру, по умолчанию на завтра --- */
@@ -3263,7 +3310,8 @@ function bdMore(id,obj,d,b,t){
 }
 function brigMembers(x,d){ var dd=x.data||{}, bad=0, no=0;
   var list=(dd.nums||[]).map(function(n,i){ var p=anyPerson(n), st=p?personDayStat(p,d):''; if(st==='прогул') bad++; if(!p) no++; return '<div class="xrow'+(st==='прогул'?' xbad':'')+'"><b>'+(i+1)+'.</b> '+esc(n)+' '+(p?esc(shortName(p.p.name))+' <small>'+esc(p.p.role||'')+' · '+esc(st)+'</small>':'<span class="xno">нет в табеле</span>')+'</div>'; }).join('');
-  return '<details class="xmem" data-bid="'+esc(x.id)+'"'+(bdMemOpen[x.id]?' open':'')+'><summary>Состав бригады: '+(dd.nums||[]).length+' чел.'+(bad?' · <span class="xbad">прогул: '+bad+'</span>':'')+(no?' · <span class="xno">нет в табеле: '+no+'</span>':'')+'</summary><div class="xlist">'+list+'</div></details>'; }   // какие списки бригад развёрнуты (сохраняется между обновлениями доски)
+  var tx=(Array.isArray(dd.tech)&&dd.tech.length?'<div class="xbrgx"><b>Техника:</b> '+esc(dd.tech.join('; '))+'</div>':'')+(Array.isArray(dd.doc)&&dd.doc.length?'<div class="xbrgx"><b>ППР:</b> '+esc(dd.doc.join('; '))+'</div>':'');
+  return tx+'<details class="xmem" data-bid="'+esc(x.id)+'"'+(bdMemOpen[x.id]?' open':'')+'><summary>Состав бригады: '+(dd.nums||[]).length+' чел.'+(bad?' · <span class="xbad">прогул: '+bad+'</span>':'')+(no?' · <span class="xno">нет в табеле: '+no+'</span>':'')+'</summary><div class="xlist">'+list+'</div></details>'; }   // какие списки бригад развёрнуты (сохраняется между обновлениями доски)
 document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classList&&(t.classList.contains('xmem')||t.classList.contains('xmore'))) bdMemOpen[t.dataset.bid]=t.open; },true);
 function bdRender(){
   var d=bdDate||today(); bdFetch(d,false); bdFetch(addDays(d,-1),false); bdPullDay(d);
@@ -3279,7 +3327,8 @@ function bdRender(){
   function members(x){ return brigMembers(x,d); }
   function members_old(x){ var dd=x.data||{}, bad=0, no=0;
     var list=(dd.nums||[]).map(function(n,i){ var p=anyPerson(n), st=p?personDayStat(p,d):''; if(st==='прогул') bad++; if(!p) no++; return '<div class="xrow'+(st==='прогул'?' xbad':'')+'"><b>'+(i+1)+'.</b> '+esc(n)+' '+(p?esc(shortName(p.p.name))+' <small>'+esc(p.p.role||'')+' · '+esc(st)+'</small>':'<span class="xno">нет в табеле</span>')+'</div>'; }).join('');
-    return '<details class="xmem" data-bid="'+esc(x.id)+'"'+(bdMemOpen[x.id]?' open':'')+'><summary>Состав бригады: '+(dd.nums||[]).length+' чел.'+(bad?' · <span class="xbad">прогул: '+bad+'</span>':'')+(no?' · <span class="xno">нет в табеле: '+no+'</span>':'')+'</summary><div class="xlist">'+list+'</div></details>'; }
+    var tx=(Array.isArray(dd.tech)&&dd.tech.length?'<div class="xbrgx"><b>Техника:</b> '+esc(dd.tech.join('; '))+'</div>':'')+(Array.isArray(dd.doc)&&dd.doc.length?'<div class="xbrgx"><b>ППР:</b> '+esc(dd.doc.join('; '))+'</div>':'');
+  return tx+'<details class="xmem" data-bid="'+esc(x.id)+'"'+(bdMemOpen[x.id]?' open':'')+'><summary>Состав бригады: '+(dd.nums||[]).length+' чел.'+(bad?' · <span class="xbad">прогул: '+bad+'</span>':'')+(no?' · <span class="xno">нет в табеле: '+no+'</span>':'')+'</summary><div class="xlist">'+list+'</div></details>'; }
   h+='<h3 class="tbth3">2. Объекты: наряд-задания, бригады, наряд-допуски, TBT</h3>';
   var nds=ndAll(ndSt(),''), frames='', empty=[];
   objs.forEach(function(o){
@@ -3363,6 +3412,7 @@ function ndFromBrig(k,obj,d,bid,lead){
   var nx=ndNext(st,k); if(nx) dr.no=nx;
   dr.d1=d<today()?today():d;
   if(k==='fire'){ var hz=ndBrigOpen(b,d,obj,'hz'); if(hz.length) dr.rel=String(hz[0].no); }
+  if(b&&b.data&&k!=='fire'){ if(Array.isArray(b.data.tech)&&b.data.tech.length) dr.tech=b.data.tech.join('\n'); if(Array.isArray(b.data.doc)&&b.data.doc.length) dr.doc=b.data.doc.join('\n'); }
   var lp=brigLeadPerson(b,lead), ex=lp?execEn(lp.p):'';
   if(ex) dr.exec=ex;
   st.draft[obj+'|'+k]=dr; ndSave(st);
@@ -3372,6 +3422,8 @@ function ndFromBrig(k,obj,d,bid,lead){
   if(k==='fire'&&!dr.rel) toast('Открытого наряда на опасные работы у этой бригады на '+esc(tbtDmy(d))+' нет');
 }
 function xClick(a,el){
+  if(a==='brgpick'){ brgPickToggle(el.dataset.f,el.dataset.v,false); return; }
+  if(a==='brgpickadd'){ var bi=$('brgadd_'+el.dataset.f), bv=bi?bi.value.trim():''; if(!bv){ toast('Впишите, что добавить'); return; } brgPickToggle(el.dataset.f,bv,true); return; }
   if(a==='tkdone'){ tkDoneSave(el); return; }
   if(a==='tkdoneedit'){ tkDoneEdit[el.dataset.id]=1; renderX(); return; }
   if(a==='ndtbt'){ ndTbtFromBrig(el.dataset.o,el.dataset.d,el.dataset.b,el.dataset.l); return; }
