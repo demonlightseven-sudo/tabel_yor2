@@ -474,7 +474,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='101';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='102';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2082,8 +2082,8 @@ function renderDocs(){
       '<div class="fld"><label for="m_rbt">Перерыв по</label><input type="time" id="m_rbt" value="'+esc(c.rbt)+'"></div></div>'
     :'<div class="dgrid"><div class="fld"><label for="m_to">Работают до</label><input type="time" id="m_to" value="'+c.to+'"></div>'+
     '<div class="fld"><label for="m_from">Начало сверхурочной (для тех, у кого в табеле норма)</label><input type="time" id="m_from" value="'+c.from+'"></div></div>')+
-    '<h3 class="dh3">Работники ('+sel+' из '+list.length+')</h3>'+
-    (list.length?'<div class="mlist">'+rows+'</div>':'<p class="note">В этот день в табеле '+BOOKS[root.cur]+' нет отметок «Пришёл». Сначала отметьте явку.</p>')+
+    '<details class="ndfold" data-fold="memo'+(rvd?'r':'o')+'"'+(typeof ndFold!=='undefined'&&ndFold&&ndFold['memo'+(rvd?'r':'o')]?' open':'')+'><summary><span class="dh3">Работники</span> <span class="ndob">отмечено '+sel+' из '+list.length+'</span></summary>'+
+    (list.length?'<div class="mlist">'+rows+'</div>':'<p class="note">В этот день в табеле '+BOOKS[root.cur]+' нет отметок «Пришёл». Сначала отметьте явку.</p>')+'</details>'+
     '<h3 class="dh3">Объекты и работы</h3>'+c.objs.map(function(o,k){
       return '<div class="mobj"><div class="mobjh"><b>Объект '+(k+1)+'</b>'+(c.objs.length>1?'<button data-a="mobjdel" data-k="'+k+'" aria-label="Убрать объект '+(k+1)+'">Убрать</button>':'')+'</div>'+
         '<div class="fld"><label for="m_obj'+k+'">Название объекта</label><input type="text" id="m_obj'+k+'" data-mo="'+k+'" data-mf="obj" maxlength="300" value="'+esc(o.obj)+'" placeholder="Центральный КПП №1 для пропуска персонала и посетителей (91UYE):"></div>'+
