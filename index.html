@@ -407,6 +407,7 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 .xnav .hdate{flex:1 1 auto;min-width:0}
 .hdate.past{background:#F3D98B;border-color:#C9A63A;color:#2A2100}.hstatic{border:1px solid var(--line);border-radius:8px;background:var(--surface)}
 @media (max-width:420px){.xnav .xarr{padding:0 5px;font-size:12px}.xnav .xarr .wd{display:none}}
+.xcomp{margin-top:8px;padding:6px 8px;border:1px dashed var(--line);border-radius:10px}.xcomp .xfh{margin-top:0}.xcomp .ndcmp{display:block;margin-top:4px}
 .xfoot{margin-top:10px;padding-top:6px;border-top:1px dashed var(--line)}.xfh{font-weight:700;margin:6px 0 2px}.xfi{margin:2px 0 4px}.xfi .ndcmp{display:block;margin-top:2px}
 body.vboard main{max-width:1600px}body.vboard #xv{max-width:none}
 @media (max-width:700px){.xobjs{grid-template-columns:1fr}}
@@ -479,7 +480,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='104';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='105';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3360,7 +3361,7 @@ function tkCard(x){
   return '<div class="xcard"><div class="xch"><b>'+esc(x.obj)+'</b> · бригадир: <b>'+esc(whoBase(dd.brig)||'—')+'</b>'+(role()!=='mont'&&(isAdmin()||x.role===role())?'<button class="tbtx" data-a="tkdel" data-id="'+esc(x.id)+'" aria-label="Удалить задание">✕</button>':'')+'</div>'+
     '<div class="xtask">'+esc(dd.tasks||'').replace(/\n/g,'<br>')+'</div><small class="note">Выдал: '+esc(whoBase(x.who))+' · '+fmtDT(x.t)+'</small>'+ackHtml(x)+
     (ndOk()?(function(){ var b=bdItems(x.d).filter(function(y){ return y.kind==='brig'&&fioKey(y.data.lead)===fioKey(dd.brig); })[0]||null;
-      return '<div class="xbrgn">'+(b?'Бригада: <b class="xok">'+(b.data.nums||[]).length+' чел.</b> <small class="note">подано '+new Date(b.t).toTimeString().slice(0,5)+(b.obj!==x.obj?' · на '+esc(b.obj):'')+'</small>':'<span class="xno">Численность бригады не подана</span>')+'</div>'+(b?brigMembers(b,x.d):'')+ndKinds4(x.obj,x.d,b,dd.brig); })():'')+'</div>';
+      return '<div class="xbrgn">'+(b?'Бригада: <b class="xok">'+(b.data.nums||[]).length+' чел.</b> <small class="note">подано '+new Date(b.t).toTimeString().slice(0,5)+(b.obj!==x.obj?' · на '+esc(b.obj):'')+'</small>':'<span class="xno">Численность бригады не подана</span>')+'</div>'+(b?brigMembers(b,x.d):'')+ndCompBlock(b,x.d,x.obj)+ndKinds4(x.obj,x.d,b,dd.brig); })():'')+'</div>';
 }
 function tkRender(){
   var d=tkDate||tkDef(); bdFetch(d,false); var hn=$('hnav'); if(hn) hn.innerHTML=navDate('tkday',d);
@@ -3376,7 +3377,7 @@ function tkRender(){
     '<button class="tbtdl" data-a="tksend">Выдать наряд-задание</button><p class="note" id="tk_msg"></p></div>'+
     '<h3 class="tbth3">Выдано на '+esc(dmyLong(d))+' ('+tasks.length+')</h3>'+(tasks.length?tasks.map(tkCard).join(''):'<p class="note">Пока нет.</p>')+
     (ndOk()?(function(){ var nb=bdItems(d).filter(function(x){ return x.kind==='brig'&&!tasks.some(function(t){ return fioKey(t.data.brig)===fioKey(x.data.lead); }); });
-      return nb.length?'<h3 class="tbth3">Подали численность, но без наряд-задания ('+nb.length+')</h3>'+nb.map(function(b){ return '<div class="xcard"><div class="xch"><b>'+esc(b.obj)+'</b> · бригадир: <b>'+esc(whoBase(b.data.lead))+'</b></div><div class="xbrgn">Бригада: <b class="xok">'+(b.data.nums||[]).length+' чел.</b> <small class="note">подано '+new Date(b.t).toTimeString().slice(0,5)+'</small> · <span class="xno">наряд-задание не выдано</span></div>'+brigMembers(b,d)+ndKinds4(b.obj,d,b,b.data.lead)+'</div>'; }).join(''):''; })():'');
+      return nb.length?'<h3 class="tbth3">Подали численность, но без наряд-задания ('+nb.length+')</h3>'+nb.map(function(b){ return '<div class="xcard"><div class="xch"><b>'+esc(b.obj)+'</b> · бригадир: <b>'+esc(whoBase(b.data.lead))+'</b></div><div class="xbrgn">Бригада: <b class="xok">'+(b.data.nums||[]).length+' чел.</b> <small class="note">подано '+new Date(b.t).toTimeString().slice(0,5)+'</small> · <span class="xno">наряд-задание не выдано</span></div>'+brigMembers(b,d)+ndCompBlock(b,d,b.obj)+ndKinds4(b.obj,d,b,b.data.lead)+'</div>'; }).join(''):''; })():'');
   return h;
 }
 function tkSend(){
@@ -3446,7 +3447,7 @@ function bdRender(){
     /* внизу рамки объекта — только то, что есть: открытые наряды (со сверкой состава) и проведённые TBT; пустых строк «нет / не проведён» нет */
     var footIn=(open.length?'<div class="xfh">Наряд-допуски</div>'+open.map(function(e){ return '<div class="xfi"><span class="xyes">✔</span> № '+esc(e.no)+' <small>'+(ND_KBTN[e.kind]||'')+' до '+esc(e.d2||'')+'</small>'+ndCompHtml(e,d)+'</div>'; }).join(''):'')+
       (tb.length?'<div class="xfh">Инструктаж TBT</div>'+tb.map(function(x){ return '<div class="xfi"><span class="xyes">✔</span> '+esc(whoBase(x.who))+' <small>'+new Date(x.t).toTimeString().slice(0,5)+(x.data&&x.data.n?' · '+x.data.n+' чел.':'')+'</small></div>'; }).join(''):'');
-    var foot=footIn?'<div class="xfoot">'+footIn+'</div>':'';
+    var foot='';   // сверка состава и перенос изменений — во вкладке «Наряд-задание»
     var ok='o|'+o;
     frames+='<div class="xobj"><details class="xobjd" data-bid="'+esc(ok)+'"'+(bdMemOpen[ok]?' open':'')+'><summary class="xobjh">'+esc(o)+' <small>Бригадиров: '+to.length+' · чел.: <b class="xok">'+bo.reduce(function(s,x){ return s+(x.data.nums||[]).length; },0)+'</b></small></summary>'+
       (cards||'<p class="note">Наряд-заданий и бригад нет.</p>')+foot+'</details></div>';
@@ -3459,6 +3460,12 @@ function bdRender(){
 var ND_K4=[['hz','Опасные работы'],['fire','Огневые работы'],['lift','Подъёмные механизмы'],['conc','Бетонные работы']];
 function ndBrigOpen(b,d,obj,k){ if(!b) return []; return ndOpenOn(d,obj).filter(function(e){ if(e.kind!==k) return false; var x=ndBrigOf(e,d); return x&&x.id===b.id; }); }
 function ndOk(){ return isAdmin()||role()==='prorab'; }
+/* сверка состава бригады с её открытыми нарядами и кнопки переноса изменений */
+function ndCompBlock(b,d,obj){
+  if(!b||!ndOk()) return '';
+  var nds=ndBrigAll(b,d,obj); if(!nds.length) return '';
+  return '<div class="xcomp"><div class="xfh">Сверка состава с открытыми нарядами</div>'+nds.map(function(e){ return '<div class="xfi"><b>№ '+esc(e.no)+'</b> <small>'+(ND_KBTN[e.kind]||'')+' · до '+esc(e.d2||'')+'</small>'+ndCompHtml(e,d)+'</div>'; }).join('')+'</div>';
+}
 function ndKinds4(obj,d,b,lead){
   if(!ndOk()) return '';
   return '<div class="ndk4">'+ND_K4.map(function(x){
