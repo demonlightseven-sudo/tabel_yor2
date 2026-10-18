@@ -474,7 +474,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='102';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='103';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3422,8 +3422,10 @@ function bdRender(){
       cards+='<div class="xcard"><div class="xch"><b>'+esc(whoBase(b.data.lead))+'</b> · '+(b.data.nums||[]).length+' чел. <span class="xno">наряд-задание не выдано</span></div>'+bdMore(b.id,o,d,b,null)+members(b)+ndKinds4(o,d,b,b.data.lead)+'</div></details></div>';
     });
     if(!cards&&!open.length&&!tb.length){ empty.push(o); return; }
-    var foot='<div class="xfoot"><div class="xfh">Наряд-допуски</div>'+(open.length?open.map(function(e){ return '<div class="xfi"><span class="xyes">✔</span> № '+esc(e.no)+' <small>'+(ND_KBTN[e.kind]||'')+' до '+esc(e.d2||'')+'</small>'+ndCompHtml(e,d)+'</div>'; }).join(''):'<div class="xfi"><span class="xnot">✘</span> нет открытых</div>')+
-      '<div class="xfh">Инструктаж TBT</div>'+(tb.length?tb.map(function(x){ return '<div class="xfi"><span class="xyes">✔</span> '+esc(whoBase(x.who))+' <small>'+new Date(x.t).toTimeString().slice(0,5)+(x.data&&x.data.n?' · '+x.data.n+' чел.':'')+'</small></div>'; }).join(''):'<div class="xfi"><span class="xnot">✘</span> не проведён</div>')+'</div>';
+    /* внизу рамки объекта — только то, что есть: открытые наряды (со сверкой состава) и проведённые TBT; пустых строк «нет / не проведён» нет */
+    var footIn=(open.length?'<div class="xfh">Наряд-допуски</div>'+open.map(function(e){ return '<div class="xfi"><span class="xyes">✔</span> № '+esc(e.no)+' <small>'+(ND_KBTN[e.kind]||'')+' до '+esc(e.d2||'')+'</small>'+ndCompHtml(e,d)+'</div>'; }).join(''):'')+
+      (tb.length?'<div class="xfh">Инструктаж TBT</div>'+tb.map(function(x){ return '<div class="xfi"><span class="xyes">✔</span> '+esc(whoBase(x.who))+' <small>'+new Date(x.t).toTimeString().slice(0,5)+(x.data&&x.data.n?' · '+x.data.n+' чел.':'')+'</small></div>'; }).join(''):'');
+    var foot=footIn?'<div class="xfoot">'+footIn+'</div>':'';
     var ok='o|'+o;
     frames+='<div class="xobj"><details class="xobjd" data-bid="'+esc(ok)+'"'+(bdMemOpen[ok]?' open':'')+'><summary class="xobjh">'+esc(o)+' <small>Бригадиров: '+to.length+' · чел.: <b class="xok">'+bo.reduce(function(s,x){ return s+(x.data.nums||[]).length; },0)+'</b></small></summary>'+
       (cards||'<p class="note">Наряд-заданий и бригад нет.</p>')+foot+'</details></div>';
