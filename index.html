@@ -401,6 +401,7 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 .sgg{margin:10px 0;padding:8px;border:1px solid var(--line);border-radius:10px}.sgh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}.sgh button{min-height:36px}.sgrow{margin:6px 0}.sgline{display:flex;gap:6px;align-items:stretch}.sgline textarea{flex:1;min-width:0}.sgdel{min-width:40px;padding:0 8px;color:var(--ab-t,#e66)}
 .xacks{padding:6px 10px;font-size:14px}
 .ndfold{margin:14px 0 8px;border:1px solid var(--line);border-radius:10px;padding:0 10px}.ndfold>summary{cursor:pointer;list-style:none;padding:10px 0;font-weight:700;font-size:16px}.ndfold>summary::-webkit-details-marker{display:none}.ndfold>summary::before{content:'▸ ';}.ndfold[open]>summary::before{content:'▾ ';}.ndfold[open]>summary{border-bottom:1px dashed var(--line);margin-bottom:8px}.ndfold>summary .dh3,.ndfold>summary .tbth3{display:inline;margin:0;font-size:inherit}
+.xobjd>summary{cursor:pointer;list-style:none}.xobjd>summary::-webkit-details-marker{display:none}.xobjd>summary::before{content:'▸ ';}.xobjd[open]>summary::before{content:'▾ ';}.xobjd:not([open])>summary{border-bottom:0;padding-bottom:0}.xobjh small b.xok{font-weight:800;font-size:14px}
 .xfoot{margin-top:10px;padding-top:6px;border-top:1px dashed var(--line)}.xfh{font-weight:700;margin:6px 0 2px}.xfi{margin:2px 0 4px}.xfi .ndcmp{display:block;margin-top:2px}
 body.vboard main{max-width:1600px}body.vboard #xv{max-width:none}
 @media (max-width:700px){.xobjs{grid-template-columns:1fr}}
@@ -473,7 +474,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='100';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='101';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3388,7 +3389,7 @@ function brigMembers(x,d){ var dd=x.data||{}, bad=0, no=0;
   var list=(dd.nums||[]).map(function(n,i){ var p=anyPerson(n), st=p?personDayStat(p,d):''; if(st==='прогул') bad++; if(!p) no++; return '<div class="xrow'+(st==='прогул'?' xbad':'')+'"><b>'+(i+1)+'.</b> '+esc(n)+' '+(p?esc(shortName(p.p.name))+' <small>'+esc(p.p.role||'')+' · '+esc(st)+'</small>':'<span class="xno">нет в табеле</span>')+'</div>'; }).join('');
   var tx=(Array.isArray(dd.tech)&&dd.tech.length?'<div class="xbrgx"><b>Техника:</b> '+esc(dd.tech.join('; '))+'</div>':'')+(Array.isArray(dd.doc)&&dd.doc.length?'<div class="xbrgx"><b>ППР:</b> '+esc(dd.doc.join('; '))+'</div>':'');
   return tx+'<details class="xmem" data-bid="'+esc(x.id)+'"'+(bdMemOpen[x.id]?' open':'')+'><summary>Состав бригады: '+(dd.nums||[]).length+' чел.'+(bad?' · <span class="xbad">прогул: '+bad+'</span>':'')+(no?' · <span class="xno">нет в табеле: '+no+'</span>':'')+'</summary><div class="xlist">'+list+'</div></details>'; }   // какие списки бригад развёрнуты (сохраняется между обновлениями доски)
-document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classList&&(t.classList.contains('xmem')||t.classList.contains('xmore'))) bdMemOpen[t.dataset.bid]=t.open; },true);
+document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classList&&(t.classList.contains('xmem')||t.classList.contains('xmore')||t.classList.contains('xobjd'))) bdMemOpen[t.dataset.bid]=t.open; },true);
 function bdRender(){
   var d=bdDate||today(); bdFetch(d,false); bdFetch(addDays(d,-1),false); bdPullDay(d);
   var cols=[['list','В списке'],['work','Пришли'],['ab','Прогул'],['off','Выходной'],['dob','DO по графику'],['sick','Больничный'],['pl','Отпуск'],['ul','Отпуск без ЗП'],['unm','Без отметки'],['fired','Уволены'],['ot','Сверхурочка']];
@@ -3423,8 +3424,9 @@ function bdRender(){
     if(!cards&&!open.length&&!tb.length){ empty.push(o); return; }
     var foot='<div class="xfoot"><div class="xfh">Наряд-допуски</div>'+(open.length?open.map(function(e){ return '<div class="xfi"><span class="xyes">✔</span> № '+esc(e.no)+' <small>'+(ND_KBTN[e.kind]||'')+' до '+esc(e.d2||'')+'</small>'+ndCompHtml(e,d)+'</div>'; }).join(''):'<div class="xfi"><span class="xnot">✘</span> нет открытых</div>')+
       '<div class="xfh">Инструктаж TBT</div>'+(tb.length?tb.map(function(x){ return '<div class="xfi"><span class="xyes">✔</span> '+esc(whoBase(x.who))+' <small>'+new Date(x.t).toTimeString().slice(0,5)+(x.data&&x.data.n?' · '+x.data.n+' чел.':'')+'</small></div>'; }).join(''):'<div class="xfi"><span class="xnot">✘</span> не проведён</div>')+'</div>';
-    frames+='<div class="xobj"><div class="xobjh">'+esc(o)+' <small>бригадиров: '+to.length+' · чел.: '+bo.reduce(function(s,x){ return s+(x.data.nums||[]).length; },0)+'</small></div>'+
-      (cards||'<p class="note">Наряд-заданий и бригад нет.</p>')+foot+'</div>';
+    var ok='o|'+o;
+    frames+='<div class="xobj"><details class="xobjd" data-bid="'+esc(ok)+'"'+(bdMemOpen[ok]?' open':'')+'><summary class="xobjh">'+esc(o)+' <small>Бригадиров: '+to.length+' · чел.: <b class="xok">'+bo.reduce(function(s,x){ return s+(x.data.nums||[]).length; },0)+'</b></small></summary>'+
+      (cards||'<p class="note">Наряд-заданий и бригад нет.</p>')+foot+'</details></div>';
   });
   h+=frames?'<div class="xobjs">'+frames+'</div>':'<p class="note">На этот день наряд-задания не выданы и численность не подана.</p>';
   if(empty.length) h+='<p class="note">Без наряд-заданий, нарядов и TBT: '+empty.map(esc).join(', ')+'</p>';
