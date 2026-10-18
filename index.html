@@ -472,7 +472,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='96';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='97';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2182,9 +2182,13 @@ function memoBuild(tpl,data){
   var MPH={addr:'{{ADDR}}',fromName:'{{FROMNAME}}',s1:'{{S1}}',s2:'{{S2}}',s3:'{{S3}}',s4:'{{S4}}',addrPos:'{{ADDRPOS}}',fromPos:'{{FROMPOS}}',s1Pos:'{{S1POS}}',s2Pos:'{{S2POS}}',s3Pos:'{{S3POS}}',s4Pos:'{{S4POS}}'};
   Object.keys(MPH).forEach(function(k){ var v=xesc(memoHdrV(hd,k)).split(/\r?\n/).join('</w:t><w:br /><w:t xml:space="preserve">'); doc=doc.split(MPH[k]).join(v); });
   doc=doc.replace('<!--ROWS-->',function(){ return rows; }).replace('<!--WORKS-->',function(){ return works; }).replace('{{RESP}}',function(){ return xesc(data.resp); });
-  var files={}; Object.keys(tpl.files).forEach(function(k){ files[k]=tpl.files[k]; }); files['word/document.xml']=doc;
+  var files={}; Object.keys(tpl.files).forEach(function(k){ files[k]=tpl.files[k]; }); files['word/document.xml']=memoTNR(doc);
+  if(typeof files['word/styles.xml']==='string') files['word/styles.xml']=memoTNR(files['word/styles.xml']);
   return zipStore(files);
 }
+/* все шрифты записки — Times New Roman (маркеры списков в numbering.xml не трогаем) */
+var TNR_EL='<w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="Times New Roman" w:cs="Times New Roman" />';
+function memoTNR(x){ return String(x).replace(/<w:rFonts\b[^>]*\/>/g,TNR_EL); }
 function memoMake(){
   var c=memoCfg(), msg=$('m_msg'), list=memoPeople().filter(memoChecked);
   if(!list.length){ msg.textContent='Отметьте хотя бы одного работника.'; return; }
