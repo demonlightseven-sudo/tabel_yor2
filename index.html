@@ -472,7 +472,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='97';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='98';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3410,11 +3410,11 @@ function bdRender(){
     var cards='';
     to.forEach(function(t){
       var b=brigs.filter(function(x){ return fioKey(x.data.lead)===fioKey(t.data.brig); })[0]; if(b) usedB[b.id]=1;
-      cards+='<div class="xcard"><div class="xch">Бригадир: <b>'+esc(whoBase(t.data.brig))+'</b>'+(b?' · <span class="xok">'+(b.data.nums||[]).length+' чел.</span>'+(b.obj!==o?' <small class="xno">подал на '+esc(b.obj)+'</small>':'')+' <small class="note">подано '+new Date(b.t).toTimeString().slice(0,5)+'</small>':' · <span class="xno">численность не подана</span>')+'</div>'+
+      cards+='<div class="xcard"><div class="xch"><b>'+esc(whoBase(t.data.brig))+'</b>'+(b?' · <span class="xok">'+(b.data.nums||[]).length+' чел.</span>'+(b.obj!==o?' <small class="xno">подал на '+esc(b.obj)+'</small>':'')+' <small class="note">подано '+new Date(b.t).toTimeString().slice(0,5)+'</small>':' · <span class="xno">численность не подана</span>')+'</div>'+
         bdMore(t.id,o,d,b,t)+'<div class="xtask"><b>Задание:</b> '+esc(t.data.tasks||'').replace(/\n/g,'<br>')+' <small class="note">('+esc(whoBase(t.who))+')</small></div>'+bdAckShort(t)+doneHtml(t)+(b?members(b):'')+ndKinds4(o,d,b,t.data.brig)+'</div></details></div>';
     });
     bo.filter(function(b){ return !usedB[b.id]; }).forEach(function(b){ usedB[b.id]=1;
-      cards+='<div class="xcard"><div class="xch">Бригадир: <b>'+esc(whoBase(b.data.lead))+'</b> · '+(b.data.nums||[]).length+' чел. <span class="xno">наряд-задание не выдано</span></div>'+bdMore(b.id,o,d,b,null)+members(b)+ndKinds4(o,d,b,b.data.lead)+'</div></details></div>';
+      cards+='<div class="xcard"><div class="xch"><b>'+esc(whoBase(b.data.lead))+'</b> · '+(b.data.nums||[]).length+' чел. <span class="xno">наряд-задание не выдано</span></div>'+bdMore(b.id,o,d,b,null)+members(b)+ndKinds4(o,d,b,b.data.lead)+'</div></details></div>';
     });
     if(!cards&&!open.length&&!tb.length){ empty.push(o); return; }
     var foot='<div class="xfoot"><div class="xfh">Наряд-допуски</div>'+(open.length?open.map(function(e){ return '<div class="xfi"><span class="xyes">✔</span> № '+esc(e.no)+' <small>'+(ND_KBTN[e.kind]||'')+' до '+esc(e.d2||'')+'</small>'+ndCompHtml(e,d)+'</div>'; }).join(''):'<div class="xfi"><span class="xnot">✘</span> нет открытых</div>')+
