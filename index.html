@@ -372,7 +372,7 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 #tabbar button{white-space:normal;line-height:1.1;font-size:clamp(11px,3.1vw,15px)}
 #xv{max-width:760px;margin:0 auto;padding:0 0 90px}
 .xnav{display:flex;align-items:center;gap:8px;margin:6px 0 10px}.xnav b{flex:1;text-align:center}.xnav button{flex:0 0 48px}
-#hnav{display:none;flex:1;min-width:0}body.vboard #hnav{display:flex}#hnav .xnav{flex:1;margin:0;min-width:0}#hnav .xnav b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:clamp(13px,3.9vw,17px)}
+#hnav{display:none;flex:1;min-width:0}body.vboard #hnav,body.vhdate #hnav{display:flex}#hnav .xnav{flex:1;margin:0;min-width:0}#hnav .xnav b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:clamp(13px,3.9vw,17px)}
 .xok{color:var(--work-t);font-weight:700;margin:4px 0}.xno{color:var(--ab-t);font-weight:600}
 .xmem{margin:6px 0}.xmem>summary{cursor:pointer;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-weight:600;font-size:14px;list-style:none}.xmem>summary::-webkit-details-marker{display:none}.xmem>summary::before{content:'▸ ';}.xmem[open]>summary::before{content:'▾ ';}.xmem .xbad{color:var(--ab-t,#e66)}
 .xlist{display:flex;flex-direction:column;gap:2px;margin:6px 0}.xrow{font-size:14px;padding:3px 0;border-bottom:1px dashed var(--line)}.xrow small{color:var(--muted)}
@@ -402,6 +402,11 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 .xacks{padding:6px 10px;font-size:14px}
 .ndfold{margin:14px 0 8px;border:1px solid var(--line);border-radius:10px;padding:0 10px}.ndfold>summary{cursor:pointer;list-style:none;padding:10px 0;font-weight:700;font-size:16px}.ndfold>summary::-webkit-details-marker{display:none}.ndfold>summary::before{content:'▸ ';}.ndfold[open]>summary::before{content:'▾ ';}.ndfold[open]>summary{border-bottom:1px dashed var(--line);margin-bottom:8px}.ndfold>summary .dh3,.ndfold>summary .tbth3{display:inline;margin:0;font-size:inherit}
 .xobjd>summary{cursor:pointer;list-style:none}.xobjd>summary::-webkit-details-marker{display:none}.xobjd>summary::before{content:'▸ ';}.xobjd[open]>summary::before{content:'▾ ';}.xobjd:not([open])>summary{border-bottom:0;padding-bottom:0}.xobjh small b.xok{font-weight:800;font-size:14px}
+.xnav .xarr{flex:0 0 auto;padding:0 8px;font-size:13px;white-space:nowrap}
+.hdate{flex:1;min-width:0;min-height:44px;padding:0 6px;font-weight:600;font-size:clamp(13px,3.9vw,16px);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;justify-content:center}
+.xnav .hdate{flex:1 1 auto;min-width:0}
+.hdate.past{background:#F3D98B;border-color:#C9A63A;color:#2A2100}.hstatic{border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+@media (max-width:420px){.xnav .xarr{padding:0 5px;font-size:12px}.xnav .xarr .wd{display:none}}
 .xfoot{margin-top:10px;padding-top:6px;border-top:1px dashed var(--line)}.xfh{font-weight:700;margin:6px 0 2px}.xfi{margin:2px 0 4px}.xfi .ndcmp{display:block;margin-top:2px}
 body.vboard main{max-width:1600px}body.vboard #xv{max-width:none}
 @media (max-width:700px){.xobjs{grid-template-columns:1fr}}
@@ -474,7 +479,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='103';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='104';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -652,7 +657,7 @@ function canPeople(show){ var r=role(); if(r==='nach'||r==='tech'||r==='prorab')
 var DAY_A={set:1,hstep:1,hset:1,undo:1,go:1,scan:1,fill:1,fillok:1};
 var PEOPLE_A={padd:1,pbulk:1,pbulkok:1,pdel:1,pdelarch:1,pdelall:1,pdelok:1,pedit:1,psave:1,parch:1,imp:1,'import':1,pwgo:1,pwsheet:1,defh:1};
 var ADMIN_A={ssave:1,slink:1,lshare:1,lcopy:1,spl:1,splok:1,smonth:1,soff:1,soffok:1};
-var MONT_A={tkack:1,brgsend:1,brgpick:1,brgpickadd:1,tkdone:1,tkdoneedit:1,tkday:1,book:1,view:1,mnav:1,mday:1,msort:1,msortx:1,mfile:1,mfget:1,mfshare:1,mfull:1,mexp:1,mexport:1,close:1,menu:1,snow:1,install:1,doinstall:1,month:1,mshift:1};
+var MONT_A={xdpick:1,xdshift:1,xdtoday:1,tkack:1,brgsend:1,brgpick:1,brgpickadd:1,tkdone:1,tkdoneedit:1,tkday:1,book:1,view:1,mnav:1,mday:1,msort:1,msortx:1,mfile:1,mfget:1,mfshare:1,mfull:1,mexp:1,mexport:1,close:1,menu:1,snow:1,install:1,doinstall:1,month:1,mshift:1};
 function roleClick(a,el){
   var r=role(); if(!r) return false;
   if(r==='mont'&&(!MONT_A[a]||(a==='view'&&['month','brig','task'].indexOf(el.dataset.v)<0)||(a==='book'&&el.dataset.b==='are'))){ if(a!=='mcell'&&a!=='mdayopen') toast(a==='book'?'Бригадиру доступен только табель РФ':'Недоступно для бригадира'); return false; }
@@ -1104,6 +1109,7 @@ function render(){
   document.body.classList.toggle('vnd',ui.view==='nd');
   document.body.classList.toggle('vx',ui.view==='brig'||ui.view==='task'||ui.view==='board');
   document.body.classList.toggle('vboard',ui.view==='board');
+  document.body.classList.toggle('vhdate',ui.view==='board'||ui.view==='task'||ui.view==='brig'||ui.view==='nd');
   renderTop(); renderBanner(); renderSyncBar();
   if(ui.view==='month') renderMonth(); else if(ui.view==='docs') renderDocs(); else if(ui.view==='nd') renderNd(); else if(ui.view==='brig'||ui.view==='task'||ui.view==='board') renderX(); else { renderStats(); renderList(); }
 }
@@ -1515,7 +1521,7 @@ function sheetMenu(){
 }
 function sheetDate(){
   openSheet('День',
-    '<div class="acts" style="margin-top:0"><button data-a="dshift" data-d="-1" aria-label="Предыдущий день">◀ Вчера</button><button data-a="dtoday" class="primary">Сегодня</button><button data-a="dshift" data-d="1" aria-label="Следующий день">Завтра ▶</button></div>'+
+    '<div class="acts" style="margin-top:0"><button data-a="dshift" data-d="-1" aria-label="Предыдущий день">◀ '+dmS(addDays(ui.date,-1))+'</button><button data-a="dtoday" class="primary" aria-label="Сегодня">'+dmS(today())+'</button><button data-a="dshift" data-d="1" aria-label="Следующий день">'+dmS(addDays(ui.date,1))+' ▶</button></div>'+
     '<div class="fld" style="margin-top:12px"><label for="dpick">Выбрать дату</label><input type="date" id="dpick" value="'+ui.date+'"></div>'+
     '<p class="note">Отметки ставятся за выбранный день. Если день не сегодняшний, кнопка с датой подсвечена и помечена значком ⚠.</p>');
 }
@@ -2423,7 +2429,7 @@ function ndDatalists(st,k){
   return rel+fs.map(function(f){ return '<datalist id="ndl_'+f+'">'+Object.keys(vals[f]).slice(0,30).map(function(v){ return '<option value="'+esc(v)+'">'; }).join('')+'</datalist>'; }).join('');
 }
 function renderNd(){
-  ndFetch(false); ndFlush();
+  ndFetch(false); ndFlush(); var hn0=$('hnav'); if(hn0) hn0.innerHTML=hdateStatic(today());
   var st=ndSt(), k=st.kind, tpl=ndTplC[k], el=$('nd'); if(!el) return;
   var objs='<div class="mtype ndobjs" role="tablist" aria-label="Объект">'+ND_OBJS.map(function(o){ return '<button role="tab" data-a="ndobj" data-o="'+o+'" aria-selected="'+(k!=='log'&&o===st.obj)+'">'+o+'</button>'; }).join('')+'</div>';
   var kinds=objs+'<button class="tbtbtn" data-a="ndkind" data-k="tbt" aria-pressed="'+(k==='tbt')+'">Инструктаж перед началом работ (TBT)</button>'+'<div class="mtype ndkinds" role="tablist" aria-label="Вид наряда">'+ND_KINDS.concat([['log','Журнал нарядов']]).map(function(x){ return '<button role="tab" data-a="ndkind" data-k="'+x[0]+'" aria-selected="'+(x[0]===k)+'"'+(x[0]==='log'?' class="ndlogt"':'')+'>'+(ND_KBTN[x[0]]||x[1])+(x[0]==='log'?' <span>('+ndAll(st,'').length+')</span>':'')+'</button>'; }).join('')+'</div>';
@@ -2800,7 +2806,7 @@ document.addEventListener('click',function(e){
   if(a.indexOf('tbt')===0){ tbtClick(a,el); return; }
   if(a==='ndapply'||a==='ndmanual'){ ndApplyComp(el.dataset.id,el.dataset.d,a==='ndmanual'?'manual':'file'); return; }
   if(a==='ndrenew'){ ndRenew(el.dataset.id,el.dataset.d); return; }
-  if(a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'||a==='ndfrom'||a==='ndtbt'||a==='tkdone'||a==='tkdoneedit'||a==='brgpick'||a==='brgpickadd'){ xClick(a,el); return; }
+  if(a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'||a==='ndfrom'||a==='ndtbt'||a==='tkdone'||a==='tkdoneedit'||a==='brgpick'||a==='brgpickadd'||a==='xdpick'||a==='xdshift'||a==='xdtoday'){ xClick(a,el); return; }
   switch(a){
     case 'book': if(root.cur!==el.dataset.b){ root.cur=el.dataset.b; save(); ui.q=''; $('q').value=''; ui.open={}; clearMsg(); render(); window.scrollTo(0,0); pull(); } break;
     case 'date': sheetDate(); break;
@@ -2944,6 +2950,7 @@ document.addEventListener('change',function(e){
   var t=e.target;
   if(ui.view==='nd'&&ndChange(t)) return;
   if(t.id==='msched'){ ui.mSched=t.value; renderMonth(); return; }
+  if(t.id==='xdpick'&&/^\d{4}-\d{2}-\d{2}$/.test(t.value)){ xDateSet(t.dataset.k,t.value); closeSheet(); return; }
   if(t.id==='dpick'&&/^\d{4}-\d{2}-\d{2}$/.test(t.value)){ ui.date=t.value; ui.follow=t.value===today(); closeSheet(); render(); pull(); }
   if(t.id==='obj'){ bk().object=t.value.trim().slice(0,80); save(); }
   if(t.dataset&&t.dataset.ak){ memoSel['abs|'+ui.date+'|'+t.dataset.ak]=t.checked; renderDocs(); }
@@ -3179,7 +3186,20 @@ function bdFetch(d,force){
     .catch(function(e){ bdBusy[d]=0; syncFail(e); });
 }
 function bdPut(item){ return call({action:'bput',kind:item.kind,d:item.d,obj:item.obj,id:item.id,data:item.data}); }
-function navDate(a,d){ return '<div class="xnav"><button data-a="'+a+'" data-d="-1" aria-label="Предыдущий день">◀</button><b>'+esc(dmyLong(d))+(d===today()?' · сегодня':'')+'</b><button data-a="'+a+'" data-d="1" aria-label="Следующий день">▶</button></div>'; }
+/* «сб 18.10» */
+function dmS(d){ var x=parseYmd(d); return '<span class="wd">'+WD[x.getDay()]+' </span>'+('0'+x.getDate()).slice(-2)+'.'+('0'+(x.getMonth()+1)).slice(-2); }
+function navDate(a,d){ var t=today();
+  return '<div class="xnav"><button class="xarr" data-a="'+a+'" data-d="-1" aria-label="Предыдущий день">◀ '+dmS(addDays(d,-1))+'</button>'+
+    '<button class="hdate'+(d===t?'':' past')+'" data-a="xdpick" data-k="'+a+'" aria-label="Выбрать день">'+esc(dmyLong(d))+(d===t?'':' ⚠')+'</button>'+
+    '<button class="xarr" data-a="'+a+'" data-d="1" aria-label="Следующий день">'+dmS(addDays(d,1))+' ▶</button></div>'; }
+function hdateStatic(d){ return '<div class="xnav"><span class="hdate hstatic">'+esc(dmyLong(d))+'</span></div>'; }
+/* окно выбора дня для доски и наряд-задания */
+function xDateGet(k){ return k==='bdday'?(bdDate||today()):(tkDate||tkDef()); }
+function xDateSet(k,d){ if(k==='bdday') bdDate=d; else tkDate=d; renderX(); }
+function sheetXDate(k){ var d=xDateGet(k);
+  openSheet('День','<div class="acts" style="margin-top:0"><button data-a="xdshift" data-k="'+k+'" data-d="-1">◀ '+dmS(addDays(d,-1))+'</button><button data-a="xdtoday" data-k="'+k+'" class="primary">'+dmS(today())+'</button><button data-a="xdshift" data-k="'+k+'" data-d="1">'+dmS(addDays(d,1))+' ▶</button></div>'+
+    '<div class="fld" style="margin-top:12px"><label for="xdpick">Выбрать дату</label><input type="date" id="xdpick" data-k="'+k+'" value="'+d+'"></div>'+
+    '<p class="note">Если день не сегодняшний, дата подсвечена и помечена значком ⚠.</p>'); }
 function dmyLong(d){ var x=parseYmd(d); return WD[x.getDay()]+', '+x.getDate()+' '+MONTHS_G[x.getMonth()]; }
 function objSelect(id,cur){ return '<select id="'+id+'">'+ND_OBJS.map(function(o){ return '<option value="'+o+'"'+(o===cur?' selected':'')+'>'+o+'</option>'; }).join('')+'</select>'; }
 function parseNums(s){ var seen={}, out=[]; String(s||'').split(/[^0-9]+/).forEach(function(x){ x=x.trim(); if(x&&!seen[normNum(x)]){ seen[normNum(x)]=1; out.push(x); } }); return out; }
@@ -3218,7 +3238,8 @@ function brgRender(){
   var mine=bdItems(d).filter(function(x){ return x.kind==='brig'&&x.id===myBrigId(d); })[0], tasks=myTasks(d);
   var obj=(mine&&mine.obj)||(tasks[0]&&tasks[0].obj)||o.obj||ND_OBJS[0], nums=o.nums!=null?o.nums:((mine&&mine.data&&mine.data.nums)||[]).join(' ');
   var list=parseNums(nums);
-  var h='<h2 class="dh2">Бригада <span class="ndob">'+esc(dmyLong(d))+'</span></h2>'+
+  var hn=$('hnav'); if(hn) hn.innerHTML=hdateStatic(d);
+  var h='<h2 class="dh2">Бригада</h2>'+
     '<h3 class="tbth3">Наряд-задание на сегодня</h3>'+(tasks.length?tasks.map(tkCard).join(''):'<p class="xno">Прораб ещё не выдал вам наряд-задание на сегодня</p>')+
     '<h3 class="tbth3">Численность бригады</h3>'+
     (mine?'<p class="xok">✓ Подано в '+new Date(mine.t).toTimeString().slice(0,5)+' · '+esc(mine.obj)+' · '+((mine.data.nums||[]).length)+' чел.</p>':'<p class="xno">Численность на сегодня ещё не подана</p>')+
@@ -3342,12 +3363,12 @@ function tkCard(x){
       return '<div class="xbrgn">'+(b?'Бригада: <b class="xok">'+(b.data.nums||[]).length+' чел.</b> <small class="note">подано '+new Date(b.t).toTimeString().slice(0,5)+(b.obj!==x.obj?' · на '+esc(b.obj):'')+'</small>':'<span class="xno">Численность бригады не подана</span>')+'</div>'+(b?brigMembers(b,x.d):'')+ndKinds4(x.obj,x.d,b,dd.brig); })():'')+'</div>';
 }
 function tkRender(){
-  var d=tkDate||tkDef(); bdFetch(d,false);
+  var d=tkDate||tkDef(); bdFetch(d,false); var hn=$('hnav'); if(hn) hn.innerHTML=navDate('tkday',d);
   var tasks=bdItems(d).filter(function(x){ return x.kind==='task'; });
   if(role()==='mont'){ tasks=tasks.filter(function(x){ return fioKey(x.data.brig)===fioKey(sync.who); });
-    return '<h2 class="dh2">Наряд-задание</h2>'+navDate('tkday',d)+(tasks.length?tasks.map(tkCard).join(''):'<p class="note">Заданий на этот день нет.</p>'); }
+    return '<h2 class="dh2">Наряд-задание</h2>'+(tasks.length?tasks.map(tkCard).join(''):'<p class="note">Заданий на этот день нет.</p>'); }
   var o=brgSt(), obj=o.tobj||ND_OBJS[0];
-  var h='<h2 class="dh2">Наряд-задание</h2>'+navDate('tkday',d)+
+  var h='<h2 class="dh2">Наряд-задание</h2>'+
     (d===addDays(today(),1)?'<p class="note">Задания выдаются сегодня на завтра. Завтра бригадир подаст численность бригады по своему заданию.</p>':(d<today()?'<p class="xno">Прошедший день</p>':''))+
     '<div class="tbtf"><label for="tk_brig">Бригадир</label><select id="tk_brig"><option value="">— выберите бригадира —</option>'+BRIG_NAMES.map(function(n){ var has=tasks.some(function(x){ return fioKey(x.data.brig)===fioKey(n); }); return '<option value="'+esc(n)+'">'+esc(n)+(has?' ✓':'')+'</option>'; }).join('')+'</select>'+
     '<label for="tk_obj">Объект</label>'+objSelect('tk_obj',obj)+
@@ -3504,6 +3525,9 @@ function xClick(a,el){
   if(a==='brgpick'){ brgPickToggle(el.dataset.f,el.dataset.v,false); return; }
   if(a==='brgpickadd'){ var bi=$('brgadd_'+el.dataset.f), bv=bi?bi.value.trim():''; if(!bv){ toast('Впишите, что добавить'); return; } brgPickToggle(el.dataset.f,bv,true); return; }
   if(a==='tkdone'){ tkDoneSave(el); return; }
+  if(a==='xdpick'){ sheetXDate(el.dataset.k); return; }
+  if(a==='xdshift'){ var nk=el.dataset.k; xDateSet(nk,addDays(xDateGet(nk),Number(el.dataset.d))); sheetXDate(nk); return; }
+  if(a==='xdtoday'){ xDateSet(el.dataset.k,today()); closeSheet(); return; }
   if(a==='tkdoneedit'){ tkDoneEdit[el.dataset.id]=1; renderX(); return; }
   if(a==='ndtbt'){ ndTbtFromBrig(el.dataset.o,el.dataset.d,el.dataset.b,el.dataset.l); return; }
   if(a==='ndfrom'){ ndFromBrig(el.dataset.k,el.dataset.o,el.dataset.d,el.dataset.b,el.dataset.l); return; }
