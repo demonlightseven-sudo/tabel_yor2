@@ -400,6 +400,7 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 .xbrgx{font-size:13px;margin-top:4px;overflow-wrap:anywhere}
 .sgg{margin:10px 0;padding:8px;border:1px solid var(--line);border-radius:10px}.sgh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}.sgh button{min-height:36px}.sgrow{margin:6px 0}.sgline{display:flex;gap:6px;align-items:stretch}.sgline textarea{flex:1;min-width:0}.sgdel{min-width:40px;padding:0 8px;color:var(--ab-t,#e66)}
 .xacks{padding:6px 10px;font-size:14px}
+.ndfold{margin:14px 0 8px;border:1px solid var(--line);border-radius:10px;padding:0 10px}.ndfold>summary{cursor:pointer;list-style:none;padding:10px 0;font-weight:700;font-size:16px}.ndfold>summary::-webkit-details-marker{display:none}.ndfold>summary::before{content:'▸ ';}.ndfold[open]>summary::before{content:'▾ ';}.ndfold[open]>summary{border-bottom:1px dashed var(--line);margin-bottom:8px}.ndfold>summary .dh3,.ndfold>summary .tbth3{display:inline;margin:0;font-size:inherit}
 .xfoot{margin-top:10px;padding-top:6px;border-top:1px dashed var(--line)}.xfh{font-weight:700;margin:6px 0 2px}.xfi{margin:2px 0 4px}.xfi .ndcmp{display:block;margin-top:2px}
 body.vboard main{max-width:1600px}body.vboard #xv{max-width:none}
 @media (max-width:700px){.xobjs{grid-template-columns:1fr}}
@@ -472,7 +473,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='99';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='100';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2495,7 +2496,7 @@ function renderNd(){
     ndSel(st,k,'in','Инструктаж провёл: Site Foreman',ND_FMS);
   el.innerHTML='<div class="dwrap">'+kinds+head+ndDatalists(st,k)+
     '<p class="note">Поля заполнены как в прошлом наряде по объекту '+esc(st.obj)+'. Должности и ФИО — как в бланке, по-английски.</p>'+form+
-    '<h3 class="dh3">Состав бригады <span id="nd_nsel">('+nsel+' чел.)</span></h3>'+ndTeamTools(st,k)+'<div id="ndteam">'+ndTeamList(st,k)+'</div>'+
+    '<details class="ndfold" data-fold="team"'+(ndFold&&ndFold.team?' open':'')+'><summary><span class="dh3">Состав бригады</span> <span id="nd_nsel">('+nsel+' чел.)</span></summary>'+ndTeamTools(st,k)+'<div id="ndteam">'+ndTeamList(st,k)+'</div></details>'+
     '<h3 class="dh3">Отметки в бланке</h3>'+groups+
     (k!=='hz'?'':'<details class="mhdr"><summary>Системы для работы на высоте</summary>'+
       ndField(st,k,'h1','Удерживающие системы','No')+ndField(st,k,'h2','Системы позиционирования','No')+ndField(st,k,'h3','Страховочные системы','No')+ndField(st,k,'h4','Эвакуационные и спасательные системы','No')+'</details>'+
@@ -3068,7 +3069,7 @@ function tbtRender(){
     '<h3 class="tbth3">Темы инструктажа</h3><div class="tbttopics">'+
     TBT_TOPICS.map(function(t,i){ return '<label class="tbtcb"><input type="checkbox" data-tt="'+i+'"'+(d.topics[i]?' checked':'')+'> '+esc(t)+'</label>'; }).join('')+'</div>'+
     '<label>Другие темы</label>'+[0,1,2].map(function(i){ return '<input data-to="'+i+'" value="'+esc(d.other[i]||'')+'" placeholder="Другая тема '+(i+1)+'">'; }).join('')+
-    '<h3 class="tbth3">Работники <span class="ndob">'+d.rows.length+'</span></h3>'+
+    '<details class="ndfold" data-fold="tbt"'+(ndFold&&ndFold.tbt?' open':'')+'><summary><span class="tbth3">Работники</span> <span class="ndob">'+d.rows.length+' чел.</span></summary>'+
     '<div class="tbtline"><input id="tbt_q" list="tbt_ppl" placeholder="Табельный № или фамилия" autocomplete="off"><button data-a="tbtadd">Добавить</button></div>'+
     '<datalist id="tbt_ppl">'+ndPeople().map(function(x){ return '<option value="'+esc(x.p.num+' — '+x.p.name)+'">'+esc(x.p.role||'')+'</option>'; }).join('')+'</datalist>'+
     '<div class="tbtrows">'+d.rows.map(function(r,i){
@@ -3080,7 +3081,7 @@ function tbtRender(){
         '<input data-r="'+i+'" data-f="p2" value="'+esc(r.p2)+'" placeholder="Профессия (англ. / араб.)">'+
         '</div>';
     }).join('')+'</div>'+
-    '<button data-a="tbtrow" class="tbtmanual">+ Строка вручную</button>'+
+    '<button data-a="tbtrow" class="tbtmanual">+ Строка вручную</button></details>'+
     '<button data-a="tbtdl" class="tbtdl">Скачать инструктаж (Word)</button>'+
     '<p class="note" id="tbt_msg" role="status" aria-live="polite">'+esc(tbtMsg)+'</p></div>';
   return h;
@@ -3368,6 +3369,9 @@ function tkSend(){
     .catch(function(e){ msg.textContent='Не отправлено: '+((e&&e.message)||'ошибка'); });
 }
 var bdMemOpen={};
+/* развёрнутые списки людей в наряде и TBT (свёрнуты по умолчанию, состояние держится до перезапуска) */
+var ndFold={};
+document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classList&&t.classList.contains('ndfold')) ndFold[t.dataset.fold]=t.open; },true);
 /* сворачиваемая часть карточки на доске; в заголовке — коротко: люди, наряды, TBT, выполнение */
 function bdAckShort(t){ var a=tkAck(t); return a?'<div class="xack ok xacks">✓ Получил '+new Date(a.t).toTimeString().slice(0,5)+'</div>':'<div class="xack no xacks">⏳ Не подтвердил получение</div>'; }
 function bdMore(id,obj,d,b,t){
