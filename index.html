@@ -88,13 +88,17 @@ main{max-width:760px;margin:0 auto;padding:0 10px}
 .syncbar.ok{border-left-color:var(--work)} .syncbar.warn{border-left-color:var(--ul);color:var(--ink)} .syncbar.bad{border-left-color:var(--sick);color:var(--ink);font-weight:600}
 textarea.link{min-height:96px;font-size:13px;word-break:break-all}
 .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:12px 0 8px}
-.stats div{display:flex;align-items:baseline;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;border-left:6px solid var(--line)}
+.stats>button{font:inherit;color:inherit;text-align:left;width:100%;min-width:0;min-height:0;cursor:pointer;display:flex;align-items:baseline;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;border-left:6px solid var(--line)}
 .stats b{font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums;min-width:24px}
-@media (min-width:560px){.stats{grid-template-columns:repeat(4,minmax(0,1fr))}.stats div{display:block;border-left-width:1px;border-top:4px solid var(--line)}.stats b{display:block}}
+@media (min-width:560px){.stats{grid-template-columns:repeat(4,minmax(0,1fr))}.stats>button{display:block;border-left-width:1px;border-top:4px solid var(--line)}.stats b{display:block}}
 .stats span{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .stats .w{border-left-color:var(--work);border-top-color:var(--work)} .stats .o{border-left-color:var(--off);border-top-color:var(--off)} .stats .s{border-left-color:var(--sick);border-top-color:var(--sick)} .stats .a{border-left-color:var(--ab);border-top-color:var(--ab)} .stats .a b{color:var(--ab-t)}
+.stats>button.on{outline:3px solid var(--ink);outline-offset:-2px;background:var(--bg)}
+.fltbrig{min-height:44px;max-width:100%;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:14px}.fltbrig.on{outline:2px solid var(--ink)}.fltx{color:var(--ab-t)}
+#list li.fltinfo{list-style:none;padding:6px 4px;font-size:13px;color:var(--muted);border:0;background:none}#list li.fltact{list-style:none;padding:10px 0;border:0;background:none}#list li.fltact button{width:100%;min-height:48px}
 .stats2{font-size:13px;color:var(--muted);margin:0 2px 8px}
-.tabs{display:flex;gap:6px;margin:0 0 10px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}.tabs .fltbrig{flex:1 1 160px;min-width:0}.tabs .fltx{flex:0 0 auto}
+@media (max-width:560px){.tabs .fltbrig{flex-basis:100%;order:3}}
 .tabs button{flex:1;font-weight:600;font-size:clamp(13px,3.9vw,16px);padding:0 6px;white-space:nowrap}
 .tabs button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 
@@ -407,6 +411,16 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 .xnav .hdate{flex:1 1 auto;min-width:0}
 .hdate.past{background:#F3D98B;border-color:#C9A63A;color:#2A2100}.hstatic{border:1px solid var(--line);border-radius:8px;background:var(--surface)}
 @media (max-width:420px){.xnav .xarr{padding:0 5px;font-size:12px}.xnav .xarr .wd{display:none}}
+.xchips{display:inline-flex;flex-wrap:wrap;gap:5px;vertical-align:middle}.xchip{display:inline-block;padding:3px 8px;border-radius:12px;font-size:12px;font-weight:700;line-height:1.3;white-space:nowrap}
+.xchip.ok{background:var(--work-bg);color:var(--work-t)}.xchip.bad{background:var(--ab-bg);color:var(--ab-t)}.xchip.warn{background:var(--ul-bg);color:var(--ul-t)}.xchip.nil{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.xcard.xs-ok{border-top:5px solid var(--work)}.xcard.xs-warn{border-top:5px solid #D9A92E}.xcard.xs-bad{border-top:5px solid var(--ab)}
+.xch .xchr{margin-left:auto;text-align:right}.xch .xchr .xok{margin:0}.xchipw{margin-top:6px}
+.xmore>summary{display:flex;align-items:flex-start;gap:4px}.xmore>summary::before{flex:0 0 auto;padding-top:3px}
+.xochips{display:flex;margin-top:6px}.xobj.xo-bad{border-color:var(--ab)}.xobj.xo-warn{border-color:#D9A92E}
+.ndtop{display:flex;gap:8px;align-items:stretch;margin:4px 0 8px}.ndobjl{flex:1;display:flex;align-items:center;gap:8px;min-width:0;padding:0 0 0 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-weight:600}.ndobjl span{color:var(--muted);font-weight:400}.ndobjl select{flex:1;min-width:0;min-height:44px;border:0;background:transparent;font-weight:700;font-size:16px;color:var(--ink)}
+.ndlogb{min-height:46px;padding:0 12px;white-space:nowrap}.ndlogb[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.ndk5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}.ndk5 button{min-width:0;padding:8px 2px;font-size:13px;line-height:1.15;hyphens:manual;overflow-wrap:anywhere}
+.ndstep>summary{display:flex;align-items:center;gap:6px}.ndstep>summary .ndstt{flex:1;min-width:0}.ndst{font-size:13px;font-weight:700;white-space:nowrap}.ndstep.ok .ndst{color:var(--work-t)}.ndstep.need{border-color:#D9A92E}.ndstep.need .ndst{color:var(--ul-t)}.ndstep #nd_nsel{font-weight:400;font-size:14px;color:var(--muted)}
 .xcomp{margin-top:8px;padding:6px 8px;border:1px dashed var(--line);border-radius:10px}.xcomp .xfh{margin-top:0}.xcomp .ndcmp{display:block;margin-top:4px}
 .xfoot{margin-top:10px;padding-top:6px;border-top:1px dashed var(--line)}.xfh{font-weight:700;margin:6px 0 2px}.xfi{margin:2px 0 4px}.xfi .ndcmp{display:block;margin-top:2px}
 body.vboard main{max-width:1600px}body.vboard #xv{max-width:none}
@@ -480,7 +494,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='105';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='106';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1063,13 +1077,35 @@ function stats(){
 }
 function renderStats(){
   var s=stats();
-  var h='<div class="stats"><div class="w"><b>'+s.c.work+'</b><span>пришли</span></div><div class="a"><b>'+s.c.ab+'</b><span>прогул</span></div>'+
-    '<div class="o" title="Больше '+s.norm+' ч за день"><b>'+s.ot+'</b><span>сверхурочка</span></div><div class="s"><b>'+s.c.sick+'</b><span>больничный</span></div></div>';
+  function tile(cls,f,n,txt,ttl){ var on=ui.filter===f; return '<button class="'+cls+(on?' on':'')+'" data-a="flt" data-f="'+f+'" aria-pressed="'+on+'"'+(ttl?' title="'+ttl+'"':'')+'><b>'+n+'</b><span>'+txt+(on?' ✓':'')+'</span></button>'; }
+  var h='<div class="stats">'+tile('w','work',s.c.work,'пришли')+tile('a','ab',s.c.ab,'прогул')+tile('o','ot',s.ot,'сверхурочка','Больше '+s.norm+' ч за день')+tile('s','sick',s.c.sick,'больничный')+'</div>';
   var s2=[]; if(s.c.off) s2.push('Выходной (отмечен): '+s.c.off); if(s.plan) s2.push('Выходной по графику (DO): '+s.plan+' — их отмечать не нужно'); if(s.c.pl||s.c.ul) s2.push('Отпуск: '+s.c.pl+' · Отпуск без ЗП: '+s.c.ul); if(s.fired) s2.push('Уволены: '+s.fired);
   if(s2.length) h+='<p class="stats2">'+s2.join('<br>')+'</p>';
   $('stats').innerHTML=h;
+  bdFetch(ui.date,false);
+  var bl=fltBrigs(), cur=ui.brig||'', has=!cur||cur==='-'||bl.some(function(b){ return fioKey(b.data.lead)===cur; });
   $('tabs').innerHTML='<button data-a="flt" data-f="all" aria-pressed="'+(ui.filter==='all')+'">Все ('+s.n+')</button>'+
-    '<button data-a="flt" data-f="u" aria-pressed="'+(ui.filter==='u')+'">Без отметки ('+s.unm+')</button>';
+    '<button data-a="flt" data-f="u" aria-pressed="'+(ui.filter==='u')+'">Без отметки ('+s.unm+')</button>'+
+    '<select id="fltbrig" class="fltbrig'+(cur?' on':'')+'" aria-label="Бригада"><option value="">Бригада: все</option>'+bl.map(function(b){ var k=fioKey(b.data.lead); return '<option value="'+esc(k)+'"'+(k===cur?' selected':'')+'>'+esc(shortName(whoBase(b.data.lead)))+' ('+(b.data.nums||[]).length+')</option>'; }).join('')+
+      (has?'':'<option value="'+esc(cur)+'" selected>'+esc(cur)+' — нет на этот день</option>')+'<option value="-"'+(cur==='-'?' selected':'')+'>Без бригады</option></select>'+
+    (ui.filter!=='all'||cur?'<button class="fltx" data-a="fltx">× сбросить</button>':'');
+}
+/* бригады, подавшие численность на день явки */
+function fltBrigs(){ return bdItems(ui.date).filter(function(x){ return x.kind==='brig'; }).sort(function(a,b){ return String(whoBase(a.data.lead)).localeCompare(String(whoBase(b.data.lead)),'ru'); }); }
+var FLT_N={u:'без отметки',work:'пришли',ab:'прогул',ot:'сверхурочка',sick:'больничный'};
+function fltOk(p,day){
+  var r=day[p.id], f=ui.filter;
+  if(f==='u'&&(r||firedOn(p,ui.date))) return false;
+  if(f==='work'&&!(r&&r.s==='work')) return false;
+  if(f==='ab'&&!(r&&r.s==='ab')) return false;
+  if(f==='sick'&&!(r&&r.s==='sick')) return false;
+  if(f==='ot'&&!(r&&r.s==='work'&&(Number(r.h)||0)>memoNorm(root.cur))) return false;
+  if(ui.brig){
+    var n=p.num?normNum(p.num):'', bl=fltBrigs(), inB=function(b){ return !!n&&numSet((b.data.nums||[]).concat([b.data.lnum]))[n]; };
+    if(ui.brig==='-') return !bl.some(inB);
+    var b=bl.filter(function(x){ return fioKey(x.data.lead)===ui.brig; })[0]; if(!b||!inB(b)) return false;
+  }
+  return true;
 }
 function renderTop(){
   Array.prototype.forEach.call(document.querySelectorAll('.books button'),function(b){ b.setAttribute('aria-selected',String(b.dataset.b===root.cur)); });
@@ -1092,14 +1128,17 @@ function renderList(){
       '<button class="primary" data-a="pwsheet">Загрузить список с сайта (по паролю)</button><button data-a="import">Загрузить из файла</button><button data-a="people">Добавить вручную</button></li></ul>';
     return;
   }
-  var items=ppl.filter(function(p){ return matches(p,ui.q)&&(ui.filter!=='u'||(!day[p.id]&&!firedOn(p,ui.date))); });
+  var items=ppl.filter(function(p){ return matches(p,ui.q)&&fltOk(p,day); }), fltOn=ui.filter!=='all'||!!ui.brig, fltN=items.length;
   var fired=items.filter(function(p){ return firedOn(p,ui.date); }); if(fired.length) items=items.filter(function(p){ return fired.indexOf(p)<0; });
   /* выходные по графику — в конце, свёрнуто (при поиске показываем всех найденных) */
   var off=ui.q?[]:items.filter(function(p){ return planHidden(p,day); });
   if(off.length) items=items.filter(function(p){ return off.indexOf(p)<0; });
   var html=items.map(rowHtml).join('');
-  if(!html&&!fired.length) html='<li class="empty"><p>'+(ui.q?'Никого не найдено.':'Все отмечены.')+'</p></li>';
+  if(!html&&!fired.length) html='<li class="empty"><p>'+(ui.q||fltOn?'Никого не найдено.':'Все отмечены.')+'</p></li>';
   html+=fired.map(rowHtml).join('');
+  if(fltOn){ var bn=ui.brig==='-'?'без бригады':ui.brig?'бригада '+shortName(whoBase((fltBrigs().filter(function(x){ return fioKey(x.data.lead)===ui.brig; })[0]||{data:{lead:ui.brig}}).data.lead)):'';
+    html='<li class="fltinfo">Показаны '+fltN+' из '+ppl.filter(function(p){ return !firedOn(p,ui.date)&&!planHidden(p,day); }).length+' · '+esc([FLT_N[ui.filter]||'',bn].filter(Boolean).join(' · '))+'</li>'+html;
+    if(ui.filter==='ab'&&fltN) html+='<li class="fltact"><button class="primary" data-a="toabs">Сделать акт об отсутствии →</button></li>'; }
   if(off.length) html+='<li class="offgrp"><details'+(ui.offOpen?' open':'')+' id="offgrp"><summary><span class="dob">DO</span> Выходной по графику: '+off.length+' чел. — в явке не участвуют</summary><p class="note">Если кто-то из них вышел на работу, отметьте его здесь или найдите по номеру.</p><ul class="offl">'+off.map(rowHtml).join('')+'</ul></details></li>';
   L.outerHTML='<ul id="list">'+html+'</ul>';
 }
@@ -2223,6 +2262,7 @@ function memoMake(){
 /* ------------------------------------------------------------- наряды-допуски */
 var ND_KINDS=[['hz','Опасные работы'],['fire','Огневые работы'],['lift','Подъёмные механизмы'],['conc','Бетонные работы']];
 /* подписи кнопок видов наряда с мягкими переносами — для узких экранов */
+var ND_KS={hz:'Опас&shy;ные',fire:'Огне&shy;вые',lift:'Подъём&shy;ные',conc:'Бетон&shy;ные',tbt:'TBT'};
 var ND_KBTN={hz:'Опас&shy;ные работы',fire:'Огне&shy;вые работы',lift:'Подъём&shy;ные меха&shy;низмы',conc:'Бетон&shy;ные работы',log:'Жур&shy;нал на&shy;рядов'};
 var ND_SHORT={hz:'Опасные',fire:'Огневые',lift:'Подъёмные механизмы',conc:'Бетонные'};
 var ND_TITLE={hz:'Наряд-допуск на опасные работы',fire:'Наряд-допуск на огневые работы',lift:'Наряд-допуск на работу с подъёмными механизмами',conc:'Наряд-допуск на бетонные работы'};
@@ -2360,7 +2400,8 @@ function ndTeamList(st,k){
   rows=(t.d.teamX||[]).map(function(x,i){ return '<label class="mrow on"><input type="checkbox" data-ndx="'+i+'" checked><span class="mn">'+esc(x.num||'')+'</span><span class="mf"><b>'+esc(x.name)+'</b><small>'+esc(x.role||'')+' · нет в табеле, есть в наряде</small></span><span class="mh">'+(BOOKS[x.b]||'')+'</span></label>'; }).join('')+rows;
   return rows?'<div class="mlist">'+rows+'</div>':'<p class="note">'+(q?'Никого не найдено.':'В табелях нет людей.')+'</p>';
 }
-function ndTeamRefresh(){ var st=ndSt(), k=st.kind, t=ndTeamState(st,k); if($('ndteam')) $('ndteam').innerHTML=ndTeamList(st,k); if($('ndonlyl')) $('ndonlyl').textContent=ndDmy(t.d1)+' ('+t.came+')'; if($('nd_nsel')) $('nd_nsel').textContent='('+ndTeamN(t.d)+' чел.)'; }
+function ndTeamRefresh(){ var st=ndSt(), k=st.kind, t=ndTeamState(st,k); if($('ndteam')) $('ndteam').innerHTML=ndTeamList(st,k); if($('ndonlyl')) $('ndonlyl').textContent=ndDmy(t.d1)+' ('+t.came+')'; if($('nd_nsel')) $('nd_nsel').textContent='('+ndTeamN(t.d)+' чел.)'; ndStepTeam(ndTeamN(t.d)); }
+function ndStepTeam(n){ var s=document.querySelector('.ndstep[data-fold="team"]'); if(!s) return; s.classList.toggle('ok',n>0); s.classList.toggle('need',!n); var t=s.querySelector('.ndst'); if(t) t.textContent=n>0?'✓':'выбрать'; }
 function ndTeamN(d){ return (d.team||[]).length+(d.teamX||[]).length; }
 var ND_MEMF={works:1,tech:1,doc:1,hse:1};
 /* строки, убранные из памяти (сами наряды в журнале не меняются) */
@@ -2432,8 +2473,9 @@ function ndDatalists(st,k){
 function renderNd(){
   ndFetch(false); ndFlush(); var hn0=$('hnav'); if(hn0) hn0.innerHTML=hdateStatic(today());
   var st=ndSt(), k=st.kind, tpl=ndTplC[k], el=$('nd'); if(!el) return;
-  var objs='<div class="mtype ndobjs" role="tablist" aria-label="Объект">'+ND_OBJS.map(function(o){ return '<button role="tab" data-a="ndobj" data-o="'+o+'" aria-selected="'+(k!=='log'&&o===st.obj)+'">'+o+'</button>'; }).join('')+'</div>';
-  var kinds=objs+'<button class="tbtbtn" data-a="ndkind" data-k="tbt" aria-pressed="'+(k==='tbt')+'">Инструктаж перед началом работ (TBT)</button>'+'<div class="mtype ndkinds" role="tablist" aria-label="Вид наряда">'+ND_KINDS.concat([['log','Журнал нарядов']]).map(function(x){ return '<button role="tab" data-a="ndkind" data-k="'+x[0]+'" aria-selected="'+(x[0]===k)+'"'+(x[0]==='log'?' class="ndlogt"':'')+'>'+(ND_KBTN[x[0]]||x[1])+(x[0]==='log'?' <span>('+ndAll(st,'').length+')</span>':'')+'</button>'; }).join('')+'</div>';
+  var objs='<div class="ndtop"><label class="ndobjl"><span>Объект</span><select id="ndobjsel" aria-label="Объект">'+ND_OBJS.map(function(o){ return '<option value="'+o+'"'+(o===st.obj?' selected':'')+'>'+o+'</option>'; }).join('')+'</select></label>'+
+    '<button class="ndlogb" data-a="ndkind" data-k="log" aria-pressed="'+(k==='log')+'">Журнал ('+ndAll(st,'').length+')</button></div>';
+  var kinds=objs+'<div class="mtype ndkinds ndk5" role="tablist" aria-label="Вид наряда">'+ND_KINDS.concat([['tbt','TBT']]).map(function(x){ return '<button role="tab" data-a="ndkind" data-k="'+x[0]+'" aria-selected="'+(x[0]===k)+'">'+ND_KS[x[0]]+'</button>'; }).join('')+'</div>';
   if(k==='log'){ el.innerHTML='<div class="dwrap">'+kinds+ndLog(st)+'</div>'; return; }
   if(k==='tbt'){ el.innerHTML='<div class="dwrap">'+kinds+tbtRender()+'</div>'; return; }
   var ed=ndEd(st,k);
@@ -2464,9 +2506,9 @@ function renderNd(){
     '<p class="note" id="nd_par">'+ndParText(dt)+'</p>'+
     '<div class="dgrid"><div class="fld"><label for="nd_d1">Дата выдачи и начала работ</label><input type="date" id="nd_d1" data-nd="d1" value="'+esc(d1)+'"></div>'+ndField(st,k,'t1','Время начала','','','time')+'</div>'+
     '<div class="dgrid"><div class="fld"><label for="nd_d2">Дата окончания работ</label><input type="date" id="nd_d2" data-nd="d2" value="'+esc(d2)+'"></div>'+ndField(st,k,'t2','Время окончания','','','time')+'</div>'+
-    ndMulti(st,k,'works','Описание работ','Cutting metal …')+
+'\u0001'+    ndMulti(st,k,'works','Описание работ','Cutting metal …')+
     ndField(st,k,'code','Место проведения работ','91UYE','code')+
-    '<h3 class="dh3">Ответственные</h3>'+
+'\u0001'+
     ndFixed('Наряд выдал',ND_ISSUER)+
     ndSel(st,k,'prep','Ответственный за подготовку огневых работ',ND_FM)+
     '<div class="fld"><label for="nd_exec">Ответственный за проведение огневых работ</label><input type="text" id="nd_exec" data-nd="exec" maxlength="400" list="ndl_fexec" value="'+esc(ndV(st,k,'exec'))+'"><datalist id="ndl_fexec">'+ND_FM.map(function(o){ return '<option value="'+esc(o)+'">'; }).join('')+'</datalist><small class="note">По бригаде подставляется бригадир; можно выбрать мастера из списка.</small></div>'+
@@ -2477,10 +2519,10 @@ function renderNd(){
     '<div class="dgrid"><div class="fld"><label for="nd_d1">Начало работ</label><input type="date" id="nd_d1" data-nd="d1" value="'+esc(d1)+'"></div>'+ndField(st,k,'t1','Время начала','','','time')+'</div>'+
     '<div class="dgrid"><div class="fld"><label for="nd_days">Срок, дней</label><input type="number" min="1" max="366" id="nd_days" data-nd="days" value="'+esc(ndV(st,k,'days'))+'"></div>'+ndField(st,k,'t2','Время окончания','','','time')+'</div>'+
     '<p class="note" id="nd_until">Окончание работ: <b>'+esc(ndDmy(d2))+'</b> · строки ежедневного допуска — на каждый день</p>'+
-    ndMulti(st,k,'works','Поручается: описание работы','Loading and unloading operations …')+
+'\u0001'+    ndMulti(st,k,'works','Поручается: описание работы','Loading and unloading operations …')+
     ndMulti(st,k,'tech','Вид, марка и рег. № подъёмного сооружения','Mobile Telescopic Crane …')+
     ndMulti(st,k,'doc','ППР / ТК','ED.A.…')+
-    '<h3 class="dh3">Ответственные</h3>'+
+'\u0001'+
     ndFixed('Выдающий наряд-допуск',ND_ISSUER)+
     ndSel(st,k,'head','Руководитель работ (ответственный за безопасное производство работ с ПС)',ND_FM)+
     ndField(st,k,'exec','Ответственный производитель работ','Installer of … category …','exec')+
@@ -2493,22 +2535,29 @@ function renderNd(){
     '<div class="dgrid"><div class="fld"><label for="nd_days">Дней действия</label><input type="number" min="1" max="366" id="nd_days" data-nd="days" value="'+esc(ndV(st,k,'days'))+'"></div>'+
       ndField(st,k,'t2','Время завершения','','', 'time')+'</div>'+
     '<p class="note" id="nd_until">Действителен до: <b>'+esc(ndDmy(d2))+'</b></p>'+
-    ndMulti(st,k,'works','Наименование работ','Earthworks')+
+'\u0001'+    ndMulti(st,k,'works','Наименование работ','Earthworks')+
     ndMulti(st,k,'doc','Работы по документу (ППР, ТК…)','ED.…')+
     ndMulti(st,k,'tech','Техника: вид, марка, рег. №','EXCAVATOR …')+
-    '<h3 class="dh3">Ответственные</h3>'+
+'\u0001'+
     ndSel(st,k,'head','Руководитель работ',ND_FM)+
     ndField(st,k,'exec','Ответственный исполнитель: должность и ФИО','Installer of … category …','exec')+
     ndMulti(st,k,'hse','Специалист по ОТ (регистрирует, допускает к работе)','Engineer of HSE Department …')+
     ndFixed('Наряд выдал',ND_ISSUER)+
     ndSel(st,k,'in','Инструктаж провёл: Site Foreman',ND_FMS);
-  el.innerHTML='<div class="dwrap">'+kinds+head+ndDatalists(st,k)+
-    '<p class="note">Поля заполнены как в прошлом наряде по объекту '+esc(st.obj)+'. Должности и ФИО — как в бланке, по-английски.</p>'+form+
-    '<details class="ndfold" data-fold="team"'+(ndFold&&ndFold.team?' open':'')+'><summary><span class="dh3">Состав бригады</span> <span id="nd_nsel">('+nsel+' чел.)</span></summary>'+ndTeamTools(st,k)+'<div id="ndteam">'+ndTeamList(st,k)+'</div></details>'+
-    '<h3 class="dh3">Отметки в бланке</h3>'+groups+
+  var fp=form.split('\u0001'), v=function(f){ return String(ndV(st,k,f)||'').trim(); };
+  var ok1=!!(String(no).trim()&&d1&&(k==='fire'?d2:v('days'))), ok2=!!v('works'), ok3=!!(v('exec')&&(k==='lift'||v('hse')));
+  function step(key,title,ok,txt,body){ var op=ndFold&&typeof ndFold[key]==='boolean'?ndFold[key]:!ok;
+    return '<details class="ndfold ndstep'+(ok?' ok':' need')+'" data-fold="'+key+'"'+(op?' open':'')+'><summary><span class="ndstt">'+title+'</span><span class="ndst">'+txt+'</span></summary>'+body+'</details>'; }
+  var steps=step('s1','1. Номер, даты, срок',ok1,ok1?'✓':'заполнить',fp[0])+
+    step('s2',k==='fire'?'2. Работы и место':k==='lift'?'2. Работы, ПС, ППР':'2. Работы, ППР, техника',ok2,ok2?'✓':'заполнить',fp[1])+
+    step('s3','3. Ответственные',ok3,ok3?'✓':'заполнить',fp[2])+
+    step('team','4. Состав бригады <span id="nd_nsel">('+nsel+' чел.)</span>',nsel>0,nsel>0?'✓':'выбрать',ndTeamTools(st,k)+'<div id="ndteam">'+ndTeamList(st,k)+'</div>')+
+    step('s5','5. Отметки в бланке',true,'отмечено '+cbs.length,groups+
     (k!=='hz'?'':'<details class="mhdr"><summary>Системы для работы на высоте</summary>'+
       ndField(st,k,'h1','Удерживающие системы','No')+ndField(st,k,'h2','Системы позиционирования','No')+ndField(st,k,'h3','Страховочные системы','No')+ndField(st,k,'h4','Эвакуационные и спасательные системы','No')+'</details>'+
-    '<details class="mhdr"><summary>Наименование организации</summary>'+ndField(st,k,'company','Как в бланке (рус. / англ.)','')+'</details>')+
+    '<details class="mhdr"><summary>Наименование организации</summary>'+ndField(st,k,'company','Как в бланке (рус. / англ.)','')+'</details>'));
+  el.innerHTML='<div class="dwrap">'+kinds+head+ndDatalists(st,k)+
+    '<p class="note">Поля заполнены как в прошлом наряде по объекту '+esc(st.obj)+'. Должности и ФИО — как в бланке, по-английски. Шаги с «✓» уже заполнены — откройте, если нужно поправить.</p>'+steps+
     (ed?'<div class="acts"><button class="primary" data-a="ndsave" data-dl="1">Сохранить и скачать Word</button><button data-a="ndsave">Сохранить без файла</button><button data-a="ndcancel">Отмена</button></div>'
       :'<div class="acts"><button class="primary" data-a="nddoc">Скачать наряд (Word) и записать в журнал</button></div>')+
     '<p class="note" id="nd_msg" role="status" aria-live="polite">'+esc(ndMsg)+'</p></div>';
@@ -2781,11 +2830,12 @@ function ndInput(t){
 function ndChange(t){
   if(t.id==='ndlk'){ ndLogK=t.value; renderNd(); return true; }
   if(t.id==='ndlo'){ ndLogO=t.value; renderNd(); return true; }
+  if(t.id==='ndobjsel'){ var no2=ndSt(); no2.obj=t.value; if(no2.kind==='log') no2.kind=no2.lastKind; ndSave(no2); ndQ=''; ndMsg=''; ndFetchAt=0; renderNd(); return true; }
   var st=ndSt(), k=st.kind, d=ndDraft(st,k);
   if(t.dataset.ndt){
     var team=(d.team||[]).filter(function(x){ return x!==t.dataset.ndt; }); if(t.checked) team.push(t.dataset.ndt); d.team=team; ndSave(st);
     var row=t.closest('.mrow'); if(row) row.classList.toggle('on',t.checked);
-    if($('nd_nsel')) $('nd_nsel').textContent='('+ndTeamN(d)+' чел.)'; return true;
+    if($('nd_nsel')) $('nd_nsel').textContent='('+ndTeamN(d)+' чел.)'; ndStepTeam(ndTeamN(d)); return true;
   }
   if(t.dataset.ndx!=null&&!t.checked){ (d.teamX||[]).splice(Number(t.dataset.ndx),1); ndSave(st); ndTeamRefresh(); return true; }
   if(t.id==='ndonly'){ d.only=t.checked; ndSave(st); ndTeamRefresh(); return true; }
@@ -2863,7 +2913,9 @@ document.addEventListener('click',function(e){
     case 'kb': ui.numMode=!ui.numMode; var q=$('q'); q.inputMode=ui.numMode?'numeric':'text'; renderTop(); q.blur(); setTimeout(function(){ q.focus(); },60); break;
     case 'go': submitEntry(); break;
     case 'undo': undo(); break;
-    case 'flt': ui.filter=el.dataset.f; renderStats(); renderList(); break;
+    case 'flt': ui.filter=(ui.filter===el.dataset.f&&el.dataset.f!=='all'&&el.dataset.f!=='u')?'all':el.dataset.f; renderStats(); renderList(); break;
+    case 'fltx': ui.filter='all'; ui.brig=''; renderStats(); renderList(); break;
+    case 'toabs': setMemoType('abs'); setView('docs'); window.scrollTo(0,0); break;
     case 'set': setStatus(id,el.dataset.s); break;
     case 'hstep': { var r=dayRec(ui.date)[id]; if(r) setHours(id,r.h+Number(el.dataset.d)); break; }
     case 'hset': setHours(id,Number(el.dataset.v)); break;
@@ -2951,6 +3003,7 @@ document.addEventListener('change',function(e){
   var t=e.target;
   if(ui.view==='nd'&&ndChange(t)) return;
   if(t.id==='msched'){ ui.mSched=t.value; renderMonth(); return; }
+  if(t.id==='fltbrig'){ ui.brig=t.value; renderStats(); renderList(); return; }
   if(t.id==='xdpick'&&/^\d{4}-\d{2}-\d{2}$/.test(t.value)){ xDateSet(t.dataset.k,t.value); closeSheet(); return; }
   if(t.id==='dpick'&&/^\d{4}-\d{2}-\d{2}$/.test(t.value)){ ui.date=t.value; ui.follow=t.value===today(); closeSheet(); render(); pull(); }
   if(t.id==='obj'){ bk().object=t.value.trim().slice(0,80); save(); }
@@ -3183,7 +3236,7 @@ function bdFetch(d,force){
   if(!syncOn()||bdBusy[d]) return;
   if(!force&&bdCache[d]&&Date.now()-bdCache[d].at<30000) return;
   bdBusy[d]=1;
-  call({action:'bget',d:d}).then(function(j){ bdBusy[d]=0; var before=JSON.stringify(bdItems(d)); bdCache[d]={items:j.items||[],at:Date.now()}; if(before!==JSON.stringify(bdCache[d].items)){ if(ui.view==='brig'||ui.view==='task'||ui.view==='board') renderX(); else if(ui.view==='nd'&&ndSt().kind==='log') renderNd(); } })
+  call({action:'bget',d:d}).then(function(j){ bdBusy[d]=0; var before=JSON.stringify(bdItems(d)); bdCache[d]={items:j.items||[],at:Date.now()}; if(before!==JSON.stringify(bdCache[d].items)){ if(ui.view==='brig'||ui.view==='task'||ui.view==='board') renderX(); else if(ui.view==='nd'&&ndSt().kind==='log') renderNd(); else if(ui.view==='day'&&d===ui.date){ renderStats(); if(ui.brig) renderList(); } } })
     .catch(function(e){ bdBusy[d]=0; syncFail(e); });
 }
 function bdPut(item){ return call({action:'bput',kind:item.kind,d:item.d,obj:item.obj,id:item.id,data:item.data}); }
@@ -3357,8 +3410,9 @@ function ackHtml0(x){
   return '<div class="xack no">⏳ Бригадир ещё не подтвердил получение</div>';
 }
 function tkCard(x){
-  var dd=x.data||{};
-  return '<div class="xcard"><div class="xch"><b>'+esc(x.obj)+'</b> · бригадир: <b>'+esc(whoBase(dd.brig)||'—')+'</b>'+(role()!=='mont'&&(isAdmin()||x.role===role())?'<button class="tbtx" data-a="tkdel" data-id="'+esc(x.id)+'" aria-label="Удалить задание">✕</button>':'')+'</div>'+
+  var dd=x.data||{}, f=null;
+  if(ndOk()){ var b0=bdItems(x.d).filter(function(y){ return y.kind==='brig'&&fioKey(y.data.lead)===fioKey(dd.brig); })[0]||null; f=bdStat(x.obj,x.d,b0,x); }
+  return '<div class="xcard'+(f?' xs-'+f.lvl:'')+'"><div class="xch"><b>'+esc(x.obj)+'</b> · бригадир: <b>'+esc(whoBase(dd.brig)||'—')+'</b>'+(role()!=='mont'&&(isAdmin()||x.role===role())?'<button class="tbtx" data-a="tkdel" data-id="'+esc(x.id)+'" aria-label="Удалить задание">✕</button>':'')+'</div>'+(f?'<div class="xchipw">'+f.html+'</div>':'')+
     '<div class="xtask">'+esc(dd.tasks||'').replace(/\n/g,'<br>')+'</div><small class="note">Выдал: '+esc(whoBase(x.who))+' · '+fmtDT(x.t)+'</small>'+ackHtml(x)+
     (ndOk()?(function(){ var b=bdItems(x.d).filter(function(y){ return y.kind==='brig'&&fioKey(y.data.lead)===fioKey(dd.brig); })[0]||null;
       return '<div class="xbrgn">'+(b?'Бригада: <b class="xok">'+(b.data.nums||[]).length+' чел.</b> <small class="note">подано '+new Date(b.t).toTimeString().slice(0,5)+(b.obj!==x.obj?' · на '+esc(b.obj):'')+'</small>':'<span class="xno">Численность бригады не подана</span>')+'</div>'+(b?brigMembers(b,x.d):'')+ndCompBlock(b,x.d,x.obj)+ndKinds4(x.obj,x.d,b,dd.brig); })():'')+'</div>';
@@ -3377,7 +3431,7 @@ function tkRender(){
     '<button class="tbtdl" data-a="tksend">Выдать наряд-задание</button><p class="note" id="tk_msg"></p></div>'+
     '<h3 class="tbth3">Выдано на '+esc(dmyLong(d))+' ('+tasks.length+')</h3>'+(tasks.length?tasks.map(tkCard).join(''):'<p class="note">Пока нет.</p>')+
     (ndOk()?(function(){ var nb=bdItems(d).filter(function(x){ return x.kind==='brig'&&!tasks.some(function(t){ return fioKey(t.data.brig)===fioKey(x.data.lead); }); });
-      return nb.length?'<h3 class="tbth3">Подали численность, но без наряд-задания ('+nb.length+')</h3>'+nb.map(function(b){ return '<div class="xcard"><div class="xch"><b>'+esc(b.obj)+'</b> · бригадир: <b>'+esc(whoBase(b.data.lead))+'</b></div><div class="xbrgn">Бригада: <b class="xok">'+(b.data.nums||[]).length+' чел.</b> <small class="note">подано '+new Date(b.t).toTimeString().slice(0,5)+'</small> · <span class="xno">наряд-задание не выдано</span></div>'+brigMembers(b,d)+ndCompBlock(b,d,b.obj)+ndKinds4(b.obj,d,b,b.data.lead)+'</div>'; }).join(''):''; })():'');
+      return nb.length?'<h3 class="tbth3">Подали численность, но без наряд-задания ('+nb.length+')</h3>'+nb.map(function(b){ var f=bdStat(b.obj,d,b,null); return '<div class="xcard xs-'+f.lvl+'"><div class="xch"><b>'+esc(b.obj)+'</b> · бригадир: <b>'+esc(whoBase(b.data.lead))+'</b></div><div class="xchipw">'+f.html+'</div><div class="xbrgn">Бригада: <b class="xok">'+(b.data.nums||[]).length+' чел.</b> <small class="note">подано '+new Date(b.t).toTimeString().slice(0,5)+'</small> · <span class="xno">наряд-задание не выдано</span></div>'+brigMembers(b,d)+ndCompBlock(b,d,b.obj)+ndKinds4(b.obj,d,b,b.data.lead)+'</div>'; }).join(''):''; })():'');
   return h;
 }
 function tkSend(){
@@ -3397,7 +3451,27 @@ var ndFold={};
 document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classList&&t.classList.contains('ndfold')) ndFold[t.dataset.fold]=t.open; },true);
 /* сворачиваемая часть карточки на доске; в заголовке — коротко: люди, наряды, TBT, выполнение */
 function bdAckShort(t){ var a=tkAck(t); return a?'<div class="xack ok xacks">✓ Получил '+new Date(a.t).toTimeString().slice(0,5)+'</div>':'<div class="xack no xacks">⏳ Не подтвердил получение</div>'; }
-function bdMore(id,obj,d,b,t){
+/* состояние бригады: уровень (ok / warn / bad), короткие значки и флаги для счётчика объекта */
+function bdStat(obj,d,b,t){
+  var c=[], f={bad:0,warn:0};
+  function chip(cls,txt){ c.push('<span class="xchip '+cls+'">'+txt+'</span>'); if(cls==='bad') f.bad++; else if(cls==='warn') f.warn++; }
+  if(t){ var a=tkAck(t); if(a) chip('ok','✓ получил '+new Date(a.t).toTimeString().slice(0,5)); else { chip('warn','✘ не получил'); f.noAck=1; } }
+  else { chip('warn','✘ без задания'); f.noTask=1; }
+  if(t&&!b){ chip('bad','✘ численность'); f.noBrig=1; }
+  var nds=b?ndBrigAll(b,d,obj):[];
+  if(b){ if(nds.length) nds.forEach(function(e){ chip('ok','✓ № '+esc(e.no)); }); else { chip('bad','✘ наряд'); f.noNd=1; } }
+  var tb=bdItems(d).some(function(x){ return x.kind==='tbt'&&x.obj===obj; }); f.tbt=tb;
+  chip(tb?'ok':'warn',tb?'✓ TBT':'✘ TBT');
+  if(nds.some(function(e){ var cm=ndComp(e,d); return cm&&(cm.out.length||cm.inn.length); })){ chip('warn','состав ≠ наряд'); f.comp=1; }
+  var ab=0; if(b) (b.data.nums||[]).forEach(function(n){ var p=anyPerson(n); if(p&&personDayStat(p,d)==='прогул') ab++; });
+  if(ab){ chip('bad','прогул: '+ab); f.ab=ab; }
+  if(t){ var dn=tkDone(t), s0=dn&&(dn.data||{}).st; if(s0==='ok') chip('ok','✓ выполнено'); else if(s0==='part') chip('warn','частично'); else if(s0) chip('bad','✘ не выполнено'); else chip('nil','— итог дня'); }
+  f.lvl=f.bad?'bad':f.warn?'warn':'ok';
+  f.html='<span class="xchips">'+c.join('')+'</span>';
+  return f;
+}
+function bdMore(id,obj,d,b,t,f){
+  if(f){ var k0='m|'+id; return '<details class="xmore" data-bid="'+esc(k0)+'"'+(bdMemOpen[k0]?' open':'')+'><summary>'+f.html+'</summary><div class="xmorein">'; }
   var parts=[];
   if(t) parts.push(tkAck(t)?'<span class="xok">задание получено ✓</span>':'<span class="xno">не подтверждено</span>');
   if(b) parts.push((b.data.nums||[]).length+' чел.');
@@ -3429,19 +3503,22 @@ function bdRender(){
     var tx=(Array.isArray(dd.tech)&&dd.tech.length?'<div class="xbrgx"><b>Техника:</b> '+esc(dd.tech.join('; '))+'</div>':'')+(Array.isArray(dd.doc)&&dd.doc.length?'<div class="xbrgx"><b>ППР:</b> '+esc(dd.doc.join('; '))+'</div>':'');
   return tx+'<details class="xmem" data-bid="'+esc(x.id)+'"'+(bdMemOpen[x.id]?' open':'')+'><summary>Состав бригады: '+(dd.nums||[]).length+' чел.'+(bad?' · <span class="xbad">прогул: '+bad+'</span>':'')+(no?' · <span class="xno">нет в табеле: '+no+'</span>':'')+'</summary><div class="xlist">'+list+'</div></details>'; }
   h+='<h3 class="tbth3">2. Объекты: наряд-задания, бригады, наряд-допуски, TBT</h3>';
-  var nds=ndAll(ndSt(),''), frames='', empty=[];
+  var nds=ndAll(ndSt(),''), frames='', empty=[], fl=[];
   objs.forEach(function(o){
     var to=tasks.filter(function(x){ return x.obj===o; }), bo=brigs.filter(function(x){ return x.obj===o; });
     var open=nds.filter(function(e){ var a1=ndIso(e.d1), b1=ndIso(e.d2)||a1; return ndGuessObj(e.code)===o&&a1&&a1<=d&&d<=b1; });
     var tb=items.filter(function(x){ return x.kind==='tbt'&&x.obj===o; });
-    var cards='';
+    var cards='', sum={n:0,noNd:0,noAck:0,noBrig:0,noTask:0,ab:0,comp:0,bad:0,warn:0};
+    function acc(f){ sum.n++; ['noNd','noAck','noBrig','noTask','comp'].forEach(function(k){ if(f[k]) sum[k]++; }); sum.ab+=f.ab||0; if(f.lvl==='bad') sum.bad++; else if(f.lvl==='warn') sum.warn++; }
     to.forEach(function(t){
       var b=brigs.filter(function(x){ return fioKey(x.data.lead)===fioKey(t.data.brig); })[0]; if(b) usedB[b.id]=1;
-      cards+='<div class="xcard"><div class="xch"><b>'+esc(whoBase(t.data.brig))+'</b>'+(b?' · <span class="xok">'+(b.data.nums||[]).length+' чел.</span>'+(b.obj!==o?' <small class="xno">подал на '+esc(b.obj)+'</small>':'')+' <small class="note">подано '+new Date(b.t).toTimeString().slice(0,5)+'</small>':' · <span class="xno">численность не подана</span>')+'</div>'+
-        bdMore(t.id,o,d,b,t)+'<div class="xtask"><b>Задание:</b> '+esc(t.data.tasks||'').replace(/\n/g,'<br>')+' <small class="note">('+esc(whoBase(t.who))+')</small></div>'+bdAckShort(t)+doneHtml(t)+(b?members(b):'')+ndKinds4(o,d,b,t.data.brig)+'</div></details></div>';
+      var f=bdStat(o,d,b,t); acc(f);
+      cards+='<div class="xcard xs-'+f.lvl+'"><div class="xch"><b>'+esc(whoBase(t.data.brig))+'</b>'+(b?'<span class="xchr"><span class="xok">'+(b.data.nums||[]).length+' чел. · '+new Date(b.t).toTimeString().slice(0,5)+'</span>'+(b.obj!==o?' <small class="xno">подал на '+esc(b.obj)+'</small>':'')+'</span>':'<span class="xchr xno">численность не подана</span>')+'</div>'+
+        bdMore(t.id,o,d,b,t,f)+'<div class="xtask"><b>Задание:</b> '+esc(t.data.tasks||'').replace(/\n/g,'<br>')+' <small class="note">('+esc(whoBase(t.who))+')</small></div>'+doneHtml(t)+(b?members(b):'')+ndKinds4(o,d,b,t.data.brig)+'</div></details></div>';
     });
     bo.filter(function(b){ return !usedB[b.id]; }).forEach(function(b){ usedB[b.id]=1;
-      cards+='<div class="xcard"><div class="xch"><b>'+esc(whoBase(b.data.lead))+'</b> · '+(b.data.nums||[]).length+' чел. <span class="xno">наряд-задание не выдано</span></div>'+bdMore(b.id,o,d,b,null)+members(b)+ndKinds4(o,d,b,b.data.lead)+'</div></details></div>';
+      var f=bdStat(o,d,b,null); acc(f);
+      cards+='<div class="xcard xs-'+f.lvl+'"><div class="xch"><b>'+esc(whoBase(b.data.lead))+'</b><span class="xchr"><span class="xok">'+(b.data.nums||[]).length+' чел. · '+new Date(b.t).toTimeString().slice(0,5)+'</span></span></div>'+bdMore(b.id,o,d,b,null,f)+members(b)+ndKinds4(o,d,b,b.data.lead)+'</div></details></div>';
     });
     if(!cards&&!open.length&&!tb.length){ empty.push(o); return; }
     /* внизу рамки объекта — только то, что есть: открытые наряды (со сверкой состава) и проведённые TBT; пустых строк «нет / не проведён» нет */
@@ -3449,9 +3526,20 @@ function bdRender(){
       (tb.length?'<div class="xfh">Инструктаж TBT</div>'+tb.map(function(x){ return '<div class="xfi"><span class="xyes">✔</span> '+esc(whoBase(x.who))+' <small>'+new Date(x.t).toTimeString().slice(0,5)+(x.data&&x.data.n?' · '+x.data.n+' чел.':'')+'</small></div>'; }).join(''):'');
     var foot='';   // сверка состава и перенос изменений — во вкладке «Наряд-задание»
     var ok='o|'+o;
-    frames+='<div class="xobj"><details class="xobjd" data-bid="'+esc(ok)+'"'+(bdMemOpen[ok]?' open':'')+'><summary class="xobjh">'+esc(o)+' <small>Бригадиров: '+to.length+' · чел.: <b class="xok">'+bo.reduce(function(s,x){ return s+(x.data.nums||[]).length; },0)+'</b></small></summary>'+
-      (cards||'<p class="note">Наряд-заданий и бригад нет.</p>')+foot+'</details></div>';
+    var oc=[]; function oChip(cls,txt){ oc.push('<span class="xchip '+cls+'">'+txt+'</span>'); }
+    if(sum.noNd) oChip('bad','⚠ '+sum.noNd+' без наряда');
+    if(sum.noBrig) oChip('bad',sum.noBrig+' не подали численность');
+    if(sum.ab) oChip('bad','прогул: '+sum.ab);
+    if(sum.n) oChip(tb.length?'ok':'warn',tb.length?'✓ TBT':'✘ TBT');
+    if(sum.noAck) oChip('warn',sum.noAck+' не подтвердил');
+    if(sum.noTask) oChip('warn',sum.noTask+' без задания');
+    if(sum.comp) oChip('warn','состав ≠ наряд: '+sum.comp);
+    if(sum.n&&!sum.bad&&!sum.warn) oc=['<span class="xchip ok">✓ всё в порядке</span>'];
+    var olvl=sum.bad?'bad':sum.warn?'warn':'ok';
+    fl.push({lvl:olvl, i:fl.length, html:'<div class="xobj xo-'+olvl+'"><details class="xobjd" data-bid="'+esc(ok)+'"'+(bdMemOpen[ok]?' open':'')+'><summary class="xobjh">'+esc(o)+' <small>Бригадиров: '+to.length+' · чел.: <b class="xok">'+bo.reduce(function(s,x){ return s+(x.data.nums||[]).length; },0)+'</b></small>'+(oc.length?'<span class="xchips xochips">'+oc.join('')+'</span>':'')+'</summary>'+
+      (cards||'<p class="note">Наряд-заданий и бригад нет.</p>')+foot+'</details></div>'});
   });
+  var LV={bad:0,warn:1,ok:2}; fl.sort(function(a,b){ return LV[a.lvl]-LV[b.lvl]||a.i-b.i; }); frames=fl.map(function(x){ return x.html; }).join('');
   h+=frames?'<div class="xobjs">'+frames+'</div>':'<p class="note">На этот день наряд-задания не выданы и численность не подана.</p>';
   if(empty.length) h+='<p class="note">Без наряд-заданий, нарядов и TBT: '+empty.map(esc).join(', ')+'</p>';
   return h;
