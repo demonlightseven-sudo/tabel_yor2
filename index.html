@@ -435,6 +435,13 @@ body.vtask .tktop .tbtf{max-width:none}@media (min-width:1000px){.tktop{grid-tem
 .tkstr>span:first-child{text-align:left}.tkstt{font-size:12px;color:var(--muted);border-bottom:1px solid var(--line)}.tkstn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tkok{color:var(--work-t)}.tkpart{color:var(--ul-t)}
 .tkbar{grid-column:1/-1;display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--bg)}.tkbar i{display:block;height:100%}.tkbar .ok,.tkdot.ok{background:var(--work)}.tkbar .part,.tkdot.part{background:#D9A92E}.tkbar .no,.tkdot.no{background:var(--ab)}.tkbar .none,.tkdot.none{background:var(--line)}
 .tkstsum{font-weight:700;border-bottom:0}.tkstn2{margin:8px 0 0;font-size:12px}.tkdot{display:inline-block;width:9px;height:9px;border-radius:2px;margin:0 3px 0 8px;vertical-align:middle}.tkdot:first-child{margin-left:0}
+.tkmem{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 8px}.tkmem small{width:100%;color:var(--muted)}
+.tkir{display:grid;grid-template-columns:22px minmax(0,1fr) 74px 74px 36px;gap:6px;align-items:center;margin-bottom:6px}.tkir input,.tkir select{width:100%;box-sizing:border-box;min-height:42px;min-width:0}.tkih{font-size:12px;color:var(--muted);margin-bottom:2px}
+.tkidel{min-height:42px;padding:0;color:var(--ab-t)}.tkiadd{width:100%;min-height:42px;margin:2px 0 8px;border-style:dashed}
+.tkil{display:flex;flex-direction:column;gap:3px}.tki{line-height:1.35}.tkiv{color:var(--muted);font-size:13px;white-space:nowrap}.tkinote{margin-top:4px;font-size:13px;color:var(--muted)}
+.tkrr{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line);font-size:14px}.tkrr small{display:block;color:var(--muted);font-size:12px}
+.tkrf{display:flex;gap:4px;align-items:center}.tkrf input{width:70px;min-height:40px;box-sizing:border-box}.tkrf small{display:inline;margin-right:2px}.tkrf button{min-height:40px;padding:0 10px;font-size:13px}.tkrc span:last-child{display:flex;gap:6px;align-items:center}.tkrc input{width:22px;height:22px}
+.tkrep{width:100%;margin-top:8px}.xdonef textarea{margin-top:8px}
 .tkgrid{display:grid;grid-template-columns:1fr;gap:12px;align-items:start}.tkgrid>.xcard{margin:0;min-width:0}
 @media (min-width:700px){body.vtask main{max-width:1600px}body.vtask #xv{max-width:none}body.vtask .tbtf{max-width:760px}.tkgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.tkgrid .ndk4{grid-template-columns:1fr 1fr}}
 @media (min-width:1050px){.tkgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -508,7 +515,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='114';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='115';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -687,7 +694,7 @@ function canPeople(show){ var r=role(); if(r==='nach'||r==='tech'||r==='prorab')
 var DAY_A={set:1,hstep:1,hset:1,undo:1,go:1,scan:1,fill:1,fillok:1};
 var PEOPLE_A={padd:1,pbulk:1,pbulkok:1,pdel:1,pdelarch:1,pdelall:1,pdelok:1,pedit:1,psave:1,parch:1,imp:1,'import':1,pwgo:1,pwsheet:1,defh:1};
 var ADMIN_A={ssave:1,slink:1,lshare:1,lcopy:1,spl:1,splok:1,smonth:1,soff:1,soffok:1};
-var MONT_A={xdpick:1,xdshift:1,xdtoday:1,tkack:1,brgsend:1,brgpick:1,brgpickadd:1,tkdone:1,tkdoneedit:1,tkday:1,book:1,view:1,mnav:1,mday:1,msort:1,msortx:1,mfile:1,mfget:1,mfshare:1,mfull:1,mexp:1,mexport:1,close:1,menu:1,snow:1,install:1,doinstall:1,month:1,mshift:1};
+var MONT_A={tkrep:1,tkall:1,xdpick:1,xdshift:1,xdtoday:1,tkack:1,brgsend:1,brgpick:1,brgpickadd:1,tkdone:1,tkdoneedit:1,tkday:1,book:1,view:1,mnav:1,mday:1,msort:1,msortx:1,mfile:1,mfget:1,mfshare:1,mfull:1,mexp:1,mexport:1,close:1,menu:1,snow:1,install:1,doinstall:1,month:1,mshift:1};
 function roleClick(a,el){
   var r=role(); if(!r) return false;
   if(r==='mont'&&(!MONT_A[a]||(a==='view'&&['month','brig','task'].indexOf(el.dataset.v)<0)||(a==='book'&&el.dataset.b==='are'))){ if(a!=='mcell'&&a!=='mdayopen') toast(a==='book'?'Бригадиру доступен только табель РФ':'Недоступно для бригадира'); return false; }
@@ -2468,7 +2475,7 @@ var ND_MEM_HIDE=['rebar reinforcement, installation and dismantling of formwork,
 /* всё, что раньше вписывали в наряды (все виды, все объекты): каждая строка — отдельный пункт, свежие первыми */
 var ndMemSrv=null, ndMemAt=0;
 function ndMemFetch(force){ if(!syncOn()) return; if(!force&&Date.now()-ndMemAt<60000) return; ndMemAt=Date.now();
-  call({action:'nmem'}).then(function(j){ ndMemSrv=(j&&j.mem)||{}; if(ui.view==='nd') renderNd(); else if(ui.view==='brig') renderX(); }).catch(function(){}); }
+  call({action:'nmem'}).then(function(j){ ndMemSrv=(j&&j.mem)||{}; if(ui.view==='nd') renderNd(); else if(ui.view==='brig'||ui.view==='task') renderX(); }).catch(function(){}); }
 function ndMemCan(){ var r=role(); return r==='nach'||r==='tech'||r==='prorab'; }
 /* память на сервере (общая для всех телефонов); пока её не правили — собирается из журнала нарядов */
 function ndMemList(st,f){ if(ndMemSrv&&Array.isArray(ndMemSrv[f])) return ndMemSrv[f].slice(); return ndMemDerived(st,f); }
@@ -2916,7 +2923,7 @@ document.addEventListener('click',function(e){
   if(a.indexOf('tbt')===0){ tbtClick(a,el); return; }
   if(a==='ndapply'||a==='ndmanual'){ ndApplyComp(el.dataset.id,el.dataset.d,a==='ndmanual'?'manual':'file'); return; }
   if(a==='ndrenew'){ ndRenew(el.dataset.id,el.dataset.d); return; }
-  if(a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'||a==='ndfrom'||a==='ndtbt'||a==='tkdone'||a==='tkdoneedit'||a==='brgpick'||a==='brgpickadd'||a==='xdpick'||a==='xdshift'||a==='xdtoday'){ xClick(a,el); return; }
+  if(a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'||a==='ndfrom'||a==='ndtbt'||a==='tkdone'||a==='tkdoneedit'||a==='tkrep'||a==='tkall'||a==='tkirow'||a==='tkidel'||a==='tkwadd'||a==='tkwdel'||a==='brgpick'||a==='brgpickadd'||a==='xdpick'||a==='xdshift'||a==='xdtoday'){ xClick(a,el); return; }
   switch(a){
     case 'book': if(root.cur!==el.dataset.b){ root.cur=el.dataset.b; save(); ui.q=''; $('q').value=''; ui.open={}; clearMsg(); render(); window.scrollTo(0,0); pull(); } break;
     case 'date': sheetDate(); break;
@@ -3410,6 +3417,7 @@ function doneHtml(x,lite){
     :(can?'':'<div class="xack no">Выполнение за день ещё не отмечено</div>');
   if(!can) return head;
   if(dn&&!tkDoneEdit[x.id]) return head+'<button class="tkdedit" data-a="tkdoneedit" data-id="'+esc(x.id)+'">Изменить отметку о выполнении</button>';
+  if(tkHasItems(x)) return head+tkRepForm(x,cur);
   var note=tkNotes[x.id]!=null?tkNotes[x.id]:(cur.note||'');
   return head+'<div class="xdonef"><div class="xdlbl">Выполнение задания за день</div>'+
     '<textarea id="tkn_'+esc(x.id)+'" data-tkn="'+esc(x.id)+'" rows="2" maxlength="500" placeholder="Комментарий: что сделано, что нет и почему">'+esc(note)+'</textarea>'+
@@ -3544,7 +3552,7 @@ function tkCard(x){
   var del=role()!=='mont'&&(isAdmin()||x.role===role())?'<button class="tbtx tkx" data-a="tkdel" data-id="'+esc(x.id)+'" aria-label="Удалить задание">✕</button>':'';
   var right=f?(b?'<span class="xchr"><span class="xok">'+(b.data.nums||[]).length+' чел. · '+new Date(b.t).toTimeString().slice(0,5)+'</span>'+(b.obj!==x.obj?' <small class="xno">подал на '+esc(b.obj)+'</small>':'')+'</span>':'<span class="xchr xno">численность не подана</span>'):'';
   return '<div class="xcard'+(f?' xs-'+f.lvl:'')+(del?' tkdc':'')+'"><div class="xch"><b>'+esc(x.obj)+'</b> · <b>'+esc(whoBase(dd.brig)||'—')+'</b>'+right+del+'</div>'+(f?'<div class="xchipw">'+f.html+'</div>':'')+
-    '<div class="xtask">'+esc(dd.tasks||'').replace(/\n/g,'<br>')+'<small class="xtby">Выдал: '+esc(whoBase(x.who))+' · '+fmtDT(x.t)+'</small></div>'+
+    '<div class="xtask">'+tkTaskBody(x)+'<small class="xtby">Выдал: '+esc(whoBase(x.who))+' · '+fmtDT(x.t)+'</small></div>'+
     (f?doneHtml(x,true):ackHtml(x))+
     (f?(b?brigMembers(b,x.d):'')+ndCompBlock(b,x.d,x.obj)+ndKinds4(x.obj,x.d,b,dd.brig):'')+'</div>';
 }
@@ -3572,17 +3580,95 @@ function tkStatsHtml(d){
     '<div class="tkstr tkstsum"><span>Все бригады</span><b class="tkok">'+pc(tot.ok,tot.n)+'%</b><b class="tkpart">'+pc(tot.part,tot.n)+'%</b><span>'+tot.n+'</span></div>'+
     '<p class="note tkstn2"><i class="tkdot ok"></i>полностью <i class="tkdot part"></i>частично <i class="tkdot no"></i>не выполнено <i class="tkdot none"></i>не отмечено'+(tot.none?' ('+tot.none+')':'')+'. Считаются задания с 1-го числа по вчера и сегодняшние с отметкой.</p></div>';
 }
+/* ---- наряд-задание: несколько задач с объёмами; память видов работ ---- */
+var tkBrigDraft='', tkObjDraft='';
+document.addEventListener('change',function(e){ var t=e.target; if(!t) return; if(t.id==='tk_brig') tkBrigDraft=t.value; else if(t.id==='tk_obj') tkObjDraft=t.value; },true);
+var TK_UNITS=['','м³','т','м²','м','п.м.','шт','компл.'], tkItems=[{t:'',v:'',u:''}], tkNoteDraft='', tkFacts={};
+var TKW_DEF=['Армирование, т','Бетонирование, м³','Установка опалубки, м²','Распалубка, м²','Разработка грунта, м³','Обратная засыпка, м³','Монтаж металлоконструкций, т','Кладка, м³','Уборка территории'];
+function tkwList(){ return ndMemSrv&&Array.isArray(ndMemSrv.tkw)?ndMemSrv.tkw.slice():TKW_DEF.slice(); }
+function tkwParse(s){ s=String(s||'').trim(); var m=/^(.*?),\s*(м³|т|м²|м|п\.м\.|шт|компл\.)$/.exec(s); return m?{t:m[1].trim(),u:m[2]}:{t:s,u:''}; }
+function tkNum(v){ var n=parseFloat(String(v==null?'':v).replace(/\s/g,'').replace(',','.')); return isFinite(n)?n:null; }
+function tkFmt(n){ return n==null?'':String(Math.round(n*1000)/1000).replace('.',','); }
+function tkItemsForm(){
+  var can=ndMemCan(), mem=tkwList();
+  return '<label>Задачи</label><div class="tkmem"><small>Из памяти — нажмите, чтобы добавить строку:</small>'+mem.map(function(m){ return '<span class="ndchipw"><button type="button" class="ndchip" data-a="tkwadd" data-v="'+esc(m)+'">'+esc(m)+'</button>'+(can?'<button type="button" class="ndchipx" data-a="tkwdel" data-v="'+esc(m)+'" aria-label="Удалить из памяти">×</button>':'')+'</span>'; }).join('')+'</div>'+
+    '<div class="tkir tkih"><span>№</span><span>Что сделать</span><span>Объём</span><span>Ед.</span><span></span></div>'+
+    tkItems.map(function(x,i){ return '<div class="tkir"><b>'+(i+1)+'.</b><input data-tki="'+i+'" data-tkk="t" maxlength="200" list="tkwl" value="'+esc(x.t)+'" placeholder="Например, бетонирование плиты" aria-label="Задача '+(i+1)+'">'+
+      '<input data-tki="'+i+'" data-tkk="v" maxlength="12" inputmode="decimal" value="'+esc(x.v)+'" placeholder="—" aria-label="Объём">'+
+      '<select data-tki="'+i+'" data-tkk="u" aria-label="Единица">'+TK_UNITS.map(function(u){ return '<option value="'+u+'"'+(u===x.u?' selected':'')+'>'+(u||'—')+'</option>'; }).join('')+'</select>'+
+      '<button type="button" class="tkidel" data-a="tkidel" data-i="'+i+'" aria-label="Убрать строку">✕</button></div>'; }).join('')+
+    '<datalist id="tkwl">'+mem.map(function(m){ return '<option value="'+esc(tkwParse(m).t)+'">'; }).join('')+'</datalist>'+
+    '<button type="button" class="tkiadd" data-a="tkirow">+ Добавить задачу</button>'+
+    '<label for="tk_text">Где / пояснение (необязательно)</label><textarea id="tk_text" rows="2" placeholder="Оси, отметка, особые условия">'+esc(tkNoteDraft)+'</textarea>';
+}
+function tkFocusRow(i,k){ setTimeout(function(){ var e=document.querySelector('[data-tki="'+i+'"][data-tkk="'+(k||'t')+'"]'); if(e) e.focus(); },30); }
+function tkwAdd(v){
+  var w=tkwParse(v), i=-1; tkItems.forEach(function(x,j){ if(i<0&&!x.t.trim()) i=j; });
+  if(i<0){ tkItems.push({t:'',v:'',u:''}); i=tkItems.length-1; }
+  tkItems[i].t=w.t; tkItems[i].u=w.u; renderX(); tkFocusRow(i,w.u?'v':'t');
+}
+function tkwMemOp(op,v,quiet){
+  if(!syncOn()) return Promise.resolve();
+  return call({action:'nmemset',op:op,f:'tkw',v:v,seed:tkwList()}).then(function(j){ ndMemSrv=j.mem||ndMemSrv; if(!quiet){ toast(op==='add'?'Добавлено в память':'Удалено из памяти'); renderX(); } }).catch(function(e){ if(!quiet) toast('Не сохранено: '+((e&&e.message)||'')); });
+}
+document.addEventListener('input',function(e){ var t=e.target; if(!t||!t.dataset) return;
+  if(t.dataset.tki!=null){ var i=Number(t.dataset.tki), k=t.dataset.tkk; if(!tkItems[i]) return; tkItems[i][k]=t.value;
+    if(k==='t'&&!tkItems[i].u){ var lk=t.value.trim().toLowerCase(), m=tkwList().map(tkwParse).filter(function(x){ return x.u&&x.t.toLowerCase()===lk; })[0];
+      if(m){ tkItems[i].u=m.u; var sel=document.querySelector('select[data-tki="'+i+'"]'); if(sel) sel.value=m.u; } } return; }
+  if(t.id==='tk_text'){ tkNoteDraft=t.value; return; }
+  if(t.dataset.tkf){ var a=t.dataset.tkf.split('|'); (tkFacts[a[0]]=tkFacts[a[0]]||{})[a[1]]=t.type==='checkbox'?t.checked:t.value; }
+},true);
+document.addEventListener('change',function(e){ var t=e.target; if(t&&t.dataset&&t.dataset.tki!=null&&tkItems[Number(t.dataset.tki)]) tkItems[Number(t.dataset.tki)][t.dataset.tkk]=t.value; if(t&&t.dataset&&t.dataset.tkf&&t.type==='checkbox'){ var a=t.dataset.tkf.split('|'); (tkFacts[a[0]]=tkFacts[a[0]]||{})[a[1]]=t.checked; } },true);
+/* текст задания: пункты с планом и фактом (если бригадир отчитался) */
+function tkHasItems(x){ var it=(x.data||{}).items; return Array.isArray(it)&&it.length>0; }
+function tkTaskBody(x){
+  var dd=x.data||{};
+  if(!tkHasItems(x)) return esc(dd.tasks||'').replace(/\n/g,'<br>');
+  var dn=tkDone(x), fc=dn&&dn.data&&Array.isArray(dn.data.facts)?dn.data.facts:null;
+  return '<div class="tkil">'+dd.items.map(function(it,i){ var f=fc&&fc[i], pl=tkNum(it.v), fx='';
+      if(f){ fx=pl!=null?' · факт '+esc(tkFmt(f.f))+(it.u?' '+esc(it.u):'')+' <b class="'+(f.p>=100?'tkok':f.p>0?'tkpart':'xno')+'">'+f.p+'%</b>':' · <b class="'+(f.p>=100?'tkok':'xno')+'">'+(f.p>=100?'сделано':'не сделано')+'</b>'; }
+      return '<div class="tki"><b>'+(i+1)+'.</b> '+esc(it.t)+(pl!=null||fx?' <span class="tkiv">'+(pl!=null?'план '+esc(it.v)+(it.u?' '+esc(it.u):''):'')+fx+'</span>':'')+'</div>'; }).join('')+
+    (dd.note?'<div class="tkinote">'+esc(dd.note)+'</div>':'')+'</div>';
+}
+/* отчёт бригадира: факт по каждой задаче */
+function tkRepForm(x,cur){
+  var dd=x.data, dr=tkFacts[x.id]||{}, old=Array.isArray(cur.facts)?cur.facts:[], note=tkNotes[x.id]!=null?tkNotes[x.id]:(cur.note||'');
+  return '<div class="xdonef"><div class="xdlbl">Отчёт о выполнении: сколько сделано фактически</div>'+
+    dd.items.map(function(it,i){ var pl=tkNum(it.v), k=x.id+'|'+i, o=old[i]||{};
+      if(pl==null){ var on=dr[i]!=null?!!dr[i]:(o.p>=100); return '<label class="tkrr tkrc"><b>'+(i+1)+'.</b><span>'+esc(it.t)+'</span><span><input type="checkbox" data-tkf="'+esc(k)+'"'+(on?' checked':'')+'> сделано</span></label>'; }
+      var v=dr[i]!=null?dr[i]:(o.f!=null?tkFmt(o.f):'');
+      return '<div class="tkrr"><b>'+(i+1)+'.</b><span>'+esc(it.t)+'<small>план '+esc(it.v)+(it.u?' '+esc(it.u):'')+'</small></span><span class="tkrf"><input data-tkf="'+esc(k)+'" inputmode="decimal" maxlength="12" value="'+esc(v)+'" placeholder="факт" aria-label="Факт, '+esc(it.u||'')+'">'+(it.u?'<small>'+esc(it.u)+'</small>':'')+
+        '<button type="button" data-a="tkall" data-k="'+esc(k)+'" data-v="'+esc(tkFmt(pl))+'">Всё</button></span></div>'; }).join('')+
+    '<textarea id="tkn_'+esc(x.id)+'" data-tkn="'+esc(x.id)+'" rows="2" maxlength="500" placeholder="Комментарий: если сделано не всё — почему">'+esc(note)+'</textarea>'+
+    '<button class="tbtdl tkrep" data-a="tkrep" data-id="'+esc(x.id)+'" data-d="'+esc(x.d)+'" data-o="'+esc(x.obj||'')+'">Отправить отчёт</button></div>';
+}
+function tkRepSave(el){
+  var tid=el.dataset.id, d=el.dataset.d, x=bdItems(d).filter(function(a){ return a.id===tid; })[0]; if(!x||!tkHasItems(x)) return;
+  if(!syncOn()){ toast('Нет связи с сервером'); return; }
+  var facts=[], miss=0, sum=0;
+  x.data.items.forEach(function(it,i){ var pl=tkNum(it.v), e=document.querySelector('[data-tkf="'+(window.CSS&&CSS.escape?CSS.escape(tid+'|'+i):tid+'|'+i)+'"]');
+    if(pl==null){ var on=!!(e&&e.checked); facts.push({p:on?100:0}); sum+=on?100:0; return; }
+    var f=tkNum(e?e.value:''); if(f==null){ miss++; facts.push({f:null,p:0}); return; }
+    var pc=pl>0?Math.min(100,Math.round(f*100/pl)):(f>0?100:0); facts.push({f:f,p:pc}); sum+=pc; });
+  if(miss){ toast('Впишите факт по всем задачам (0 — если не делали)'); return; }
+  var pct=Math.round(sum/facts.length), all=facts.every(function(f){ return f.p>=100; }), st=all?'ok':pct===0?'no':'part';
+  var ta=document.querySelector('[data-tkn="'+tid+'"]'), note=(ta?ta.value:(tkNotes[tid]||'')).trim();
+  if(st!=='ok'&&!note){ toast('Сделано не всё — напишите комментарий: почему'); if(ta) ta.focus(); return; }
+  el.disabled=true;
+  bdPut({kind:'done',d:d,obj:el.dataset.o||'',id:('done|'+tid).slice(0,60),data:{tid:tid,st:st,pct:pct,facts:facts,note:note.slice(0,500),fio:sync.who}}).then(function(){ delete tkDoneEdit[tid]; delete tkNotes[tid]; delete tkFacts[tid]; toast('Отчёт отправлен: '+DONE_ST[st]+' · '+pct+'%'); bdFetch(d,true); })
+    .catch(function(e){ el.disabled=false; toast('Не отправлено: '+((e&&e.message)||'')); });
+}
 function tkRender(){
-  var d=tkDate||tkDef(); bdFetch(d,false); var hn=$('hnav'); if(hn) hn.innerHTML=navDate('tkday',d);
+  var d=tkDate||tkDef(); bdFetch(d,false); if(ndOk()) ndMemFetch(false); var hn=$('hnav'); if(hn) hn.innerHTML=navDate('tkday',d);
   var tasks=bdItems(d).filter(function(x){ return x.kind==='task'; });
   if(role()==='mont'){ tasks=tasks.filter(function(x){ return fioKey(x.data.brig)===fioKey(sync.who); });
     return '<h2 class="dh2">Наряд-задание</h2>'+(tasks.length?tasks.map(tkCard).join(''):'<p class="note">Заданий на этот день нет.</p>'); }
-  var o=brgSt(), obj=o.tobj||ND_OBJS[0];
+  var o=brgSt(), obj=tkObjDraft||o.tobj||ND_OBJS[0];
   var h='<h2 class="dh2">Наряд-задание</h2>'+
     (d===addDays(today(),1)?'<p class="note">Задания выдаются сегодня на завтра. Завтра бригадир подаст численность бригады по своему заданию.</p>':(d<today()?'<p class="xno">Прошедший день</p>':''))+
-    '<div class="tktop"><div class="tbtf"><label for="tk_brig">Бригадир</label><select id="tk_brig"><option value="">— выберите бригадира —</option>'+BRIG_NAMES.map(function(n){ var has=tasks.some(function(x){ return fioKey(x.data.brig)===fioKey(n); }); return '<option value="'+esc(n)+'">'+esc(n)+(has?' ✓':'')+'</option>'; }).join('')+'</select>'+
+    '<div class="tktop"><div class="tbtf"><label for="tk_brig">Бригадир</label><select id="tk_brig"><option value="">— выберите бригадира —</option>'+BRIG_NAMES.map(function(n){ var has=tasks.some(function(x){ return fioKey(x.data.brig)===fioKey(n); }); return '<option value="'+esc(n)+'"'+(n===tkBrigDraft?' selected':'')+'>'+esc(n)+(has?' ✓':'')+'</option>'; }).join('')+'</select>'+
     '<label for="tk_obj">Объект</label>'+objSelect('tk_obj',obj)+
-    '<label for="tk_text">Задачи</label><textarea id="tk_text" rows="4" placeholder="Что нужно сделать, объёмы, где"></textarea>'+
+    tkItemsForm()+
     '<button class="tbtdl" data-a="tksend">Выдать наряд-задание</button><p class="note" id="tk_msg"></p></div>'+tkStatsHtml(d)+'</div>'+
     '<h3 class="tbth3">Выдано на '+esc(dmyLong(d))+' ('+tasks.length+')</h3>'+(tasks.length?'<div class="tkgrid">'+tasks.map(tkCard).join('')+'</div>':'<p class="note">Пока нет.</p>')+
     (ndOk()?(function(){ var nb=bdItems(d).filter(function(x){ return x.kind==='brig'&&!tasks.some(function(t){ return fioKey(t.data.brig)===fioKey(x.data.lead); }); });
@@ -3591,13 +3677,19 @@ function tkRender(){
 }
 function tkSend(){
   var d=tkDate||tkDef(), o=brgSt(), msg=$('tk_msg');
-  var obj=$('tk_obj').value, brig=$('tk_brig').value.trim(), text=$('tk_text').value.trim();
+  var obj=$('tk_obj').value, brig=$('tk_brig').value.trim(), note=($('tk_text')?$('tk_text').value:tkNoteDraft).trim().slice(0,500);
+  var items=tkItems.map(function(x){ return {t:String(x.t||'').trim().slice(0,200),v:String(x.v||'').trim().slice(0,12),u:x.u||''}; }).filter(function(x){ return x.t; });
+  for(var bi=0;bi<items.length;bi++){ if(items[bi].v&&tkNum(items[bi].v)==null){ msg.textContent='Объём в строке '+(bi+1)+' — числом, например 12 или 4,5.'; return; } if(!items[bi].v) items[bi].u=''; }
+  var text=items.map(function(x,i){ return (i+1)+'. '+x.t+(x.v?' — '+x.v+(x.u?' '+x.u:''):''); }).join('\n')+(note?(items.length?'\n':'')+note:'');
   o.tobj=obj; brgSave(o);
   if(BRIG_NAMES.indexOf(brig)<0){ msg.textContent='Выберите бригадира из списка.'; return; } if(!text){ msg.textContent='Впишите задачи.'; return; }
   if(!syncOn()){ msg.textContent='Нет связи с сервером.'; return; }
   o.tbrigs=[brig].concat((o.tbrigs||[]).filter(function(n){ return n.toLowerCase()!==brig.toLowerCase(); })).slice(0,40); brgSave(o);
   msg.textContent='Отправляю…';
-  bdPut({kind:'task',d:d,obj:obj,data:{brig:brig,tasks:text.slice(0,3000),by:sync.who}}).then(function(){ toast('Наряд-задание выдано: '+brig+', '+dmyLong(d)); var t=$('tk_text'); if(t) t.value=''; var b=$('tk_brig'); if(b) b.value=''; bdFetch(d,true); })
+  if(!items.length){ msg.textContent='Впишите хотя бы одну задачу.'; return; }
+  var memL=tkwList().map(function(m){ return m.toLowerCase(); }), learn=items.map(function(x){ return x.t+(x.u?', '+x.u:''); }).filter(function(k,i,a){ return memL.indexOf(k.toLowerCase())<0&&a.indexOf(k)===i; });
+  bdPut({kind:'task',d:d,obj:obj,data:{brig:brig,tasks:text.slice(0,3000),items:items,note:note,by:sync.who}}).then(function(){ toast('Наряд-задание выдано: '+brig+', '+dmyLong(d)); tkItems=[{t:'',v:'',u:''}]; tkNoteDraft=''; tkBrigDraft=''; var t=$('tk_text'); if(t) t.value='';
+    learn.reduce(function(pr,k){ return pr.then(function(){ return tkwMemOp('add',k,true); }); },Promise.resolve()); var b=$('tk_brig'); if(b) b.value=''; bdFetch(d,true); })
     .catch(function(e){ msg.textContent='Не отправлено: '+((e&&e.message)||'ошибка'); });
 }
 var bdMemOpen={};
@@ -3620,7 +3712,7 @@ function bdStat(obj,d,b,t){
   if(nds.some(function(e){ var cm=ndComp(e,d); return cm&&(cm.out.length||cm.inn.length); })){ chip('warn','состав ≠ наряд'); f.comp=1; }
   var ab=0; if(b) (b.data.nums||[]).forEach(function(n){ var p=anyPerson(n); if(p&&personDayStat(p,d)==='прогул') ab++; });
   if(ab){ chip('bad','прогул: '+ab); f.ab=ab; }
-  if(t){ var dn=tkDone(t), s0=dn&&(dn.data||{}).st; if(s0==='ok') chip('ok','✓ выполнено'); else if(s0==='part') chip('warn','частично'); else if(s0) chip('bad','✘ не выполнено'); else chip('nil','— итог дня'); }
+  if(t){ var dn=tkDone(t), s0=dn&&(dn.data||{}).st; if(s0==='ok') chip('ok','✓ выполнено'); else if(s0==='part') chip('warn','частично'+((dn.data||{}).pct!=null?' · '+dn.data.pct+'%':'')); else if(s0) chip('bad','✘ не выполнено'); else chip('nil','— итог дня'); }
   f.lvl=f.bad?'bad':f.warn?'warn':'ok';
   f.html='<span class="xchips">'+c.join('')+'</span>';
   return f;
@@ -3669,7 +3761,7 @@ function bdRender(){
       var b=brigs.filter(function(x){ return fioKey(x.data.lead)===fioKey(t.data.brig); })[0]; if(b) usedB[b.id]=1;
       var f=bdStat(o,d,b,t); acc(f);
       cards+='<div class="xcard xs-'+f.lvl+'"><div class="xch"><b>'+esc(whoBase(t.data.brig))+'</b>'+(b?'<span class="xchr"><span class="xok">'+(b.data.nums||[]).length+' чел. · '+new Date(b.t).toTimeString().slice(0,5)+'</span>'+(b.obj!==o?' <small class="xno">подал на '+esc(b.obj)+'</small>':'')+'</span>':'<span class="xchr xno">численность не подана</span>')+'</div>'+
-        bdMore(t.id,o,d,b,t,f)+'<div class="xtask"><b>Задание:</b> '+esc(t.data.tasks||'').replace(/\n/g,'<br>')+' <small class="note">('+esc(whoBase(t.who))+')</small></div>'+doneHtml(t,true)+(b?members(b):'')+ndKinds4(o,d,b,t.data.brig)+'</div></details></div>';
+        bdMore(t.id,o,d,b,t,f)+'<div class="xtask"><b>Задание:</b> '+tkTaskBody(t)+' <small class="note">('+esc(whoBase(t.who))+')</small></div>'+doneHtml(t,true)+(b?members(b):'')+ndKinds4(o,d,b,t.data.brig)+'</div></details></div>';
     });
     bo.filter(function(b){ return !usedB[b.id]; }).forEach(function(b){ usedB[b.id]=1;
       var f=bdStat(o,d,b,null); acc(f);
@@ -3775,6 +3867,12 @@ function xClick(a,el){
   if(a==='brgpick'){ brgPickToggle(el.dataset.f,el.dataset.v,false); return; }
   if(a==='brgpickadd'){ var bi=$('brgadd_'+el.dataset.f), bv=bi?bi.value.trim():''; if(!bv){ toast('Впишите, что добавить'); return; } brgPickToggle(el.dataset.f,bv,true); return; }
   if(a==='tkdone'){ tkDoneSave(el); return; }
+  if(a==='tkrep'){ tkRepSave(el); return; }
+  if(a==='tkall'){ var ke=el.dataset.k, inp=document.querySelector('[data-tkf="'+(window.CSS&&CSS.escape?CSS.escape(ke):ke)+'"]'); if(inp){ inp.value=el.dataset.v; var ka=ke.split('|'); (tkFacts[ka[0]]=tkFacts[ka[0]]||{})[ka[1]]=el.dataset.v; } return; }
+  if(a==='tkirow'){ tkItems.push({t:'',v:'',u:''}); renderX(); tkFocusRow(tkItems.length-1); return; }
+  if(a==='tkidel'){ var di=Number(el.dataset.i); if(tkItems.length>1) tkItems.splice(di,1); else tkItems=[{t:'',v:'',u:''}]; renderX(); return; }
+  if(a==='tkwadd'){ tkwAdd(el.dataset.v); return; }
+  if(a==='tkwdel'){ if(confirm('Удалить из памяти?\n\n'+el.dataset.v)) tkwMemOp('del',el.dataset.v); return; }
   if(a==='xdpick'){ sheetXDate(el.dataset.k); return; }
   if(a==='xdshift'){ var nk=el.dataset.k; xDateSet(nk,addDays(xDateGet(nk),Number(el.dataset.d))); sheetXDate(nk); return; }
   if(a==='xdtoday'){ xDateSet(el.dataset.k,today()); closeSheet(); return; }
