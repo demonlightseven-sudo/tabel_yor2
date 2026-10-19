@@ -497,7 +497,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='110';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='111';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -728,12 +728,11 @@ function showLogin(msg){
   var w=document.getElementById('login'); if(!w){ w=document.createElement('div'); w.id='login'; document.body.appendChild(w); }
   w.hidden=false; document.body.classList.add('lg-open');
   if(lgUsers===null) lgLoadUsers();
-  var m=lgSel==='mont'||lgSel==='perev', list=Array.isArray(lgUsers)?lgUsers.filter(function(u){ return u.role===lgSel; }):[], useList=Array.isArray(lgUsers)&&(list.length||!m), body='';
+  var m=lgSel==='mont'||lgSel==='perev', list=Array.isArray(lgUsers)?lgUsers.filter(function(u){ return u.role===lgSel; }):[], useList=Array.isArray(lgUsers)&&list.length>0, body='';
   if(lgSel){
     if(lgUsers===null) body='<p class="lgsub">Загружаю список пользователей…</p>';
-    else if(useList) body='<label for="lguid">Ваше ФИО</label><select id="lguid"><option value="">— выберите себя из списка —</option>'+list.map(function(u){ return '<option value="'+esc(u.id)+'" data-np="'+(u.np?1:0)+'">'+esc(u.fio)+'</option>'; }).join('')+(m?'':'<option value="_new">Другое ФИО (меня нет в списке)</option>')+'</select>'+
-      '<div id="lgnew" hidden><label for="lgwho">Ваше ФИО и должность</label><input id="lgwho" maxlength="60" autocomplete="off" placeholder="Иванов И.И. Мастер"></div>';
-    else if(lgSel==='perev') body='<p class="lgsub">Переводчиков пока нет в списке. Попросите начальника участка или техника добавить вас в «Пользователях».</p>';
+    else if(useList) body='<label for="lguid">Ваше ФИО</label><select id="lguid"><option value="">— выберите себя из списка —</option>'+list.map(function(u){ return '<option value="'+esc(u.id)+'" data-np="'+(u.np?1:0)+'">'+esc(u.fio)+'</option>'; }).join('')+'</select><p class="lgsub">Если вас нет в списке — попросите начальника участка или техника добавить вас в «Пользователях».</p>';
+    else if(Array.isArray(lgUsers)) body='<p class="lgsub">На этом уровне пока нет ни одного пользователя. Попросите начальника участка или техника добавить вас в «Пользователях».</p>';
     else if(m) body='<label for="lgfio">Ваше ФИО</label><select id="lgfio"><option value="">— выберите из списка —</option>'+BRIG_NAMES.map(function(n){ return '<option value="'+esc(n)+'">'+esc(n)+'</option>'; }).join('')+'</select>';
     else body='<label for="lgwho">Ваша фамилия (видна в отметках)</label><input id="lgwho" maxlength="40" autocomplete="off" value="'+esc(sync.who||'')+'">';
     body+='<div id="lgpw"'+(m?' hidden':'')+'><input type="text" name="lguser" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"><label for="lgpass">Пароль</label><input id="lgpass" name="lgpass" type="password" autocomplete="new-password"></div>'+
@@ -746,7 +745,6 @@ function showLogin(msg){
 /* показать/скрыть поле пароля и ФИО по выбору в списке */
 function lgSync(){
   var s=$('lguid'); if(!s) return; var o=s.options[s.selectedIndex], m=lgSel==='mont'||lgSel==='perev';
-  var nw=$('lgnew'); if(nw) nw.hidden=s.value!=='_new';
   var pw=$('lgpw'); if(pw) pw.hidden=m&&!(o&&o.dataset.np==='1');
 }
 function lgSubmit(){
@@ -755,8 +753,7 @@ function lgSubmit(){
   var us=$('lguid');
   if(us){
     if(!us.value){ msg.textContent='Выберите себя из списка.'; return; }
-    if(us.value==='_new'){ who=($('lgwho').value||'').trim().replace(/\s+/g,' ').slice(0,60); if(who.length<2){ msg.textContent='Впишите ФИО и должность.'; return; } body.name=who; }
-    else body.uid=us.value;
+    body.uid=us.value;
     if(!$('lgpw').hidden&&!pass){ msg.textContent='Введите пароль.'; return; }
   } else if(m){ fio=($('lgfio')||{}).value||''; if(BRIG_NAMES.indexOf(fio)<0){ msg.textContent='Выберите своё ФИО из списка — без этого войти нельзя.'; return; } body.name=fio; }
   else{ who=($('lgwho').value||'').trim().slice(0,40); if(!pass){ msg.textContent='Введите пароль.'; return; } if(who) body.name=who; }
@@ -765,7 +762,7 @@ function lgSubmit(){
   lgApiUrl().then(function(u){
     return fetch(u,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),cache:'no-store'})
       .then(function(r){ return r.json(); }).then(function(j){
-        if(!j||!j.ok){ msg.textContent=j&&j.error==='bad_pass'?'Неверный пароль.':j&&j.error==='need_pass'?'Введите пароль.':(j&&j.error==='bad_name'?'Этого ФИО нет в списке бригадиров.':j&&j.error==='bad_user'?'Эта учётная запись отключена или изменена. Выберите себя заново.':(j&&j.error==='too_many'?'Слишком много попыток. Подождите 15 минут.':'Не удалось войти: '+((j&&j.error)||'ошибка'))); if(j&&j.error==='bad_user'){ lgUsers=null; showLogin(msg.textContent); } return; }
+        if(!j||!j.ok){ msg.textContent=j&&j.error==='bad_pass'?'Неверный пароль.':j&&j.error==='need_pass'?'Введите пароль.':(j&&j.error==='bad_name'?'Этого ФИО нет в списке бригадиров.':j&&j.error==='bad_user'?'Эта учётная запись отключена или изменена. Выберите себя заново.':j&&j.error==='no_user'?'Вас нет в списке пользователей. Попросите начальника участка или техника добавить вас.':(j&&j.error==='too_many'?'Слишком много попыток. Подождите 15 минут.':'Не удалось войти: '+((j&&j.error)||'ошибка'))); if(j&&j.error==='bad_user'){ lgUsers=null; showLogin(msg.textContent); } return; }
         var nm=j.fio?(m?j.fio:j.fio+(j.pos?' '+j.pos:'')):(m?fio:who);
         auth={role:j.role,token:j.token,at:Date.now(),uid:j.uid||'',fio:j.fio||'',rname:j.rname||''}; if(m){ auth.locked=1; auth.fio=j.fio||fio; } saveAuth();
         sync.url=u; sync.code=j.token; if(nm) sync.who=nm; sync.rev={}; syncErr=''; saveSync();
@@ -808,7 +805,7 @@ function meSync(me){
 }
 function syncFail(e){
   var m=e&&e.message;
-  if(m==='bad_code'&&auth){ syncErr=''; logout('Вход сброшен. Войдите заново.'); }
+  if(m==='bad_code'&&auth){ syncErr=''; logout('Вход обновлён: выберите себя из списка и войдите заново.'); }
   else if(m==='bad_code'||m==='code_not_set') syncErr=m;
   else if(m==='bad_action') syncErr='old';
   else if((e&&(e.name==='TypeError'||e.name==='AbortError'))||navigator.onLine===false) syncErr='net';
