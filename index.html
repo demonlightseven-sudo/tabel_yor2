@@ -427,6 +427,9 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 .xcomp{margin-top:8px;padding:6px 8px;border:1px dashed var(--line);border-radius:10px}.xcomp .xfh{margin-top:0}.xcomp .ndcmp{display:block;margin-top:4px}
 .xfoot{margin-top:10px;padding-top:6px;border-top:1px dashed var(--line)}.xfh{font-weight:700;margin:6px 0 2px}.xfi{margin:2px 0 4px}.xfi .ndcmp{display:block;margin-top:2px}
 body.vboard main{max-width:1600px}body.vboard #xv{max-width:none}
+.tkgrid{display:grid;grid-template-columns:1fr;gap:12px;align-items:start}.tkgrid>.xcard{margin:0;min-width:0}
+@media (min-width:700px){body.vtask main{max-width:1600px}body.vtask #xv{max-width:none}body.vtask .tbtf{max-width:760px}.tkgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.tkgrid .ndk4{grid-template-columns:1fr 1fr}}
+@media (min-width:1050px){.tkgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:700px){.xobjs{grid-template-columns:1fr}}
 @media (min-width:701px) and (max-width:1099px){.xobjs{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}}
 @media (min-width:1100px){body.vboard main{max-width:none;padding:0 16px}.xobjs{grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.xobj{padding:8px 10px}.xobj .ndk4{grid-template-columns:1fr 1fr}.xobj .xch,.xobj .xtask{font-size:14px}}
@@ -497,7 +500,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='111';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='112';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1195,6 +1198,7 @@ function render(){
   document.body.classList.toggle('vnd',ui.view==='nd');
   document.body.classList.toggle('vx',ui.view==='brig'||ui.view==='task'||ui.view==='board');
   document.body.classList.toggle('vboard',ui.view==='board');
+  document.body.classList.toggle('vtask',ui.view==='task');
   document.body.classList.toggle('vhdate',ui.view==='board'||ui.view==='task'||ui.view==='brig'||ui.view==='nd');
   renderTop(); renderBanner(); renderSyncBar();
   if(ui.view==='month') renderMonth(); else if(ui.view==='docs') renderDocs(); else if(ui.view==='nd') renderNd(); else if(ui.view==='brig'||ui.view==='task'||ui.view==='board') renderX(); else { renderStats(); renderList(); }
@@ -3548,9 +3552,9 @@ function tkRender(){
     '<label for="tk_obj">Объект</label>'+objSelect('tk_obj',obj)+
     '<label for="tk_text">Задачи</label><textarea id="tk_text" rows="4" placeholder="Что нужно сделать, объёмы, где"></textarea>'+
     '<button class="tbtdl" data-a="tksend">Выдать наряд-задание</button><p class="note" id="tk_msg"></p></div>'+
-    '<h3 class="tbth3">Выдано на '+esc(dmyLong(d))+' ('+tasks.length+')</h3>'+(tasks.length?tasks.map(tkCard).join(''):'<p class="note">Пока нет.</p>')+
+    '<h3 class="tbth3">Выдано на '+esc(dmyLong(d))+' ('+tasks.length+')</h3>'+(tasks.length?'<div class="tkgrid">'+tasks.map(tkCard).join('')+'</div>':'<p class="note">Пока нет.</p>')+
     (ndOk()?(function(){ var nb=bdItems(d).filter(function(x){ return x.kind==='brig'&&!tasks.some(function(t){ return fioKey(t.data.brig)===fioKey(x.data.lead); }); });
-      return nb.length?'<h3 class="tbth3">Подали численность, но без наряд-задания ('+nb.length+')</h3>'+nb.map(function(b){ var f=bdStat(b.obj,d,b,null); return '<div class="xcard xs-'+f.lvl+'"><div class="xch"><b>'+esc(b.obj)+'</b> · <b>'+esc(whoBase(b.data.lead))+'</b><span class="xchr"><span class="xok">'+(b.data.nums||[]).length+' чел. · '+new Date(b.t).toTimeString().slice(0,5)+'</span></span></div><div class="xchipw">'+f.html+'</div>'+brigMembers(b,d)+ndCompBlock(b,d,b.obj)+ndKinds4(b.obj,d,b,b.data.lead)+'</div>'; }).join(''):''; })():'');
+      return nb.length?'<h3 class="tbth3">Подали численность, но без наряд-задания ('+nb.length+')</h3><div class="tkgrid">'+nb.map(function(b){ var f=bdStat(b.obj,d,b,null); return '<div class="xcard xs-'+f.lvl+'"><div class="xch"><b>'+esc(b.obj)+'</b> · <b>'+esc(whoBase(b.data.lead))+'</b><span class="xchr"><span class="xok">'+(b.data.nums||[]).length+' чел. · '+new Date(b.t).toTimeString().slice(0,5)+'</span></span></div><div class="xchipw">'+f.html+'</div>'+brigMembers(b,d)+ndCompBlock(b,d,b.obj)+ndKinds4(b.obj,d,b,b.data.lead)+'</div>'; }).join('')+'</div>':''; })():'');
   return h;
 }
 function tkSend(){
