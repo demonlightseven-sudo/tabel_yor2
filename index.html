@@ -146,6 +146,8 @@ button.ab[aria-pressed=true]{background:var(--ab);border-color:var(--ab)}
 .sh{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
 .sh h2{margin:0;font-size:19px}
 .sh button{width:44px;padding:0;font-size:20px}
+.urow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line)}.urow .uinfo{flex:1;min-width:0;overflow-wrap:anywhere}.urow .uinfo div{font-size:14px}.urow small{display:block;color:var(--muted);font-size:12px;margin-top:2px}.urow button{flex:0 0 auto;min-height:40px}.urow.uoff{opacity:.6}
+.uaddb{width:100%;margin:6px 0}.uform{display:flex;flex-direction:column;gap:6px}.uform input,.uform select{width:100%;box-sizing:border-box;min-height:44px;font-size:16px}.uform label{font-size:14px;color:var(--muted)}.uform .ucb{display:flex;gap:8px;align-items:center;color:var(--ink)}.uform .ucb input{width:auto;min-height:0}
 .list2{display:flex;flex-direction:column;gap:8px}
 .list2 button{text-align:left;min-height:52px;font-weight:600;padding:8px 14px}
 .list2 button small{display:block;font-weight:400;color:var(--muted)}
@@ -331,6 +333,7 @@ body.lg-open{overflow:hidden}
 .lgroles button[aria-pressed=true]{border-color:var(--work);background:var(--work-bg);color:var(--work-t)}
 .lgbox label{font-size:14px;color:var(--muted);margin-top:4px}
 .lgbox input{width:100%;box-sizing:border-box;font-size:18px}
+.lgbox select{width:100%;min-height:48px;font-size:17px}.lgbox [hidden]{display:none}#lgpw,#lgnew{display:flex;flex-direction:column;gap:6px}
 .lggo{margin-top:8px;font-weight:700;background:var(--ink);color:var(--bg);border-color:var(--ink)}
 body.ro-day #list [data-a=set],body.ro-day #list [data-a=hstep],body.ro-day #list [data-a=hset],body.ro-day [data-a=go],body.ro-day [data-a=scan],body.ro-day [data-a=undo]{opacity:.4}
 body.ro-day #stats::before{content:attr(data-ro);display:block;margin:0 0 8px;padding:8px 12px;border-radius:10px;background:var(--off-bg);color:var(--off-t);font-weight:600;font-size:14px}
@@ -494,7 +497,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='106';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='107';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -701,33 +704,71 @@ function applyRole(){
 setInterval(function(){ if(!auth||document.hidden) return; var was=document.body.classList.contains('ro-day'); applyRole(); if(was!==document.body.classList.contains('ro-day')&&ui.view==='day') render(); },60000);
 var lgSel='';
 var BRIG_NAMES=['Айдинов Пулатжон Азизович','Кавурас Роман Эдуардович','Горбач Евгений Владимирович','Тюрин Даниил Павлович','Шефер Сергей Александрович','Золотницин Владимир Александрович','Стрельцов Иван Александрович','Катруш Павел Сергеевич','Новокрещенов Антон Павлович','Рафиков Вадим Витальевич'];
+var lgUsers=null, lgULoad=false;
+function lgApiUrl(){
+  return fetch('api.json?t='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.json():null; }).catch(function(){ return null; }).then(function(o){
+    return o&&typeof o.url==='string'&&CF_RE.test(o.url.trim())?o.url.trim():(CF_RE.test(sync.url||'')?sync.url:API_DEFAULT); });
+}
+/* список пользователей (ФИО и уровень) — для входа и списка бригадиров */
+function ulistLoad(){
+  return lgApiUrl().then(function(u){ return fetch(u,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'ulist',app:APP_VER}),cache:'no-store'}); })
+    .then(function(r){ return r.json(); }).then(function(j){
+      if(!j||!j.ok||!Array.isArray(j.users)) throw new Error('bad');
+      var mm=j.users.filter(function(x){ return x.role==='mont'; }).map(function(x){ return x.fio; });
+      if(mm.length){ BRIG_NAMES.length=0; mm.forEach(function(n){ BRIG_NAMES.push(n); }); }
+      return j.users;
+    });
+}
+function lgLoadUsers(){
+  if(lgULoad) return; lgULoad=true;
+  ulistLoad().then(function(us){ lgUsers=us; },function(){ lgUsers=false; }).then(function(){ lgULoad=false; var w=$('login'); if(w&&!w.hidden&&lgSel) showLogin($('lgmsg')?$('lgmsg').textContent:''); });
+}
 function showLogin(msg){
   var w=document.getElementById('login'); if(!w){ w=document.createElement('div'); w.id='login'; document.body.appendChild(w); }
   w.hidden=false; document.body.classList.add('lg-open');
-  var m=lgSel==='mont';
-  w.innerHTML='<div class="lgbox"><h2>Табель — вход</h2><p class="lgsub">Выберите свой уровень доступа'+(m?' и своё ФИО.':' и введите пароль.')+'</p><div class="lgroles">'+
-    ROLES.map(function(r){ return '<button data-a="lgrole" data-r="'+r.id+'" aria-pressed="'+(lgSel===r.id)+'">'+esc(r.name)+'</button>'; }).join('')+'</div>'+
-    (m?'<label for="lgfio">Ваше ФИО</label><select id="lgfio"><option value="">— выберите из списка —</option>'+BRIG_NAMES.map(function(n){ return '<option value="'+esc(n)+'">'+esc(n)+'</option>'; }).join('')+'</select>'+
-       '<p class="lgsub">После входа ФИО запоминается на этом телефоне. Сменить его можно только с паролем.</p>'
-      :'<input type="text" name="lguser" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"><label for="lgpass">Пароль</label><input id="lgpass" name="lgpass" type="password" inputmode="numeric" autocomplete="new-password">'+
-       '<label for="lgwho">Ваша фамилия (видна в отметках)</label><input id="lgwho" maxlength="40" autocomplete="off" value="'+esc(sync.who||'')+'">')+
-    '<button class="lggo" data-a="lggo">Войти</button><p class="lgmsg" id="lgmsg">'+esc(msg||'')+'</p></div>';
+  if(lgUsers===null) lgLoadUsers();
+  var m=lgSel==='mont', list=Array.isArray(lgUsers)?lgUsers.filter(function(u){ return u.role===lgSel; }):[], useList=Array.isArray(lgUsers)&&(list.length||!m), body='';
+  if(lgSel){
+    if(lgUsers===null) body='<p class="lgsub">Загружаю список пользователей…</p>';
+    else if(useList) body='<label for="lguid">Ваше ФИО</label><select id="lguid"><option value="">— выберите себя из списка —</option>'+list.map(function(u){ return '<option value="'+esc(u.id)+'" data-np="'+(u.np?1:0)+'">'+esc(u.fio)+'</option>'; }).join('')+(m?'':'<option value="_new">Другое ФИО (меня нет в списке)</option>')+'</select>'+
+      '<div id="lgnew" hidden><label for="lgwho">Ваше ФИО и должность</label><input id="lgwho" maxlength="60" autocomplete="off" placeholder="Иванов И.И. Мастер"></div>';
+    else if(m) body='<label for="lgfio">Ваше ФИО</label><select id="lgfio"><option value="">— выберите из списка —</option>'+BRIG_NAMES.map(function(n){ return '<option value="'+esc(n)+'">'+esc(n)+'</option>'; }).join('')+'</select>';
+    else body='<label for="lgwho">Ваша фамилия (видна в отметках)</label><input id="lgwho" maxlength="40" autocomplete="off" value="'+esc(sync.who||'')+'">';
+    body+='<div id="lgpw"'+(m?' hidden':'')+'><input type="text" name="lguser" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"><label for="lgpass">Пароль</label><input id="lgpass" name="lgpass" type="password" autocomplete="new-password"></div>'+
+      (m?'<p class="lgsub">После входа ФИО запоминается на этом телефоне. Сменить его можно только с паролем.</p>':'');
+  }
+  w.innerHTML='<div class="lgbox"><h2>Табель — вход</h2><p class="lgsub">Выберите свой уровень доступа, затем себя из списка.</p><div class="lgroles">'+
+    ROLES.map(function(r){ return '<button data-a="lgrole" data-r="'+r.id+'" aria-pressed="'+(lgSel===r.id)+'">'+esc(r.name)+'</button>'; }).join('')+'</div>'+body+
+    (lgSel?'<button class="lggo" data-a="lggo">Войти</button>':'')+'<p class="lgmsg" id="lgmsg">'+esc(msg||'')+'</p></div>';
+}
+/* показать/скрыть поле пароля и ФИО по выбору в списке */
+function lgSync(){
+  var s=$('lguid'); if(!s) return; var o=s.options[s.selectedIndex], m=lgSel==='mont';
+  var nw=$('lgnew'); if(nw) nw.hidden=s.value!=='_new';
+  var pw=$('lgpw'); if(pw) pw.hidden=m&&!(o&&o.dataset.np==='1');
 }
 function lgSubmit(){
-  var msg=$('lgmsg'), m=lgSel==='mont', pass='', who='', fio='';
+  var msg=$('lgmsg'), m=lgSel==='mont', pass=$('lgpass')&&!$('lgpw').hidden?$('lgpass').value.trim():'', body={action:'login',role:lgSel,app:APP_VER}, fio='', who='';
   if(!lgSel){ msg.textContent='Выберите уровень доступа.'; return; }
-  if(m){ fio=($('lgfio')||{}).value||''; if(BRIG_NAMES.indexOf(fio)<0){ msg.textContent='Выберите своё ФИО из списка — без этого войти нельзя.'; return; } }
-  else{ pass=$('lgpass').value.trim(); who=$('lgwho').value.trim().slice(0,40); if(!pass){ msg.textContent='Введите пароль.'; return; } }
+  var us=$('lguid');
+  if(us){
+    if(!us.value){ msg.textContent='Выберите себя из списка.'; return; }
+    if(us.value==='_new'){ who=($('lgwho').value||'').trim().replace(/\s+/g,' ').slice(0,60); if(who.length<2){ msg.textContent='Впишите ФИО и должность.'; return; } body.name=who; }
+    else body.uid=us.value;
+    if(!$('lgpw').hidden&&!pass){ msg.textContent='Введите пароль.'; return; }
+  } else if(m){ fio=($('lgfio')||{}).value||''; if(BRIG_NAMES.indexOf(fio)<0){ msg.textContent='Выберите своё ФИО из списка — без этого войти нельзя.'; return; } body.name=fio; }
+  else{ who=($('lgwho').value||'').trim().slice(0,40); if(!pass){ msg.textContent='Введите пароль.'; return; } if(who) body.name=who; }
+  if(pass) body.pass=pass;
   msg.textContent='Проверяю…';
-  fetch('api.json?t='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.json():null; }).catch(function(){ return null; }).then(function(o){
-    var u=o&&typeof o.url==='string'&&CF_RE.test(o.url.trim())?o.url.trim():(CF_RE.test(sync.url||'')?sync.url:API_DEFAULT);
-    return fetch(u,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(m?{action:'login',role:'mont',name:fio,app:APP_VER}:{action:'login',role:lgSel,pass:pass,app:APP_VER}),cache:'no-store'})
+  lgApiUrl().then(function(u){
+    return fetch(u,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),cache:'no-store'})
       .then(function(r){ return r.json(); }).then(function(j){
-        if(!j||!j.ok){ msg.textContent=j&&j.error==='bad_pass'?'Неверный пароль.':(j&&j.error==='bad_name'?'Этого ФИО нет в списке бригадиров.':(j&&j.error==='too_many'?'Слишком много попыток. Подождите 15 минут.':'Не удалось войти: '+((j&&j.error)||'ошибка'))); return; }
-        auth={role:j.role,token:j.token,at:Date.now()}; if(m){ auth.locked=1; auth.fio=fio; } saveAuth();
-        sync.url=u; sync.code=j.token; if(m) sync.who=fio; else if(who) sync.who=who; sync.rev={}; syncErr=''; saveSync();
+        if(!j||!j.ok){ msg.textContent=j&&j.error==='bad_pass'?'Неверный пароль.':j&&j.error==='need_pass'?'Введите пароль.':(j&&j.error==='bad_name'?'Этого ФИО нет в списке бригадиров.':j&&j.error==='bad_user'?'Эта учётная запись отключена или изменена. Выберите себя заново.':(j&&j.error==='too_many'?'Слишком много попыток. Подождите 15 минут.':'Не удалось войти: '+((j&&j.error)||'ошибка'))); if(j&&j.error==='bad_user'){ lgUsers=null; showLogin(msg.textContent); } return; }
+        var nm=j.fio?(m?j.fio:j.fio+(j.pos?' '+j.pos:'')):(m?fio:who);
+        auth={role:j.role,token:j.token,at:Date.now(),uid:j.uid||'',fio:j.fio||''}; if(m){ auth.locked=1; auth.fio=j.fio||fio; } saveAuth();
+        sync.url=u; sync.code=j.token; if(nm) sync.who=nm; sync.rev={}; syncErr=''; saveSync();
         $('login').hidden=true; $('login').innerHTML=''; document.body.classList.remove('lg-open');
-        clearAutofill(); setTimeout(clearAutofill,500); render(); syncNow(); toast('Вход выполнен: '+roleById(j.role).name+(m?' · '+fio:''));
+        clearAutofill(); setTimeout(clearAutofill,500); render(); syncNow(); toast('Вход выполнен: '+roleById(j.role).name+(nm?' · '+nm:''));
       });
   }).catch(function(){ msg.textContent='Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.'; });
 }
@@ -740,6 +781,7 @@ function lockedLogout(){
 /* браузер может вписать сохранённый адрес в поле «Табельный №» — убираем */
 function clearAutofill(){ var q=document.getElementById('q'); if(q&&/^https?:|script\.google|\/exec/i.test(q.value)){ q.value=''; ui.q=''; if(auth) render(); } }
 setTimeout(clearAutofill,300); setTimeout(clearAutofill,1500); document.addEventListener('input',function(e){ if(e.target&&e.target.id==='q') setTimeout(clearAutofill,0); },true);
+setTimeout(function(){ if(auth) ulistLoad().catch(function(){}); },2500);
 function logout(msg){ auth=null; saveAuth(); sync.code=''; saveSync(); lgSel=''; showLogin(msg||''); }
 
 function syncOn(){ return !!(sync.url&&sync.code&&okUrl(sync.url)); }
@@ -755,7 +797,12 @@ function call(payload,ms){
   var ctl=window.AbortController?new AbortController():null, to=setTimeout(function(){ if(ctl) ctl.abort(); },ms||25000);
   return fetch(sync.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),redirect:'follow',cache:'no-store',signal:ctl?ctl.signal:undefined})
     .then(function(r){ return r.json(); })
-    .then(function(j){ clearTimeout(to); if(!j||j.ok!==true) throw new Error((j&&j.error)||'bad_response'); return j; },function(e){ clearTimeout(to); throw e; });
+    .then(function(j){ clearTimeout(to); if(j&&j.me) meSync(j.me); if(!j||j.ok!==true) throw new Error((j&&j.error)||'bad_response'); return j; },function(e){ clearTimeout(to); throw e; });
+}
+function meSync(me){
+  if(!me||!me.fio) return; var w=me.role==='mont'?me.fio:me.fio+(me.pos?' '+me.pos:'');
+  if(auth&&(auth.fio!==me.fio||auth.uid!==me.uid)){ auth.fio=me.fio; auth.uid=me.uid; saveAuth(); }
+  if(sync.who!==w){ sync.who=w; saveSync(); }
 }
 function syncFail(e){
   var m=e&&e.message;
@@ -1550,6 +1597,7 @@ function sheetMenu(){
   openSheet('Меню','<div class="list2">'+
     '<button data-a="logout">'+esc(auth?roleById(auth.role).name:'Вход')+(sync.who?' · '+esc(sync.who):'')+'<small>'+(auth&&auth.locked?'Выйти / сменить ФИО (нужен пароль)':'Выйти / сменить уровень доступа')+'</small></button>'+
     (isAdmin()?'<button data-a="auditlog">Журнал изменений<small>Кто, когда и что изменил: отметки, люди, наряды, задания</small></button>'+
+      '<button data-a="users">Пользователи<small>ФИО, должность, пароль; кто и когда заходил</small></button>'+
       '<button data-a="srvbk">Резервные копии базы<small>Сервер сохраняет копию каждый день, хранит 30 дней</small></button>':'')+
     '<button data-a="month">Табель за месяц<small>Файл для Excel (CSV)</small></button>'+
     '<button data-a="people">Люди<small>Добавить, изменить, убрать из списка</small></button>'+
@@ -2850,7 +2898,7 @@ function ndChange(t){
 document.addEventListener('click',function(e){
   var el=e.target.closest?e.target.closest('[data-a]'):null; if(!el) return;
   var a=el.dataset.a, id=el.dataset.id;
-  if(a==='lgrole'){ lgSel=el.dataset.r; showLogin(''); var pw=$('lgpass')||$('lgfio'); if(pw) pw.focus(); return; }
+  if(a==='lgrole'){ lgSel=el.dataset.r; showLogin(''); var pw=$('lguid')||$('lgpass')||$('lgfio'); if(pw) pw.focus(); return; }
   if(a==='lggo'){ lgSubmit(); return; }
   if(a==='logout'){ closeSheet(); if(auth&&auth.locked){ lockedLogout(); return; } if(confirm('Выйти и сменить уровень доступа?')) logout(''); return; }
   if(!roleClick(a,el)) return;
@@ -2968,6 +3016,10 @@ document.addEventListener('click',function(e){
     case 'auditlog': sheetLog(); break;
     case 'logmore': logLoad(); break;
     case 'srvbk': sheetSrvBk(); break;
+    case 'users': sheetUsers(); break;
+    case 'uback': renderUsers(); break;
+    case 'uedit': uForm(el.dataset.id||''); break;
+    case 'usave': uSave(el.dataset.id||''); break;
     case 'bknow': bkNow(el); break;
     case 'bkget': bkGet(el.dataset.d); break;
     case 'bsave': saveFile('tabel-kopiya-'+today()+'.json','application/json',JSON.stringify(root,null,1)).then(reportDone); break;
@@ -3001,6 +3053,8 @@ $('file').addEventListener('change',function(){ if(this.files&&this.files[0]) ha
 $('mfin').addEventListener('change',function(){ if(this.files&&this.files[0]) mfUpload(this.files[0]); });
 document.addEventListener('change',function(e){
   var t=e.target;
+  if(t.id==='lguid'){ lgSync(); var pp=$('lgpass'); if(pp&&!$('lgpw').hidden) pp.focus(); return; }
+  if(t.id==='ue_role'){ uFormRole(); return; }
   if(ui.view==='nd'&&ndChange(t)) return;
   if(t.id==='msched'){ ui.mSched=t.value; renderMonth(); return; }
   if(t.id==='fltbrig'){ ui.brig=t.value; renderStats(); renderList(); return; }
@@ -3361,6 +3415,60 @@ document.addEventListener('input',function(e){ var t=e.target; if(t&&t.dataset&&
 /* журнал изменений (только начальник участка и техник-помощник) */
 var logState={list:[],q:'',more:true,busy:false}, logQT=null;
 var LOG_A={push:'Отметки',addp:'Люди',purge:'Убраны из списка',people:'Список людей',clear:'Очистка',ndadd:'Наряд-допуск',nddel:'Удаление наряда',bput:'Доска',bdel:'Удаление',memocfg:'Настройки',ndcfg:'Настройки наряда'};
+/* ----- пользователи: начальник участка и техник меняют ФИО, должность, пароль ----- */
+var usersList=[];
+function sheetUsers(){
+  openSheet('Пользователи','<div id="ulst"><p class="note">Загружаю…</p></div>');
+  if(!syncOn()){ $('ulst').innerHTML='<p class="note">Нужна связь с сервером.</p>'; return; }
+  call({action:'users'}).then(function(j){ usersList=j.users||[]; renderUsers(); })
+    .catch(function(e){ var b=$('ulst'); if(b) b.innerHTML='<p class="note">Не удалось загрузить: '+esc((e&&e.message)==='forbidden'?'доступно только начальнику участка и технику':((e&&e.message)||'ошибка'))+'</p>'; });
+}
+function uRow(u){
+  var me=auth&&auth.uid===u.id;
+  return '<div class="urow'+(u.off?' uoff':'')+'"><div class="uinfo"><b>'+esc(u.fio)+'</b>'+(me?' <span class="xchip ok">это вы</span>':'')+(u.pos?'<div>'+esc(u.pos)+'</div>':'')+
+    '<small>'+(u.role==='mont'?(u.hasPass?'вход по личному паролю':'вход по ФИО, без пароля'):(u.hasPass?'личный пароль':'общий пароль уровня'))+' · '+(u.seen?'заходил '+fmtDT(u.seen)+(u.ver?' · версия '+esc(u.ver):''):'ещё не заходил')+'</small></div>'+
+    '<button data-a="uedit" data-id="'+esc(u.id)+'">Изменить</button></div>';
+}
+function renderUsers(){
+  var b=$('ulst'); if(!b) return;
+  var on=usersList.filter(function(u){ return !u.off; }), off=usersList.filter(function(u){ return u.off; });
+  b.innerHTML='<p class="note">Всего: '+on.length+(off.length?' · отключено: '+off.length:'')+'. ФИО и должность попадают в отметки, наряд-задания и журнал. Личный пароль заменяет общий пароль уровня для этого человека.</p>'+
+    '<button class="primary uaddb" data-a="uedit" data-id="">+ Добавить пользователя</button>'+
+    ROLES.map(function(r){ var l=on.filter(function(u){ return u.role===r.id; }); return l.length?'<h3 class="dh3">'+esc(r.name)+' ('+l.length+')</h3>'+l.map(uRow).join(''):''; }).join('')+
+    (off.length?'<details class="mhdr"><summary>Отключены ('+off.length+')</summary>'+off.map(uRow).join('')+'</details>':'');
+}
+function uFormRole(){ var r=$('ue_role'), n=$('ue_pnote'); if(r&&n) n.textContent=r.value==='mont'?'Если задать пароль, бригадир будет входить по паролю. Пусто — пароль не меняется.':'Не меньше 4 знаков. Пусто — пароль не меняется.'; }
+function uForm(id){
+  var b=$('ulst'); if(!b) return;
+  var u=usersList.filter(function(x){ return x.id===id; })[0]||{id:'',fio:'',pos:'',role:'prorab',hasPass:0,off:0};
+  b.innerHTML='<h3 class="dh3">'+(u.id?'Изменить: '+esc(u.fio):'Новый пользователь')+'</h3><div class="uform">'+
+    '<label for="ue_fio">ФИО</label><input id="ue_fio" maxlength="60" autocomplete="off" value="'+esc(u.fio)+'" placeholder="Иванов Иван Иванович">'+
+    '<label for="ue_pos">Должность</label><input id="ue_pos" maxlength="80" autocomplete="off" value="'+esc(u.pos)+'" placeholder="Производитель работ">'+
+    '<label for="ue_role">Уровень доступа</label><select id="ue_role">'+ROLES.map(function(r){ return '<option value="'+r.id+'"'+(r.id===u.role?' selected':'')+'>'+esc(r.name)+'</option>'; }).join('')+'</select>'+
+    '<input type="text" name="ue_user" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">'+
+    '<label for="ue_p1">'+(u.hasPass?'Новый личный пароль':'Личный пароль')+'</label><input id="ue_p1" type="password" maxlength="64" autocomplete="new-password">'+
+    '<label for="ue_p2">Повторите пароль</label><input id="ue_p2" type="password" maxlength="64" autocomplete="new-password">'+
+    '<small class="note" id="ue_pnote"></small>'+
+    (u.hasPass?'<label class="ucb"><input type="checkbox" id="ue_clr"> Убрать личный пароль (вход по общему паролю уровня, бригадир — по ФИО)</label>':'')+
+    (u.id?'<label class="ucb"><input type="checkbox" id="ue_off"'+(u.off?' checked':'')+'> Отключён — не сможет войти</label>':'')+
+    (u.id&&u.role==='mont'?'<p class="note">Если изменить ФИО бригадира, старые наряд-задания и бригады останутся под прежним ФИО.</p>':'')+
+    '<p class="note">После смены пароля, уровня или отключения человеку придётся войти заново.</p>'+
+    '<div class="acts"><button class="primary" data-a="usave" data-id="'+esc(u.id)+'">Сохранить</button><button data-a="uback">Отмена</button></div><p class="note" id="ue_msg" role="status"></p></div>';
+  uFormRole(); var f=$('ue_fio'); if(f) f.focus();
+}
+function uSave(id){
+  var msg=$('ue_msg'), p1=$('ue_p1').value, p2=$('ue_p2').value;
+  var d={id:id, fio:$('ue_fio').value.trim(), pos:$('ue_pos').value.trim(), role:$('ue_role').value, clearPass:!!($('ue_clr')&&$('ue_clr').checked), off:!!($('ue_off')&&$('ue_off').checked)};
+  if(d.fio.length<2){ msg.textContent='Впишите ФИО.'; return; }
+  if(p1||p2){ if(p1!==p2){ msg.textContent='Пароли не совпадают.'; return; } if(p1.length<4){ msg.textContent='Пароль — не меньше 4 знаков.'; return; } d.pass=p1; }
+  msg.textContent='Сохраняю…';
+  call({action:'userset',user:d}).then(function(j){
+    var self=auth&&id&&auth.uid===id;
+    toast(self&&j.relogin?'Сохранено. Войдите заново с новыми данными.':'Сохранено');
+    if(self&&j.relogin){ closeSheet(); logout('Данные входа изменены. Войдите заново.'); return; }
+    sheetUsers();
+  }).catch(function(e){ var m=e&&e.message; msg.textContent=m==='dup_fio'?'Такое ФИО уже есть на этом уровне доступа.':m==='bad_pass_len'?'Пароль — от 4 до 64 знаков.':m==='forbidden'?'Доступно только начальнику участка и технику.':'Не сохранено: '+(m||'ошибка'); });
+}
 function sheetLog(){
   logState={list:[],q:'',more:true,busy:false};
   openSheet('Журнал изменений','<input type="search" id="logq" placeholder="Поиск: фамилия, табельный №, № наряда" style="width:100%;margin-bottom:8px"><div id="loglist"><p class="note">Загружаю…</p></div>');
