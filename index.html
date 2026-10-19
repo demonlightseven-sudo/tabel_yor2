@@ -515,7 +515,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='115';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='116';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3591,13 +3591,12 @@ function tkNum(v){ var n=parseFloat(String(v==null?'':v).replace(/\s/g,'').repla
 function tkFmt(n){ return n==null?'':String(Math.round(n*1000)/1000).replace('.',','); }
 function tkItemsForm(){
   var can=ndMemCan(), mem=tkwList();
-  return '<label>Задачи</label><div class="tkmem"><small>Из памяти — нажмите, чтобы добавить строку:</small>'+mem.map(function(m){ return '<span class="ndchipw"><button type="button" class="ndchip" data-a="tkwadd" data-v="'+esc(m)+'">'+esc(m)+'</button>'+(can?'<button type="button" class="ndchipx" data-a="tkwdel" data-v="'+esc(m)+'" aria-label="Удалить из памяти">×</button>':'')+'</span>'; }).join('')+'</div>'+
+  return '<label>Задачи</label>'+
     '<div class="tkir tkih"><span>№</span><span>Что сделать</span><span>Объём</span><span>Ед.</span><span></span></div>'+
-    tkItems.map(function(x,i){ return '<div class="tkir"><b>'+(i+1)+'.</b><input data-tki="'+i+'" data-tkk="t" maxlength="200" list="tkwl" value="'+esc(x.t)+'" placeholder="Например, бетонирование плиты" aria-label="Задача '+(i+1)+'">'+
+    tkItems.map(function(x,i){ return '<div class="tkir"><b>'+(i+1)+'.</b><input data-tki="'+i+'" data-tkk="t" maxlength="200" value="'+esc(x.t)+'" placeholder="Например, бетонирование плиты" aria-label="Задача '+(i+1)+'">'+
       '<input data-tki="'+i+'" data-tkk="v" maxlength="12" inputmode="decimal" value="'+esc(x.v)+'" placeholder="—" aria-label="Объём">'+
       '<select data-tki="'+i+'" data-tkk="u" aria-label="Единица">'+TK_UNITS.map(function(u){ return '<option value="'+u+'"'+(u===x.u?' selected':'')+'>'+(u||'—')+'</option>'; }).join('')+'</select>'+
       '<button type="button" class="tkidel" data-a="tkidel" data-i="'+i+'" aria-label="Убрать строку">✕</button></div>'; }).join('')+
-    '<datalist id="tkwl">'+mem.map(function(m){ return '<option value="'+esc(tkwParse(m).t)+'">'; }).join('')+'</datalist>'+
     '<button type="button" class="tkiadd" data-a="tkirow">+ Добавить задачу</button>'+
     '<label for="tk_text">Где / пояснение (необязательно)</label><textarea id="tk_text" rows="2" placeholder="Оси, отметка, особые условия">'+esc(tkNoteDraft)+'</textarea>';
 }
@@ -3613,7 +3612,7 @@ function tkwMemOp(op,v,quiet){
 }
 document.addEventListener('input',function(e){ var t=e.target; if(!t||!t.dataset) return;
   if(t.dataset.tki!=null){ var i=Number(t.dataset.tki), k=t.dataset.tkk; if(!tkItems[i]) return; tkItems[i][k]=t.value;
-    if(k==='t'&&!tkItems[i].u){ var lk=t.value.trim().toLowerCase(), m=tkwList().map(tkwParse).filter(function(x){ return x.u&&x.t.toLowerCase()===lk; })[0];
+    if(false){ var lk=t.value.trim().toLowerCase(), m=tkwList().map(tkwParse).filter(function(x){ return x.u&&x.t.toLowerCase()===lk; })[0];
       if(m){ tkItems[i].u=m.u; var sel=document.querySelector('select[data-tki="'+i+'"]'); if(sel) sel.value=m.u; } } return; }
   if(t.id==='tk_text'){ tkNoteDraft=t.value; return; }
   if(t.dataset.tkf){ var a=t.dataset.tkf.split('|'); (tkFacts[a[0]]=tkFacts[a[0]]||{})[a[1]]=t.type==='checkbox'?t.checked:t.value; }
@@ -3689,7 +3688,7 @@ function tkSend(){
   if(!items.length){ msg.textContent='Впишите хотя бы одну задачу.'; return; }
   var memL=tkwList().map(function(m){ return m.toLowerCase(); }), learn=items.map(function(x){ return x.t+(x.u?', '+x.u:''); }).filter(function(k,i,a){ return memL.indexOf(k.toLowerCase())<0&&a.indexOf(k)===i; });
   bdPut({kind:'task',d:d,obj:obj,data:{brig:brig,tasks:text.slice(0,3000),items:items,note:note,by:sync.who}}).then(function(){ toast('Наряд-задание выдано: '+brig+', '+dmyLong(d)); tkItems=[{t:'',v:'',u:''}]; tkNoteDraft=''; tkBrigDraft=''; var t=$('tk_text'); if(t) t.value='';
-    learn.reduce(function(pr,k){ return pr.then(function(){ return tkwMemOp('add',k,true); }); },Promise.resolve()); var b=$('tk_brig'); if(b) b.value=''; bdFetch(d,true); })
+ var b=$('tk_brig'); if(b) b.value=''; bdFetch(d,true); })
     .catch(function(e){ msg.textContent='Не отправлено: '+((e&&e.message)||'ошибка'); });
 }
 var bdMemOpen={};
