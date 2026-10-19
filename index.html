@@ -427,6 +427,7 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 .xcomp{margin-top:8px;padding:6px 8px;border:1px dashed var(--line);border-radius:10px}.xcomp .xfh{margin-top:0}.xcomp .ndcmp{display:block;margin-top:4px}
 .xfoot{margin-top:10px;padding-top:6px;border-top:1px dashed var(--line)}.xfh{font-weight:700;margin:6px 0 2px}.xfi{margin:2px 0 4px}.xfi .ndcmp{display:block;margin-top:2px}
 body.vboard main{max-width:1600px}body.vboard #xv{max-width:none}
+.xcard.tkdc{position:relative}.xcard.tkdc>.xch{padding-right:42px}.xch .tbtx.tkx{position:absolute;top:6px;right:6px;margin:0;width:36px;height:36px;min-height:0;padding:0}
 .tkgrid{display:grid;grid-template-columns:1fr;gap:12px;align-items:start}.tkgrid>.xcard{margin:0;min-width:0}
 @media (min-width:700px){body.vtask main{max-width:1600px}body.vtask #xv{max-width:none}body.vtask .tbtf{max-width:760px}.tkgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.tkgrid .ndk4{grid-template-columns:1fr 1fr}}
 @media (min-width:1050px){.tkgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -500,7 +501,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='112';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='113';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3533,9 +3534,9 @@ function ackHtml0(x){
 function tkCard(x){
   var dd=x.data||{}, f=null, b=null;
   if(ndOk()){ b=bdItems(x.d).filter(function(y){ return y.kind==='brig'&&fioKey(y.data.lead)===fioKey(dd.brig); })[0]||null; f=bdStat(x.obj,x.d,b,x); }
-  var del=role()!=='mont'&&(isAdmin()||x.role===role())?'<button class="tbtx" data-a="tkdel" data-id="'+esc(x.id)+'" aria-label="Удалить задание">✕</button>':'';
+  var del=role()!=='mont'&&(isAdmin()||x.role===role())?'<button class="tbtx tkx" data-a="tkdel" data-id="'+esc(x.id)+'" aria-label="Удалить задание">✕</button>':'';
   var right=f?(b?'<span class="xchr"><span class="xok">'+(b.data.nums||[]).length+' чел. · '+new Date(b.t).toTimeString().slice(0,5)+'</span>'+(b.obj!==x.obj?' <small class="xno">подал на '+esc(b.obj)+'</small>':'')+'</span>':'<span class="xchr xno">численность не подана</span>'):'';
-  return '<div class="xcard'+(f?' xs-'+f.lvl:'')+'"><div class="xch"><b>'+esc(x.obj)+'</b> · <b>'+esc(whoBase(dd.brig)||'—')+'</b>'+right+del+'</div>'+(f?'<div class="xchipw">'+f.html+'</div>':'')+
+  return '<div class="xcard'+(f?' xs-'+f.lvl:'')+(del?' tkdc':'')+'"><div class="xch"><b>'+esc(x.obj)+'</b> · <b>'+esc(whoBase(dd.brig)||'—')+'</b>'+right+del+'</div>'+(f?'<div class="xchipw">'+f.html+'</div>':'')+
     '<div class="xtask">'+esc(dd.tasks||'').replace(/\n/g,'<br>')+'<small class="xtby">Выдал: '+esc(whoBase(x.who))+' · '+fmtDT(x.t)+'</small></div>'+
     (f?doneHtml(x,true):ackHtml(x))+
     (f?(b?brigMembers(b,x.d):'')+ndCompBlock(b,x.d,x.obj)+ndKinds4(x.obj,x.d,b,dd.brig):'')+'</div>';
