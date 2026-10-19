@@ -428,6 +428,13 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 .xfoot{margin-top:10px;padding-top:6px;border-top:1px dashed var(--line)}.xfh{font-weight:700;margin:6px 0 2px}.xfi{margin:2px 0 4px}.xfi .ndcmp{display:block;margin-top:2px}
 body.vboard main{max-width:1600px}body.vboard #xv{max-width:none}
 .xcard.tkdc{position:relative}.xcard.tkdc>.xch{padding-right:42px}.xch .tbtx.tkx{position:absolute;top:6px;right:6px;margin:0;width:36px;height:36px;min-height:0;padding:0}
+.tktop{display:grid;grid-template-columns:1fr;gap:16px;align-items:start}
+body.vtask .tktop .tbtf{max-width:none}@media (min-width:1000px){.tktop{grid-template-columns:minmax(0,1.2fr) minmax(360px,1fr)}}
+.tkst{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface);min-width:0}.tksth{font-weight:700;font-size:16px;margin-bottom:8px}
+.tkstr{display:grid;grid-template-columns:minmax(0,1fr) 84px 76px 64px;gap:4px 8px;align-items:center;padding:5px 0;border-bottom:1px dashed var(--line);font-size:14px}.tkstr>span:not(.tkstn),.tkstr>b{text-align:right}
+.tkstr>span:first-child{text-align:left}.tkstt{font-size:12px;color:var(--muted);border-bottom:1px solid var(--line)}.tkstn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tkok{color:var(--work-t)}.tkpart{color:var(--ul-t)}
+.tkbar{grid-column:1/-1;display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--bg)}.tkbar i{display:block;height:100%}.tkbar .ok,.tkdot.ok{background:var(--work)}.tkbar .part,.tkdot.part{background:#D9A92E}.tkbar .no,.tkdot.no{background:var(--ab)}.tkbar .none,.tkdot.none{background:var(--line)}
+.tkstsum{font-weight:700;border-bottom:0}.tkstn2{margin:8px 0 0;font-size:12px}.tkdot{display:inline-block;width:9px;height:9px;border-radius:2px;margin:0 3px 0 8px;vertical-align:middle}.tkdot:first-child{margin-left:0}
 .tkgrid{display:grid;grid-template-columns:1fr;gap:12px;align-items:start}.tkgrid>.xcard{margin:0;min-width:0}
 @media (min-width:700px){body.vtask main{max-width:1600px}body.vtask #xv{max-width:none}body.vtask .tbtf{max-width:760px}.tkgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.tkgrid .ndk4{grid-template-columns:1fr 1fr}}
 @media (min-width:1050px){.tkgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -501,7 +508,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='113';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='114';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3541,6 +3548,30 @@ function tkCard(x){
     (f?doneHtml(x,true):ackHtml(x))+
     (f?(b?brigMembers(b,x.d):'')+ndCompBlock(b,x.d,x.obj)+ndKinds4(x.obj,x.d,b,dd.brig):'')+'</div>';
 }
+/* статистика за месяц: доля полностью и частично выполненных наряд-заданий по каждому бригадиру */
+var tkSt={}, tkStBusy={};
+var MON_N=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+function tkStatsHtml(d){
+  if(!ndOk()) return '';
+  var ym=d.slice(0,7), c=tkSt[ym];
+  if((!c||Date.now()-c.at>60000)&&!tkStBusy[ym]&&syncOn()){ tkStBusy[ym]=1;
+    call({action:'tkstats',ym:ym}).then(function(j){ tkStBusy[ym]=0; var was=JSON.stringify(tkSt[ym]&&tkSt[ym].rows); tkSt[ym]={at:Date.now(),rows:j.rows||[]}; if(was!==JSON.stringify(tkSt[ym].rows)&&ui.view==='task') renderX(); })
+      .catch(function(){ tkStBusy[ym]=0; tkSt[ym]={at:Date.now(),rows:(c&&c.rows)||[],err:1}; }); }
+  var a=ym.split('-'), head='<div class="tksth">Выполнение наряд-заданий · '+MON_N[Number(a[1])-1]+' '+a[0]+'</div>';
+  if(!c) return '<div class="tkst">'+head+'<p class="note">'+(syncOn()?'Загружаю…':'Нужна связь с сервером.')+'</p></div>';
+  var rows=c.rows.filter(function(x){ return x.n>0; }).map(function(x){ x.pOk=Math.round(x.ok*100/x.n); x.pPart=Math.round(x.part*100/x.n); return x; })
+    .sort(function(x,y){ return y.pOk-x.pOk||y.pPart-x.pPart||String(x.brig).localeCompare(String(y.brig),'ru'); });
+  if(!rows.length) return '<div class="tkst">'+head+'<p class="note">В этом месяце ещё нет наряд-заданий с отметкой о выполнении.</p></div>';
+  var tot=rows.reduce(function(s,x){ s.n+=x.n; s.ok+=x.ok; s.part+=x.part; s.none+=x.none; return s; },{n:0,ok:0,part:0,none:0});
+  function pc(v,n){ return n?Math.round(v*100/n):0; }
+  return '<div class="tkst">'+head+
+    '<div class="tkstr tkstt"><span>Бригадир</span><span>Полностью</span><span>Частично</span><span>Заданий</span></div>'+
+    rows.map(function(x){ var pNo=pc(x.no,x.n), pNone=100-x.pOk-x.pPart-pNo;
+      return '<div class="tkstr"><span class="tkstn" title="'+esc(x.brig)+'">'+esc(shortName(whoBase(x.brig)))+'</span><b class="tkok">'+x.pOk+'%</b><b class="tkpart">'+x.pPart+'%</b><span>'+x.n+'</span>'+
+        '<div class="tkbar"><i class="ok" style="width:'+x.pOk+'%"></i><i class="part" style="width:'+x.pPart+'%"></i><i class="no" style="width:'+pNo+'%"></i><i class="none" style="width:'+Math.max(0,pNone)+'%"></i></div></div>'; }).join('')+
+    '<div class="tkstr tkstsum"><span>Все бригады</span><b class="tkok">'+pc(tot.ok,tot.n)+'%</b><b class="tkpart">'+pc(tot.part,tot.n)+'%</b><span>'+tot.n+'</span></div>'+
+    '<p class="note tkstn2"><i class="tkdot ok"></i>полностью <i class="tkdot part"></i>частично <i class="tkdot no"></i>не выполнено <i class="tkdot none"></i>не отмечено'+(tot.none?' ('+tot.none+')':'')+'. Считаются задания с 1-го числа по вчера и сегодняшние с отметкой.</p></div>';
+}
 function tkRender(){
   var d=tkDate||tkDef(); bdFetch(d,false); var hn=$('hnav'); if(hn) hn.innerHTML=navDate('tkday',d);
   var tasks=bdItems(d).filter(function(x){ return x.kind==='task'; });
@@ -3549,10 +3580,10 @@ function tkRender(){
   var o=brgSt(), obj=o.tobj||ND_OBJS[0];
   var h='<h2 class="dh2">Наряд-задание</h2>'+
     (d===addDays(today(),1)?'<p class="note">Задания выдаются сегодня на завтра. Завтра бригадир подаст численность бригады по своему заданию.</p>':(d<today()?'<p class="xno">Прошедший день</p>':''))+
-    '<div class="tbtf"><label for="tk_brig">Бригадир</label><select id="tk_brig"><option value="">— выберите бригадира —</option>'+BRIG_NAMES.map(function(n){ var has=tasks.some(function(x){ return fioKey(x.data.brig)===fioKey(n); }); return '<option value="'+esc(n)+'">'+esc(n)+(has?' ✓':'')+'</option>'; }).join('')+'</select>'+
+    '<div class="tktop"><div class="tbtf"><label for="tk_brig">Бригадир</label><select id="tk_brig"><option value="">— выберите бригадира —</option>'+BRIG_NAMES.map(function(n){ var has=tasks.some(function(x){ return fioKey(x.data.brig)===fioKey(n); }); return '<option value="'+esc(n)+'">'+esc(n)+(has?' ✓':'')+'</option>'; }).join('')+'</select>'+
     '<label for="tk_obj">Объект</label>'+objSelect('tk_obj',obj)+
     '<label for="tk_text">Задачи</label><textarea id="tk_text" rows="4" placeholder="Что нужно сделать, объёмы, где"></textarea>'+
-    '<button class="tbtdl" data-a="tksend">Выдать наряд-задание</button><p class="note" id="tk_msg"></p></div>'+
+    '<button class="tbtdl" data-a="tksend">Выдать наряд-задание</button><p class="note" id="tk_msg"></p></div>'+tkStatsHtml(d)+'</div>'+
     '<h3 class="tbth3">Выдано на '+esc(dmyLong(d))+' ('+tasks.length+')</h3>'+(tasks.length?'<div class="tkgrid">'+tasks.map(tkCard).join('')+'</div>':'<p class="note">Пока нет.</p>')+
     (ndOk()?(function(){ var nb=bdItems(d).filter(function(x){ return x.kind==='brig'&&!tasks.some(function(t){ return fioKey(t.data.brig)===fioKey(x.data.lead); }); });
       return nb.length?'<h3 class="tbth3">Подали численность, но без наряд-задания ('+nb.length+')</h3><div class="tkgrid">'+nb.map(function(b){ var f=bdStat(b.obj,d,b,null); return '<div class="xcard xs-'+f.lvl+'"><div class="xch"><b>'+esc(b.obj)+'</b> · <b>'+esc(whoBase(b.data.lead))+'</b><span class="xchr"><span class="xok">'+(b.data.nums||[]).length+' чел. · '+new Date(b.t).toTimeString().slice(0,5)+'</span></span></div><div class="xchipw">'+f.html+'</div>'+brigMembers(b,d)+ndCompBlock(b,d,b.obj)+ndKinds4(b.obj,d,b,b.data.lead)+'</div>'; }).join('')+'</div>':''; })():'');
