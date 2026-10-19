@@ -497,7 +497,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='108';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='109';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -654,7 +654,8 @@ var ROLES=[
   {id:'tech',name:'Техник (помощник)',d:'Может изменять всё'},
   {id:'prorab',name:'Прораб',d:'Отметки только за сегодня, с 05:00 до 22:00'},
   {id:'techu',name:'Техник участка',d:'«День» и «Месяц» — только просмотр'},
-  {id:'mont',name:'Бригадир',d:''}
+  {id:'mont',name:'Бригадир',d:''},
+  {id:'perev',name:'Переводчик',d:''}
 ];
 var API_DEFAULT='https://tabel-uor2.demonlightseven.workers.dev/';
 function roleById(id){ for(var i=0;i<ROLES.length;i++) if(ROLES[i].id===id) return ROLES[i]; return null; }
@@ -727,11 +728,12 @@ function showLogin(msg){
   var w=document.getElementById('login'); if(!w){ w=document.createElement('div'); w.id='login'; document.body.appendChild(w); }
   w.hidden=false; document.body.classList.add('lg-open');
   if(lgUsers===null) lgLoadUsers();
-  var m=lgSel==='mont', list=Array.isArray(lgUsers)?lgUsers.filter(function(u){ return u.role===lgSel; }):[], useList=Array.isArray(lgUsers)&&(list.length||!m), body='';
+  var m=lgSel==='mont'||lgSel==='perev', list=Array.isArray(lgUsers)?lgUsers.filter(function(u){ return u.role===lgSel; }):[], useList=Array.isArray(lgUsers)&&(list.length||!m), body='';
   if(lgSel){
     if(lgUsers===null) body='<p class="lgsub">Загружаю список пользователей…</p>';
     else if(useList) body='<label for="lguid">Ваше ФИО</label><select id="lguid"><option value="">— выберите себя из списка —</option>'+list.map(function(u){ return '<option value="'+esc(u.id)+'" data-np="'+(u.np?1:0)+'">'+esc(u.fio)+'</option>'; }).join('')+(m?'':'<option value="_new">Другое ФИО (меня нет в списке)</option>')+'</select>'+
       '<div id="lgnew" hidden><label for="lgwho">Ваше ФИО и должность</label><input id="lgwho" maxlength="60" autocomplete="off" placeholder="Иванов И.И. Мастер"></div>';
+    else if(lgSel==='perev') body='<p class="lgsub">Переводчиков пока нет в списке. Попросите начальника участка или техника добавить вас в «Пользователях».</p>';
     else if(m) body='<label for="lgfio">Ваше ФИО</label><select id="lgfio"><option value="">— выберите из списка —</option>'+BRIG_NAMES.map(function(n){ return '<option value="'+esc(n)+'">'+esc(n)+'</option>'; }).join('')+'</select>';
     else body='<label for="lgwho">Ваша фамилия (видна в отметках)</label><input id="lgwho" maxlength="40" autocomplete="off" value="'+esc(sync.who||'')+'">';
     body+='<div id="lgpw"'+(m?' hidden':'')+'><input type="text" name="lguser" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"><label for="lgpass">Пароль</label><input id="lgpass" name="lgpass" type="password" autocomplete="new-password"></div>'+
@@ -743,12 +745,12 @@ function showLogin(msg){
 }
 /* показать/скрыть поле пароля и ФИО по выбору в списке */
 function lgSync(){
-  var s=$('lguid'); if(!s) return; var o=s.options[s.selectedIndex], m=lgSel==='mont';
+  var s=$('lguid'); if(!s) return; var o=s.options[s.selectedIndex], m=lgSel==='mont'||lgSel==='perev';
   var nw=$('lgnew'); if(nw) nw.hidden=s.value!=='_new';
   var pw=$('lgpw'); if(pw) pw.hidden=m&&!(o&&o.dataset.np==='1');
 }
 function lgSubmit(){
-  var msg=$('lgmsg'), m=lgSel==='mont', pass=$('lgpass')&&!$('lgpw').hidden?$('lgpass').value.trim():'', body={action:'login',role:lgSel,app:APP_VER}, fio='', who='';
+  var msg=$('lgmsg'), m=lgSel==='mont'||lgSel==='perev', pass=$('lgpass')&&!$('lgpw').hidden?$('lgpass').value.trim():'', body={action:'login',role:lgSel,app:APP_VER}, fio='', who='';
   if(!lgSel){ msg.textContent='Выберите уровень доступа.'; return; }
   var us=$('lguid');
   if(us){
@@ -765,10 +767,10 @@ function lgSubmit(){
       .then(function(r){ return r.json(); }).then(function(j){
         if(!j||!j.ok){ msg.textContent=j&&j.error==='bad_pass'?'Неверный пароль.':j&&j.error==='need_pass'?'Введите пароль.':(j&&j.error==='bad_name'?'Этого ФИО нет в списке бригадиров.':j&&j.error==='bad_user'?'Эта учётная запись отключена или изменена. Выберите себя заново.':(j&&j.error==='too_many'?'Слишком много попыток. Подождите 15 минут.':'Не удалось войти: '+((j&&j.error)||'ошибка'))); if(j&&j.error==='bad_user'){ lgUsers=null; showLogin(msg.textContent); } return; }
         var nm=j.fio?(m?j.fio:j.fio+(j.pos?' '+j.pos:'')):(m?fio:who);
-        auth={role:j.role,token:j.token,at:Date.now(),uid:j.uid||'',fio:j.fio||''}; if(m){ auth.locked=1; auth.fio=j.fio||fio; } saveAuth();
+        auth={role:j.role,token:j.token,at:Date.now(),uid:j.uid||'',fio:j.fio||'',rname:j.rname||''}; if(m){ auth.locked=1; auth.fio=j.fio||fio; } saveAuth();
         sync.url=u; sync.code=j.token; if(nm) sync.who=nm; sync.rev={}; syncErr=''; saveSync();
         $('login').hidden=true; $('login').innerHTML=''; document.body.classList.remove('lg-open');
-        clearAutofill(); setTimeout(clearAutofill,500); render(); syncNow(); toast('Вход выполнен: '+roleById(j.role).name+(nm?' · '+nm:''));
+        clearAutofill(); setTimeout(clearAutofill,500); render(); syncNow(); toast('Вход выполнен: '+(j.rname||roleById(j.role).name)+(nm?' · '+nm:''));
       });
   }).catch(function(){ msg.textContent='Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.'; });
 }
@@ -800,7 +802,7 @@ function call(payload,ms){
     .then(function(j){ clearTimeout(to); if(j&&j.me) meSync(j.me); if(!j||j.ok!==true) throw new Error((j&&j.error)||'bad_response'); return j; },function(e){ clearTimeout(to); throw e; });
 }
 function meSync(me){
-  if(!me||!me.fio) return; var w=me.role==='mont'?me.fio:me.fio+(me.pos?' '+me.pos:'');
+  if(!me||!me.fio) return; var w=me.role==='mont'||me.role==='perev'?me.fio:me.fio+(me.pos?' '+me.pos:'');
   if(auth&&(auth.fio!==me.fio||auth.uid!==me.uid)){ auth.fio=me.fio; auth.uid=me.uid; saveAuth(); }
   if(sync.who!==w){ sync.who=w; saveSync(); }
 }
@@ -1595,7 +1597,7 @@ window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); d
 function sheetMenu(){
   var s=stats();
   openSheet('Меню','<div class="list2">'+
-    '<button data-a="logout">'+esc(auth?roleById(auth.role).name:'Вход')+(sync.who?' · '+esc(sync.who):'')+'<small>'+(auth&&auth.locked?'Выйти / сменить ФИО (нужен пароль)':'Выйти / сменить уровень доступа')+'</small></button>'+
+    '<button data-a="logout">'+esc(auth?(auth.rname||roleById(auth.role).name):'Вход')+(sync.who?' · '+esc(sync.who):'')+'<small>'+(auth&&auth.locked?'Выйти / сменить ФИО (нужен пароль)':'Выйти / сменить уровень доступа')+'</small></button>'+
     (isAdmin()?'<button data-a="auditlog">Журнал изменений<small>Кто, когда и что изменил: отметки, люди, наряды, задания</small></button>'+
       '<button data-a="users">Пользователи<small>ФИО, должность, пароль; кто и когда заходил</small></button>'+
       '<button data-a="srvbk">Резервные копии базы<small>Сервер сохраняет копию каждый день, хранит 30 дней</small></button>':'')+
@@ -3427,7 +3429,7 @@ function sheetUsers(){
 function uRow(u){
   var me=auth&&auth.uid===u.id;
   return '<div class="urow'+(u.off?' uoff':'')+'"><div class="uinfo"><b>'+esc(u.fio)+'</b>'+(me?' <span class="xchip ok">это вы</span>':'')+(u.pos?'<div>'+esc(u.pos)+'</div>':'')+
-    '<small>'+(u.role==='mont'?(u.hasPass?'вход по личному паролю':'вход по ФИО, без пароля'):(u.hasPass?'личный пароль':'общий пароль уровня'))+' · '+(u.seen?'заходил '+fmtDT(u.seen)+(u.ver?' · версия '+esc(u.ver):''):'ещё не заходил')+'</small></div>'+
+    '<small>'+(u.role==='mont'||u.role==='perev'?(u.hasPass?'вход по личному паролю':'вход по ФИО, без пароля'):(u.hasPass?'личный пароль':'общий пароль уровня'))+' · '+(u.seen?'заходил '+fmtDT(u.seen)+(u.ver?' · версия '+esc(u.ver):''):'ещё не заходил')+'</small></div>'+
     '<button data-a="uedit" data-id="'+esc(u.id)+'">Изменить</button></div>';
 }
 function renderUsers(){
@@ -3438,7 +3440,7 @@ function renderUsers(){
     ROLES.map(function(r){ var l=on.filter(function(u){ return u.role===r.id; }); return l.length?'<h3 class="dh3">'+esc(r.name)+' ('+l.length+')</h3>'+l.map(uRow).join(''):''; }).join('')+
     (off.length?'<details class="mhdr"><summary>Отключены ('+off.length+')</summary>'+off.map(uRow).join('')+'</details>':'');
 }
-function uFormRole(){ var r=$('ue_role'), n=$('ue_pnote'); if(r&&n) n.textContent=r.value==='mont'?'Если задать пароль, бригадир будет входить по паролю. Пусто — пароль не меняется.':'Не меньше 4 знаков. Пусто — пароль не меняется.'; }
+function uFormRole(){ var r=$('ue_role'), n=$('ue_pnote'); if(r&&n) n.textContent=r.value==='mont'||r.value==='perev'?'Если задать пароль, человек будет входить по паролю. Пусто — пароль не меняется.':'Не меньше 4 знаков. Пусто — пароль не меняется.'; }
 function uForm(id){
   var b=$('ulst'); if(!b) return;
   var u=usersList.filter(function(x){ return x.id===id; })[0]||{id:'',fio:'',pos:'',role:'prorab',hasPass:0,off:0};
