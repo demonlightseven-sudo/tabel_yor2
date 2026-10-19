@@ -424,6 +424,14 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 .ndlogb{min-height:46px;padding:0 12px;white-space:nowrap}.ndlogb[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .ndk5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}.ndk5 button{min-width:0;padding:8px 2px;font-size:13px;line-height:1.15;hyphens:manual;overflow-wrap:anywhere}
 .ndstep>summary{display:flex;align-items:center;gap:6px}.ndstep>summary .ndstt{flex:1;min-width:0}.ndst{font-size:13px;font-weight:700;white-space:nowrap}.ndstep.ok .ndst{color:var(--work-t)}.ndstep.need{border-color:#D9A92E}.ndstep.need .ndst{color:var(--ul-t)}.ndstep #nd_nsel{font-weight:400;font-size:14px;color:var(--muted)}
+.bdts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:6px 0}.bdt{border:1px solid var(--line);border-top:4px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--surface);min-width:0}.bdt b{display:block;font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums}.bdt span{font-size:13px;color:var(--muted)}
+.bdt.w{border-top-color:var(--work)}.bdt.w b{color:var(--work-t)}.bdt.a{border-top-color:var(--ab)}.bdt.a b{color:var(--ab-t)}.bdt.o{border-top-color:var(--off)}.bdt.u{border-top-color:#D9A92E}.bdt.u b{color:var(--ul-t)}
+@media (max-width:420px){.bdts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.bdrest{margin:2px 0 6px;font-size:14px;color:var(--muted)}.bdrest b{color:var(--ink)}
+.xtwd{margin:0 0 10px}.xtwd>summary{cursor:pointer;font-size:13px;color:var(--muted);padding:4px 0;list-style:none}.xtwd>summary::-webkit-details-marker{display:none}.xtwd>summary::before{content:'▸ '}.xtwd[open]>summary::before{content:'▾ '}
+.bdexp{border:1px solid #D9A92E;border-radius:12px;padding:10px 12px;margin:10px 0 14px;background:var(--surface)}.bdexph{font-weight:700;margin-bottom:6px}
+.bdexr{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px dashed var(--line);flex-wrap:wrap}.bdexr:first-of-type{border-top:0}.bdexw{flex:0 0 auto;font-weight:700;font-size:13px;padding:3px 8px;border-radius:10px;background:var(--ab-bg)}.bdexw.warn{background:var(--ul-bg);color:var(--ul-t)}
+.bdexi{flex:1 1 220px;min-width:0;overflow-wrap:anywhere}.bdexi small{display:block;color:var(--muted);font-size:12px}.bdexb{flex:0 0 auto;min-height:40px;padding:0 12px}
 .xcomp{margin-top:8px;padding:6px 8px;border:1px dashed var(--line);border-radius:10px}.xcomp .xfh{margin-top:0}.xcomp .ndcmp{display:block;margin-top:4px}
 .xfoot{margin-top:10px;padding-top:6px;border-top:1px dashed var(--line)}.xfh{font-weight:700;margin:6px 0 2px}.xfi{margin:2px 0 4px}.xfi .ndcmp{display:block;margin-top:2px}
 body.vboard main{max-width:1600px}body.vboard #xv{max-width:none}
@@ -515,7 +523,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='116';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='117';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3731,15 +3739,35 @@ function brigMembers(x,d){ var dd=x.data||{}, bad=0, no=0;
   var list=(dd.nums||[]).map(function(n,i){ var p=anyPerson(n), st=p?personDayStat(p,d):''; if(st==='прогул') bad++; if(!p) no++; return '<div class="xrow'+(st==='прогул'?' xbad':'')+'"><b>'+(i+1)+'.</b> '+esc(n)+' '+(p?esc(shortName(p.p.name))+' <small>'+esc(p.p.role||'')+' · '+esc(st)+'</small>':'<span class="xno">нет в табеле</span>')+'</div>'; }).join('');
   var tx=(Array.isArray(dd.tech)&&dd.tech.length?'<div class="xbrgx"><b>Техника:</b> '+esc(dd.tech.join('; '))+'</div>':'')+(Array.isArray(dd.doc)&&dd.doc.length?'<div class="xbrgx"><b>ППР:</b> '+esc(dd.doc.join('; '))+'</div>':'');
   return tx+'<details class="xmem" data-bid="'+esc(x.id)+'"'+(bdMemOpen[x.id]?' open':'')+'><summary>Состав бригады: '+(dd.nums||[]).length+' чел.'+(bad?' · <span class="xbad">прогул: '+bad+'</span>':'')+(no?' · <span class="xno">нет в табеле: '+no+'</span>':'')+'</summary><div class="xlist">'+list+'</div></details>'; }   // какие списки бригад развёрнуты (сохраняется между обновлениями доски)
-document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classList&&(t.classList.contains('xmem')||t.classList.contains('xmore')||t.classList.contains('xobjd'))) bdMemOpen[t.dataset.bid]=t.open; },true);
+document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classList&&(t.classList.contains('xmem')||t.classList.contains('xmore')||t.classList.contains('xobjd')||t.classList.contains('xtwd'))) bdMemOpen[t.dataset.bid]=t.open; },true);
+/* итоги явки плитками: главное крупно, остальное одной строкой */
+function bdTiles(t){
+  function tl(cls,n,txt){ return '<div class="bdt '+cls+'"><b>'+n+'</b><span>'+txt+'</span></div>'; }
+  var rest=[['dob','DO по графику'],['off','выходной'],['sick','больничный'],['pl','отпуск'],['ul','отпуск без ЗП'],['fired','уволены']].filter(function(x){ return t[x[0]]; }).map(function(x){ return x[1]+': <b>'+t[x[0]]+'</b>'; });
+  return '<div class="bdts">'+tl('w',t.work,'пришли')+tl('a',t.ab,'прогул')+tl('o',t.ot,'сверхурочка')+tl('u',t.unm,'без отметки')+'</div>'+
+    '<p class="bdrest">В списке: <b>'+t.list+'</b>'+(rest.length?' · '+rest.join(' · '):'')+'</p>';
+}
+/* наряды-допуски, которые заканчиваются сегодня или завтра (по дате доски) */
+function bdExpireHtml(d){
+  if(!ndOk()) return '';
+  var d2=addDays(d,1), list=ndAll(ndSt(),'').filter(function(e){ var a=ndIso(e.d1), b=ndIso(e.d2)||a; return a&&a<=d&&(b===d||b===d2)&&!(e.closed&&e.closed<=d); })
+    .sort(function(x,y){ return (ndIso(x.d2)||'').localeCompare(ndIso(y.d2)||'')||String(x.no).localeCompare(String(y.no),'ru',{numeric:true}); });
+  if(!list.length) return '';
+  var KN={}; ND_KINDS.forEach(function(k){ KN[k[0]]=k[1]; });
+  return '<div class="bdexp"><div class="bdexph">Наряды-допуски заканчиваются ('+list.length+')</div>'+list.map(function(e){
+    var end=ndIso(e.d2)||ndIso(e.d1), obj=ndGuessObj(e.code)||'', b=ndBrigOf(e,d), lead=b?whoBase(b.data.lead):'';
+    return '<div class="bdexr"><span class="bdexw '+(end===d?'xno':'warn')+'">'+(end===d?'сегодня':'завтра')+'</span>'+
+      '<span class="bdexi"><b>№ '+esc(e.no)+'</b> '+esc((KN[e.kind]||'').toLowerCase())+' · '+esc(obj||e.code||'')+(lead?' · бр. '+esc(shortName(lead)):'')+'<small>действует до '+esc(e.d2||'')+(e.team&&e.team.length?' · '+e.team.length+' чел.':'')+'</small></span>'+
+      (ND_TPL[e.kind]?'<button class="bdexb" data-a="ndfrom" data-k="'+esc(e.kind)+'" data-o="'+esc(obj)+'" data-d="'+esc(d)+'" data-b="'+esc(b?b.id:'')+'" data-l="'+esc(lead)+'">Оформить новый</button>':'')+'</div>'; }).join('')+'</div>';
+}
 function bdRender(){
   var d=bdDate||today(); bdFetch(d,false); bdFetch(addDays(d,-1),false); bdPullDay(d);
   var cols=[['list','В списке'],['work','Пришли'],['ab','Прогул'],['off','Выходной'],['dob','DO по графику'],['sick','Больничный'],['pl','Отпуск'],['ul','Отпуск без ЗП'],['unm','Без отметки'],['fired','Уволены'],['ot','Сверхурочка']];
   var rf=bookDay('rf',d), ar=bookDay('are',d), tot={}; cols.forEach(function(c){ tot[c[0]]=rf[c[0]]+ar[c[0]]; });
   var hn=$('hnav'); if(hn) hn.innerHTML=navDate('bdday',d);
   var h=
-    '<h3 class="tbth3">1. Явка</h3><div class="xtw"><table class="xt"><thead><tr><th></th>'+cols.map(function(c){ return '<th>'+c[1]+'</th>'; }).join('')+'</tr></thead><tbody>'+
-    [['РФ',rf],['АРЕ',ar],['Всего',tot]].map(function(r){ return '<tr'+(r[0]==='Всего'?' class="xtot"':'')+'><th>'+r[0]+'</th>'+cols.map(function(c){ var v=r[1][c[0]]; return '<td class="'+(c[0]==='ab'&&v?'xbad':c[0]==='work'?'xgood':'')+'">'+(v||'')+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></div>';
+    '<h3 class="tbth3">1. Явка</h3>'+bdTiles(tot)+'<details class="xtwd" data-bid="xtw"'+(bdMemOpen.xtw?' open':'')+'><summary>Подробнее: таблица РФ / АРЕ</summary><div class="xtw"><table class="xt"><thead><tr><th></th>'+cols.map(function(c){ return '<th>'+c[1]+'</th>'; }).join('')+'</tr></thead><tbody>'+
+    [['РФ',rf],['АРЕ',ar],['Всего',tot]].map(function(r){ return '<tr'+(r[0]==='Всего'?' class="xtot"':'')+'><th>'+r[0]+'</th>'+cols.map(function(c){ var v=r[1][c[0]]; return '<td class="'+(c[0]==='ab'&&v?'xbad':c[0]==='work'?'xgood':'')+'">'+(v||'')+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></div></details>'+bdExpireHtml(d);
   /* 2. наряд-задания по бригадирам и поданная ими численность */
   var items=bdItems(d), brigs=items.filter(function(x){ return x.kind==='brig'; }), tasks=items.filter(function(x){ return x.kind==='task'; }), usedB={};
   var objs=ND_OBJS.slice(); items.forEach(function(x){ if(x.obj&&objs.indexOf(x.obj)<0) objs.push(x.obj); });
