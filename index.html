@@ -417,7 +417,7 @@ body.r-mont #tabbar [data-v=brig],body.r-mont #tabbar [data-v=task],body.r-prora
 .xchips{display:inline-flex;flex-wrap:wrap;gap:5px;vertical-align:middle}.xchip{display:inline-block;padding:3px 8px;border-radius:12px;font-size:12px;font-weight:700;line-height:1.3;white-space:nowrap}
 .xchip.ok{background:var(--work-bg);color:var(--work-t)}.xchip.bad{background:var(--ab-bg);color:var(--ab-t)}.xchip.warn{background:var(--ul-bg);color:var(--ul-t)}.xchip.nil{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
 .xcard.xs-ok{border-top:5px solid var(--work)}.xcard.xs-warn{border-top:5px solid #D9A92E}.xcard.xs-bad{border-top:5px solid var(--ab)}
-.xch .xchr{margin-left:auto;text-align:right}.xch .xchr .xok{margin:0}.xchipw{margin-top:6px}
+.xch .xchr{margin-left:auto;text-align:right}.xch .xchr+.tbtx{margin-left:6px}.xtby{display:block;margin-top:4px;font-size:12px;color:var(--muted)}.xdnote{margin-top:8px;padding:6px 10px;border-left:3px solid var(--line);font-size:14px}.xdnote small{color:var(--muted)}.xch .xchr .xok{margin:0}.xchipw{margin-top:6px}
 .xmore>summary{display:flex;align-items:flex-start;gap:4px}.xmore>summary::before{flex:0 0 auto;padding-top:3px}
 .xochips{display:flex;margin-top:6px}.xobj.xo-bad{border-color:var(--ab)}.xobj.xo-warn{border-color:#D9A92E}
 .ndtop{display:flex;gap:8px;align-items:stretch;margin:4px 0 8px}.ndobjl{flex:1;display:flex;align-items:center;gap:8px;min-width:0;padding:0 0 0 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-weight:600}.ndobjl span{color:var(--muted);font-weight:400}.ndobjl select{flex:1;min-width:0;min-height:44px;border:0;background:transparent;font-weight:700;font-size:16px;color:var(--ink)}
@@ -497,7 +497,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='109';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='110';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3395,9 +3395,9 @@ function brgSend(){
 function tkDone(x){ return bdItems(x.d).filter(function(a){ return a.kind==='done'&&a.data&&a.data.tid===x.id; })[0]||null; }
 var DONE_ST={ok:'Выполнено',part:'Частично',no:'Не выполнено'}, tkDoneEdit={}, tkNotes={};
 function doneCan(x){ var r=role(); return r==='nach'||r==='tech'||r==='prorab'||(r==='mont'&&fioKey((x.data||{}).brig)===fioKey(sync.who)); }
-function doneHtml(x){
+function doneHtml(x,lite){
   var dn=tkDone(x), cur=(dn&&dn.data)||{}, can=doneCan(x);
-  var head=dn?'<div class="xdone '+esc(cur.st||'')+'">'+(cur.st==='ok'?'✔':cur.st==='part'?'◐':'✘')+' <b>'+esc(DONE_ST[cur.st]||'')+'</b>'+(cur.note?': '+esc(cur.note):'')+' <small>'+esc(whoBase(cur.fio||dn.who))+' · '+fmtDT(dn.t)+'</small></div>'
+  var head=lite?(dn&&cur.note?'<div class="xdnote"><b>Комментарий к выполнению:</b> '+esc(cur.note)+' <small>'+esc(whoBase(cur.fio||dn.who))+' · '+fmtDT(dn.t)+'</small></div>':''):dn?'<div class="xdone '+esc(cur.st||'')+'">'+(cur.st==='ok'?'✔':cur.st==='part'?'◐':'✘')+' <b>'+esc(DONE_ST[cur.st]||'')+'</b>'+(cur.note?': '+esc(cur.note):'')+' <small>'+esc(whoBase(cur.fio||dn.who))+' · '+fmtDT(dn.t)+'</small></div>'
     :(can?'':'<div class="xack no">Выполнение за день ещё не отмечено</div>');
   if(!can) return head;
   if(dn&&!tkDoneEdit[x.id]) return head+'<button class="tkdedit" data-a="tkdoneedit" data-id="'+esc(x.id)+'">Изменить отметку о выполнении</button>';
@@ -3530,12 +3530,14 @@ function ackHtml0(x){
   return '<div class="xack no">⏳ Бригадир ещё не подтвердил получение</div>';
 }
 function tkCard(x){
-  var dd=x.data||{}, f=null;
-  if(ndOk()){ var b0=bdItems(x.d).filter(function(y){ return y.kind==='brig'&&fioKey(y.data.lead)===fioKey(dd.brig); })[0]||null; f=bdStat(x.obj,x.d,b0,x); }
-  return '<div class="xcard'+(f?' xs-'+f.lvl:'')+'"><div class="xch"><b>'+esc(x.obj)+'</b> · бригадир: <b>'+esc(whoBase(dd.brig)||'—')+'</b>'+(role()!=='mont'&&(isAdmin()||x.role===role())?'<button class="tbtx" data-a="tkdel" data-id="'+esc(x.id)+'" aria-label="Удалить задание">✕</button>':'')+'</div>'+(f?'<div class="xchipw">'+f.html+'</div>':'')+
-    '<div class="xtask">'+esc(dd.tasks||'').replace(/\n/g,'<br>')+'</div><small class="note">Выдал: '+esc(whoBase(x.who))+' · '+fmtDT(x.t)+'</small>'+ackHtml(x)+
-    (ndOk()?(function(){ var b=bdItems(x.d).filter(function(y){ return y.kind==='brig'&&fioKey(y.data.lead)===fioKey(dd.brig); })[0]||null;
-      return '<div class="xbrgn">'+(b?'Бригада: <b class="xok">'+(b.data.nums||[]).length+' чел.</b> <small class="note">подано '+new Date(b.t).toTimeString().slice(0,5)+(b.obj!==x.obj?' · на '+esc(b.obj):'')+'</small>':'<span class="xno">Численность бригады не подана</span>')+'</div>'+(b?brigMembers(b,x.d):'')+ndCompBlock(b,x.d,x.obj)+ndKinds4(x.obj,x.d,b,dd.brig); })():'')+'</div>';
+  var dd=x.data||{}, f=null, b=null;
+  if(ndOk()){ b=bdItems(x.d).filter(function(y){ return y.kind==='brig'&&fioKey(y.data.lead)===fioKey(dd.brig); })[0]||null; f=bdStat(x.obj,x.d,b,x); }
+  var del=role()!=='mont'&&(isAdmin()||x.role===role())?'<button class="tbtx" data-a="tkdel" data-id="'+esc(x.id)+'" aria-label="Удалить задание">✕</button>':'';
+  var right=f?(b?'<span class="xchr"><span class="xok">'+(b.data.nums||[]).length+' чел. · '+new Date(b.t).toTimeString().slice(0,5)+'</span>'+(b.obj!==x.obj?' <small class="xno">подал на '+esc(b.obj)+'</small>':'')+'</span>':'<span class="xchr xno">численность не подана</span>'):'';
+  return '<div class="xcard'+(f?' xs-'+f.lvl:'')+'"><div class="xch"><b>'+esc(x.obj)+'</b> · <b>'+esc(whoBase(dd.brig)||'—')+'</b>'+right+del+'</div>'+(f?'<div class="xchipw">'+f.html+'</div>':'')+
+    '<div class="xtask">'+esc(dd.tasks||'').replace(/\n/g,'<br>')+'<small class="xtby">Выдал: '+esc(whoBase(x.who))+' · '+fmtDT(x.t)+'</small></div>'+
+    (f?doneHtml(x,true):ackHtml(x))+
+    (f?(b?brigMembers(b,x.d):'')+ndCompBlock(b,x.d,x.obj)+ndKinds4(x.obj,x.d,b,dd.brig):'')+'</div>';
 }
 function tkRender(){
   var d=tkDate||tkDef(); bdFetch(d,false); var hn=$('hnav'); if(hn) hn.innerHTML=navDate('tkday',d);
@@ -3551,7 +3553,7 @@ function tkRender(){
     '<button class="tbtdl" data-a="tksend">Выдать наряд-задание</button><p class="note" id="tk_msg"></p></div>'+
     '<h3 class="tbth3">Выдано на '+esc(dmyLong(d))+' ('+tasks.length+')</h3>'+(tasks.length?tasks.map(tkCard).join(''):'<p class="note">Пока нет.</p>')+
     (ndOk()?(function(){ var nb=bdItems(d).filter(function(x){ return x.kind==='brig'&&!tasks.some(function(t){ return fioKey(t.data.brig)===fioKey(x.data.lead); }); });
-      return nb.length?'<h3 class="tbth3">Подали численность, но без наряд-задания ('+nb.length+')</h3>'+nb.map(function(b){ var f=bdStat(b.obj,d,b,null); return '<div class="xcard xs-'+f.lvl+'"><div class="xch"><b>'+esc(b.obj)+'</b> · бригадир: <b>'+esc(whoBase(b.data.lead))+'</b></div><div class="xchipw">'+f.html+'</div><div class="xbrgn">Бригада: <b class="xok">'+(b.data.nums||[]).length+' чел.</b> <small class="note">подано '+new Date(b.t).toTimeString().slice(0,5)+'</small> · <span class="xno">наряд-задание не выдано</span></div>'+brigMembers(b,d)+ndCompBlock(b,d,b.obj)+ndKinds4(b.obj,d,b,b.data.lead)+'</div>'; }).join(''):''; })():'');
+      return nb.length?'<h3 class="tbth3">Подали численность, но без наряд-задания ('+nb.length+')</h3>'+nb.map(function(b){ var f=bdStat(b.obj,d,b,null); return '<div class="xcard xs-'+f.lvl+'"><div class="xch"><b>'+esc(b.obj)+'</b> · <b>'+esc(whoBase(b.data.lead))+'</b><span class="xchr"><span class="xok">'+(b.data.nums||[]).length+' чел. · '+new Date(b.t).toTimeString().slice(0,5)+'</span></span></div><div class="xchipw">'+f.html+'</div>'+brigMembers(b,d)+ndCompBlock(b,d,b.obj)+ndKinds4(b.obj,d,b,b.data.lead)+'</div>'; }).join(''):''; })():'');
   return h;
 }
 function tkSend(){
@@ -3634,7 +3636,7 @@ function bdRender(){
       var b=brigs.filter(function(x){ return fioKey(x.data.lead)===fioKey(t.data.brig); })[0]; if(b) usedB[b.id]=1;
       var f=bdStat(o,d,b,t); acc(f);
       cards+='<div class="xcard xs-'+f.lvl+'"><div class="xch"><b>'+esc(whoBase(t.data.brig))+'</b>'+(b?'<span class="xchr"><span class="xok">'+(b.data.nums||[]).length+' чел. · '+new Date(b.t).toTimeString().slice(0,5)+'</span>'+(b.obj!==o?' <small class="xno">подал на '+esc(b.obj)+'</small>':'')+'</span>':'<span class="xchr xno">численность не подана</span>')+'</div>'+
-        bdMore(t.id,o,d,b,t,f)+'<div class="xtask"><b>Задание:</b> '+esc(t.data.tasks||'').replace(/\n/g,'<br>')+' <small class="note">('+esc(whoBase(t.who))+')</small></div>'+doneHtml(t)+(b?members(b):'')+ndKinds4(o,d,b,t.data.brig)+'</div></details></div>';
+        bdMore(t.id,o,d,b,t,f)+'<div class="xtask"><b>Задание:</b> '+esc(t.data.tasks||'').replace(/\n/g,'<br>')+' <small class="note">('+esc(whoBase(t.who))+')</small></div>'+doneHtml(t,true)+(b?members(b):'')+ndKinds4(o,d,b,t.data.brig)+'</div></details></div>';
     });
     bo.filter(function(b){ return !usedB[b.id]; }).forEach(function(b){ usedB[b.id]=1;
       var f=bdStat(o,d,b,null); acc(f);
