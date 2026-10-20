@@ -443,6 +443,7 @@ body.vtask .tktop .tbtf{max-width:none}@media (min-width:1000px){.tktop{grid-tem
 .tkrf{display:flex;gap:4px;align-items:center}.tkrf input{width:70px;min-height:40px;box-sizing:border-box}.tkrf small{display:inline;margin-right:2px}.tkrf button{min-height:40px;padding:0 10px;font-size:13px}.tkrc span:last-child{display:flex;gap:6px;align-items:center}.tkrc input{width:22px;height:22px}
 .tkrep{width:100%;margin-top:8px}.xdonef textarea{margin-top:8px}
 @media (min-width:1100px){body.vteams .tkgrid{grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}body.vteams main{padding:0 12px}}
+.tmd{margin-top:2px}.tmd>summary{cursor:pointer;list-style:none;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-weight:600}.tmd>summary::-webkit-details-marker{display:none}.tmd>summary::before{content:'▸ '}.tmd[open]>summary::before{content:'▾ '}.tmd[open]>summary{margin-bottom:4px}.tmst b{color:var(--ink)}
 .tmno{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.03em;text-transform:uppercase}
 .tmc{display:flex;flex-direction:column;gap:6px}.tmh{display:flex;align-items:center;gap:10px}.tmn{flex:1;min-width:0;overflow-wrap:anywhere}.tmn small{display:block;color:var(--muted);font-size:12px}
 .tmpl{flex:0 0 auto;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;border:2px solid var(--line)}.tmpl.p1{background:#D9A92E;color:#1d1600;border-color:#D9A92E}.tmpl.p2{background:#a7adb4;color:#121417;border-color:#a7adb4}.tmpl.p3{background:#b07a4f;color:#1d1009;border-color:#b07a4f}.tmpl.p0{color:var(--muted)}
@@ -524,7 +525,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='125';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='126';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3698,6 +3699,7 @@ function teamsLoad(force){
   call({action:'teamsget'}).then(function(j){ tmTeamsBusy=false; var was=JSON.stringify(tmTeams); tmTeams=(j.teams&&j.teams.list)||[]; tmTeamsAt=Date.now(); if(was!==JSON.stringify(tmTeams)){ if(ui.view==='teams') renderX(); if($('tmlst')) renderTeamsList(); } })
     .catch(function(){ tmTeamsBusy=false; });
 }
+document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classList&&t.classList.contains('tmd')) bdMemOpen[t.dataset.bid]=t.open; },true);
 function teamOf(lead){ return (tmTeams||[]).filter(function(t){ return fioKey(t.lead)===fioKey(lead); })[0]||null; }
 /* члены бригады: закреплённый состав; если бригады нет в списке — по подаче за день */
 function tmMembers(lead,d){
@@ -3713,26 +3715,31 @@ function tmRender(){
   (rows||[]).forEach(function(x){ by[fioKey(x.brig)]=x; });
   var brigs=bdItems(d).filter(function(x){ return x.kind==='brig'; }), leads=[], seen={};
   (tmTeams||[]).map(function(t){ return t.lead; }).concat(tmTeams?[]:BRIG_NAMES).concat(brigs.map(function(b){ return whoBase(b.data.lead); })).forEach(function(n){ var k=fioKey(n); if(n&&!seen[k]){ seen[k]=1; leads.push(n); } });
-  var list=leads.map(function(n){ var st=by[fioKey(n)]||null; return {lead:n, t:teamOf(n), b:brigs.filter(function(x){ return fioKey(x.data.lead)===fioKey(n); })[0]||null, st:st, score:st&&st.n?Math.round((st.sum!=null?st.sum:st.ok*100+st.part*50)/st.n):null}; })
-    .sort(function(x,y){ return (y.score==null?-1:y.score)-(x.score==null?-1:x.score)||(y.st?y.st.n:0)-(x.st?x.st.n:0)||((x.t?x.t.no:999)-(y.t?y.t.no:999)); });
+  var list=leads.map(function(n){ var st=by[fioKey(n)]||null; return {lead:n, t:teamOf(n), b:brigs.filter(function(x){ return fioKey(x.data.lead)===fioKey(n); })[0]||null, st:st, ppl:tmMembers(n,d).length+1, pct:st&&st.n?Math.round((st.sum!=null?st.sum:st.ok*100+st.part*50)/st.n):null}; });
+  /* численность: поправка до ±20% к проценту — больше средней по участку бригады получают до ×1,2, меньше — до ×0,8 */
+  var withP=list.filter(function(x){ return x.pct!=null&&x.ppl>1; }), avgN=withP.length?withP.reduce(function(s0,x){ return s0+x.ppl; },0)/withP.length:0;
+  list.forEach(function(x){ x.k=avgN?Math.round((1+0.2*Math.max(-1,Math.min(1,(x.ppl-avgN)/avgN)))*100)/100:1; x.score=x.pct==null?null:Math.round(x.pct*x.k); });
+  list.sort(function(x,y){ return (y.score==null?-1:y.score)-(x.score==null?-1:x.score)||(y.pct==null?-1:y.pct)-(x.pct==null?-1:x.pct)||y.ppl-x.ppl||((x.t?x.t.no:999)-(y.t?y.t.no:999)); });
   var place=0, last=null;
   var cards=list.map(function(x,i){
     if(x.score!=null&&x.score!==last){ place=i+1; last=x.score; }
     var pl=x.score!=null?place:0, k=ktuItem(d,x.lead), vals=(k&&k.data&&k.data.vals)||{}, mem=tmMembers(x.lead,d), can=mem.length>0&&ktuCan(d,x.lead), dr=ktuDraft[x.lead]||{};
     var lnum=x.t?teamLnum(x.t):(x.b&&x.b.data.lnum), lp=lnum?anyPerson(lnum):null;
     var head='<div class="tmno">'+(x.t?'Бригада № '+x.t.no:'Бригада без номера')+'</div><div class="tmh">'+(pl?'<span class="tmpl p'+Math.min(pl,4)+'" title="Место в рейтинге">'+pl+'</span>':'<span class="tmpl p0">—</span>')+'<div class="tmn"><b>'+esc(whoBase(x.lead))+'</b>'+(lnum?' <small>таб. № '+esc(lnum)+(lp&&lp.p.role?' · '+esc(lp.p.role):'')+'</small>':'')+'</div>'+
-      (x.score!=null?'<div class="tmsc"><b>'+x.score+'%</b><small>за '+MON_N[Number(a[1])-1].toLowerCase()+'</small></div>':'<div class="tmsc"><small>нет заданий<br>с отметкой</small></div>')+'</div>'+
-      (x.st?'<div class="tmbar"><i style="width:'+x.score+'%"></i></div><div class="tmst">полностью '+Math.round(x.st.ok*100/x.st.n)+'% · частично '+Math.round(x.st.part*100/x.st.n)+'% · заданий '+x.st.n+(x.st.none?' · не отмечено '+x.st.none:'')+'</div>':'');
+      (x.score!=null?'<div class="tmsc"><b>'+x.score+'</b><small>баллов</small></div>':'<div class="tmsc"><small>нет заданий<br>с отметкой</small></div>')+'</div>'+
+      (x.st?'<div class="tmbar"><i style="width:'+Math.min(100,x.pct)+'%"></i></div><div class="tmst">выполнение <b>'+x.pct+'%</b> × численность '+x.ppl+' чел. (<b>×'+String(x.k).replace('.',',')+'</b>)<br>полностью '+Math.round(x.st.ok*100/x.st.n)+'% · частично '+Math.round(x.st.part*100/x.st.n)+'% · заданий '+x.st.n+(x.st.none?' · не отмечено '+x.st.none:'')+'</div>':'<div class="tmst">численность '+x.ppl+' чел.</div>');
     var rowsH=mem.map(function(n){ var p=anyPerson(n), key=normNum(n), v=dr[key]!=null?dr[key]:(vals[key]!=null?Number(vals[key]).toFixed(1):(can?'1.0':'')), ds=p?personDayStat(p,d):'';
       return '<div class="tmr"><span class="tmnum">'+esc(n)+'</span><span class="tmfio">'+(p?esc(p.p.name)+'<small>'+esc(p.p.role||'')+(ds?' · <span class="'+(ds==='прогул'?'xno':'')+'">'+esc(ds)+'</span>':'')+'</small>':'<span class="xno">нет в табеле</span>')+'</span>'+
         (can?'<select data-ktu="'+esc(x.lead)+'|'+esc(key)+'" aria-label="КТУ">'+KTU_V.map(function(o){ return '<option'+(o===v?' selected':'')+'>'+o+'</option>'; }).join('')+'</select>'
           :'<b class="tmk'+(v?'':' none')+'">'+(v||'—')+'</b>')+'</div>'; }).join('');
+    var dk='tm|'+fioKey(x.lead);
     return '<div class="xcard tmc">'+head+
+      '<details class="tmd" data-bid="'+esc(dk)+'"'+(bdMemOpen[dk]?' open':'')+'><summary>Состав: '+mem.length+' чел.'+(k?' · <span class="xok">КТУ ✓</span>':(mem.length?' · КТУ не проставлен':''))+'</summary>'+
       '<div class="tmlh"><span>Таб. №</span><span>'+(x.t?'Состав':'Состав за день')+' ('+mem.length+')</span><span>КТУ</span></div>'+(rowsH||'<p class="note">'+(x.t?'Состав бригады не задан — его задаёт начальник участка в меню «Бригады».':'Численность за этот день не подана.')+'</p>')+
       (k?'<small class="note tmks">КТУ проставлен: '+esc(whoBase(k.data.fio||k.who))+' · '+fmtDT(k.t)+'</small>':(can||!mem.length?'':'<small class="note tmks">КТУ за этот день не проставлен</small>'))+
-      (can?'<button class="tbtdl tmsave" data-a="ktusave" data-l="'+esc(x.lead)+'" data-d="'+esc(d)+'" data-o="'+esc(x.b?x.b.obj||'':'')+'">Сохранить КТУ</button>':'')+'</div>';
+      (can?'<button class="tbtdl tmsave" data-a="ktusave" data-l="'+esc(x.lead)+'" data-d="'+esc(d)+'" data-o="'+esc(x.b?x.b.obj||'':'')+'">Сохранить КТУ</button>':'')+'</details></div>';
   }).join('');
-  return '<h2 class="dh2">Бригады</h2><p class="note">Рейтинг — средний процент выполнения наряд-заданий за '+MON_N[Number(a[1])-1].toLowerCase()+' '+a[0]+' (по отчётам бригадиров). Состав бригад закреплён, его меняет начальник участка в меню «Бригады». КТУ от 0,5 до 1,5 ставит бригадир своей бригаде по итогам дня.</p>'+
+  return '<h2 class="dh2">Бригады</h2><p class="note">Рейтинг в баллах: средний процент выполнения наряд-заданий за '+MON_N[Number(a[1])-1].toLowerCase()+' '+a[0]+' × коэффициент численности (бригада больше средней по участку — до ×1,2, меньше — до ×0,8). Состав бригад закреплён, его меняет начальник участка в меню «Бригады». КТУ от 0,5 до 1,5 ставит бригадир своей бригаде по итогам дня.</p>'+
     (rows==null||tmTeams==null?'<p class="note">Загружаю…</p>':'')+'<div class="tkgrid">'+cards+'</div>';
 }
 function ktuSave(el){
