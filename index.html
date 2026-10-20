@@ -515,7 +515,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='120';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='121';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2018,6 +2018,8 @@ function onScanned(n){
 /* ------------------------------------------------------------- документация: служебная записка о сверхурочной работе */
 var MEMO_KEY='tabel-memo-v1', MEMO_DEPT='участка общестроительных работ №2';
 function memoNorm(b){ return b==='are'?9:8; }
+/* сверхурочная всегда начинается после рабочего дня: РФ — с 16:00, АРЕ — с 17:00 */
+function memoOtFrom(b){ return b==='are'?'17:00':'16:00'; }
 /* вид записки: ot — сверхурочная работа, rvd — работа в выходной и нерабочий праздничный день */
 var MEMO_TYPE_KEY='tabel-memo-type';
 function memoType(){ try{ var v=localStorage.getItem(MEMO_TYPE_KEY); return v==='rvd'||v==='abs'?v:'ot'; }catch(e){ return 'ot'; } }
@@ -2029,7 +2031,7 @@ function memoCfg(){
   var objs=Array.isArray(c.objs)?c.objs.filter(function(o){ return o&&typeof o==='object'; }).map(function(o){ return {obj:String(o.obj||''),works:String(o.works||'')}; }):null;
   if(!objs||!objs.length) objs=[{obj:typeof c.obj==='string'?c.obj:'',works:typeof c.works==='string'?c.works:''}];   // записка прошлой версии: один объект
   return {objs:objs,resp:typeof c.resp==='string'?c.resp:'',
-    to:/^\d\d:\d\d$/.test(c.to)?c.to:'21:00',from:/^\d\d:\d\d$/.test(c.from)?c.from:(root.cur==='are'?'17:00':'16:00'),
+    to:/^\d\d:\d\d$/.test(c.to)?c.to:'21:00',from:memoOtFrom(root.cur),
     rfrom:/^\d\d:\d\d$/.test(c.rfrom)?c.rfrom:'07:00',rto:/^\d\d:\d\d$/.test(c.rto)?c.rto:'21:00',
     rbf:typeof c.rbf==='string'?c.rbf:'11:00',rbt:typeof c.rbt==='string'?c.rbt:'12:00'};
 }
@@ -2133,7 +2135,7 @@ function memoTimes(x,c){
     var f=tmin(c.rfrom), e=tmin(c.rto), bf=tmin(c.rbf), bt=tmin(c.rbt), br=isFinite(bf)&&isFinite(bt)&&bt>bf?bt-bf:0;
     return {from:tstr(f),to:tstr(e),bf:br?tstr(bf):'-',bt:br?tstr(bt):'-',h:Math.max(0,(e-f-br)/60)};
   }
-  var to=tmin(c.to), n=memoNorm(root.cur), from=x.h>n?to-Math.round((x.h-n)*60):tmin(c.from);
+  var from=tmin(memoOtFrom(root.cur)), n=memoNorm(root.cur), to=x.h>n?from+Math.round((x.h-n)*60):tmin(c.to);
   return {from:tstr(from),to:tstr(to),bf:'-',bt:'-',h:Math.max(0,(to-from)/60)};
 }
 function memoTabs(t){ return '<div class="mtype" role="tablist" aria-label="Вид документа"><button role="tab" data-a="mtype" data-t="ot" aria-selected="'+(t==='ot')+'">Сверхурочная работа</button><button role="tab" data-a="mtype" data-t="rvd" aria-selected="'+(t==='rvd')+'">Выходной / праздничный день</button><button role="tab" data-a="mtype" data-t="abs" aria-selected="'+(t==='abs')+'">Акт об отсутствии</button></div>'; }
@@ -2192,8 +2194,9 @@ function renderDocs(){
       '<div class="fld"><label for="m_rto">по</label><input type="time" id="m_rto" value="'+c.rto+'"></div>'+
       '<div class="fld"><label for="m_rbf">Перерыв с (пусто — без перерыва)</label><input type="time" id="m_rbf" value="'+esc(c.rbf)+'"></div>'+
       '<div class="fld"><label for="m_rbt">Перерыв по</label><input type="time" id="m_rbt" value="'+esc(c.rbt)+'"></div></div>'
-    :'<div class="dgrid"><div class="fld"><label for="m_to">Работают до</label><input type="time" id="m_to" value="'+c.to+'"></div>'+
-    '<div class="fld"><label for="m_from">Начало сверхурочной (для тех, у кого в табеле норма)</label><input type="time" id="m_from" value="'+c.from+'"></div></div>')+
+    :'<div class="dgrid"><div class="fld"><label>Начало сверхурочной ('+BOOKS[root.cur]+')</label><input type="text" value="'+c.from+' — всегда" disabled></div>'+
+    '<div class="fld"><label for="m_to">Окончание (если в табеле нет сверхурочных часов)</label><input type="time" id="m_to" value="'+c.to+'"></div></div>'+
+    '<p class="note">Окончание у каждого = '+c.from+' + его сверхурочные часы из табеля (всё, что больше '+memoNorm(root.cur)+' ч).</p>')+
     '<details class="ndfold" data-fold="memo'+(rvd?'r':'o')+'"'+(typeof ndFold!=='undefined'&&ndFold&&ndFold['memo'+(rvd?'r':'o')]?' open':'')+'><summary><span class="dh3">Работники</span> <span class="ndob">отмечено '+sel+' из '+list.length+'</span></summary>'+
     (list.length?'<div class="mlist">'+rows+'</div>':'<p class="note">В этот день в табеле '+BOOKS[root.cur]+' нет отметок «Пришёл». Сначала отметьте явку.</p>')+'</details>'+
     '<h3 class="dh3">Объекты и работы</h3>'+c.objs.map(function(o,k){
