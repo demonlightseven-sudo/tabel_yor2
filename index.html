@@ -96,6 +96,7 @@ textarea.link{min-height:96px;font-size:13px;word-break:break-all}
 .stats>button.on{outline:3px solid var(--ink);outline-offset:-2px;background:var(--bg)}
 .fltbrig{min-height:44px;max-width:100%;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:14px}.fltbrig.on{outline:2px solid var(--ink)}.fltx{color:var(--ab-t)}
 #list li.fltinfo{list-style:none;padding:6px 4px;font-size:13px;color:var(--muted);border:0;background:none}#list li.fltact{list-style:none;padding:10px 0;border:0;background:none}#list li.fltact button{width:100%;min-height:48px}
+.lvl li{padding:6px 4px;border-bottom:1px dashed var(--line);font-size:14px;list-style:none}.lvl li small{color:var(--muted)}
 .stats2{font-size:13px;color:var(--muted);margin:0 2px 8px}
 .tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}.tabs .fltbrig{flex:1 1 160px;min-width:0}.tabs .fltx{flex:0 0 auto}
 @media (max-width:560px){.tabs .fltbrig{flex-basis:100%;order:3}}
@@ -525,7 +526,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='126';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='127';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1208,12 +1209,17 @@ function renderList(){
   /* выходные по графику — в конце, свёрнуто (при поиске показываем всех найденных) */
   var off=ui.q?[]:items.filter(function(p){ return planHidden(p,day); });
   if(off.length) items=items.filter(function(p){ return off.indexOf(p)<0; });
+  /* прорабу не показываем тех, кому заранее проставлены отпуск / отпуск без ЗП / больничный — им отмечать не нужно */
+  var lv=role()==='prorab'&&!ui.q?items.filter(function(p){ var r0=day[p.id]; return r0&&(r0.s==='pl'||r0.s==='ul'||r0.s==='sick'); }):[];
+  if(lv.length) items=items.filter(function(p){ return lv.indexOf(p)<0; });
   var html=items.map(rowHtml).join('');
   if(!html&&!fired.length) html='<li class="empty"><p>'+(ui.q||fltOn?'Никого не найдено.':'Все отмечены.')+'</p></li>';
   html+=fired.map(rowHtml).join('');
   if(fltOn){ var bn=ui.brig==='-'?'без бригады':ui.brig?'бригада '+shortName(whoBase((fltBrigs().filter(function(x){ return fioKey(x.data.lead)===ui.brig; })[0]||{data:{lead:ui.brig}}).data.lead)):'';
     html='<li class="fltinfo">Показаны '+fltN+' из '+ppl.filter(function(p){ return !firedOn(p,ui.date)&&!planHidden(p,day); }).length+' · '+esc([FLT_N[ui.filter]||'',bn].filter(Boolean).join(' · '))+'</li>'+html;
     if(ui.filter==='ab'&&fltN) html+='<li class="fltact"><button class="primary" data-a="toabs">Сделать акт об отсутствии →</button></li>'; }
+  if(lv.length) html+='<li class="offgrp"><details'+(ui.lvOpen?' open':'')+' id="lvgrp"><summary>Отпуск / больничный: '+lv.length+' чел. — проставлено заранее, отмечать не нужно</summary><ul class="offl lvl">'+
+    lv.map(function(p){ return '<li><span class="tn">'+esc(p.num||'')+'</span> '+esc(p.name)+' <small>'+esc(ST_FULL[day[p.id].s]||ST_N[day[p.id].s]||day[p.id].s)+'</small></li>'; }).join('')+'</ul></details></li>';
   if(off.length) html+='<li class="offgrp"><details'+(ui.offOpen?' open':'')+' id="offgrp"><summary><span class="dob">DO</span> Выходной по графику: '+off.length+' чел. — в явке не участвуют</summary><p class="note">Если кто-то из них вышел на работу, отметьте его здесь или найдите по номеру.</p><ul class="offl">'+off.map(rowHtml).join('')+'</ul></details></li>';
   L.outerHTML='<ul id="list">'+html+'</ul>';
 }
@@ -3092,6 +3098,7 @@ document.addEventListener('click',function(e){
 });
 $('q').addEventListener('input',function(){ ui.q=this.value; renderList(); });
 document.addEventListener('toggle',function(e){ if(e.target&&e.target.id==='offgrp') ui.offOpen=e.target.open; },true);
+document.addEventListener('toggle',function(e){ if(e.target&&e.target.id==='lvgrp') ui.lvOpen=e.target.open; },true);
 document.addEventListener('input',function(e){ var t=e.target; if(t.dataset&&t.dataset.sg){ var sgk=t.dataset.sg.split('|'), sgt=memoType(), so=memoSigners(sgt); so[sgk[0]][Number(sgk[1])]=t.value; memoSignersSave(sgt,so); var sn=$('sgp_'+sgk[0]+'_'+sgk[1]); if(sn) sn.innerHTML=memoSplitNote('s2',t.value); return; } if(ui.view==='nd'&&ndInput(t)) return; if(t.dataset&&t.dataset.mo!=null){ var os=memoCfg().objs, k=Number(t.dataset.mo); if(os[k]){ os[k][t.dataset.mf]=t.value; memoSet('objs',os); } } if(t.id==='m_resp') memoSet('resp',t.value); if(t.dataset&&t.dataset.mh){ var h=memoHdr(); h[t.dataset.mh]=t.value; memoHdrSave(h); memoHdrPush(); } if(t.dataset&&t.dataset.mhc){ var h2=memoHdr(), sp=memoSplit(t.dataset.mhc,t.value); h2[sp.pk]=sp.pos; h2[t.dataset.mhc]=sp.name; memoHdrSave(h2); memoHdrPush(); var pn=$('mhp_'+t.dataset.mhc); if(pn) pn.innerHTML=memoSplitNote(t.dataset.mhc,t.value); } });
 $('q').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); submitEntry(); } });
 $('file').addEventListener('change',function(){ if(this.files&&this.files[0]) handleFile(this.files[0]); });
