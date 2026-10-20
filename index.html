@@ -515,7 +515,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
   <div id="nd"></div>
   <div id="xv"></div>
 </main>
-<nav id="tabbar" aria-label="Разделы"><button data-a="view" data-v="day">Явка</button><button data-a="view" data-v="brig">Бригада</button><button data-a="view" data-v="month">Табель</button><button data-a="view" data-v="teams">Бригады</button><button data-a="view" data-v="docs">Служебные записки</button><button data-a="view" data-v="nd">Наряд-допуск</button><button data-a="view" data-v="task">Наряд-задание</button><button data-a="view" data-v="board">Доска руководителя</button></nav>
+<nav id="tabbar" aria-label="Разделы"><button data-a="view" data-v="day">Явка</button><button data-a="view" data-v="brig">Бригада</button><button data-a="view" data-v="month">Табель</button><button data-a="view" data-v="teams">Бригады</button><button data-a="view" data-v="docs">Служебные записки</button><button data-a="view" data-v="task">Наряд-задание</button><button data-a="view" data-v="nd">Наряд-допуск</button><button data-a="view" data-v="board">Доска руководителя</button></nav>
 <div id="sheetWrap" hidden><div class="backdrop" data-a="close"></div><div id="sheet" role="dialog" aria-modal="true" aria-label="Окно"></div></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <input type="file" id="file" accept=".json,application/json" hidden>
@@ -526,7 +526,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='127';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='128';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1427,6 +1427,7 @@ function setView(v){
   if(ui.view===v) return;
   saveViewScroll();
   ui.view=v;
+  if(v==='nd'&&typeof ndFold==='object'&&ndFold){ ndFold.s1=ndFold.s2=ndFold.s3=true; }   // разделы 1–3 наряда открыты при каждом переходе
   if(v==='month') ui.month=ui.date.slice(0,7);
   clearMsg(); render(); restoreViewScroll(); pull();
 }
@@ -2632,7 +2633,7 @@ function renderNd(){
     ndSel(st,k,'in','Инструктаж провёл: Site Foreman',ND_FMS);
   var fp=form.split('\u0001'), v=function(f){ return String(ndV(st,k,f)||'').trim(); };
   var ok1=!!(String(no).trim()&&d1&&(k==='fire'?d2:v('days'))), ok2=!!v('works'), ok3=!!(v('exec')&&(k==='lift'||v('hse')));
-  function step(key,title,ok,txt,body){ var op=ndFold&&typeof ndFold[key]==='boolean'?ndFold[key]:!ok;
+  function step(key,title,ok,txt,body){ var op=ndFold&&typeof ndFold[key]==='boolean'?ndFold[key]:(key==='s1'||key==='s2'||key==='s3'?true:!ok);
     return '<details class="ndfold ndstep'+(ok?' ok':' need')+'" data-fold="'+key+'"'+(op?' open':'')+'><summary><span class="ndstt">'+title+'</span><span class="ndst">'+txt+'</span></summary>'+body+'</details>'; }
   var steps=step('s1','1. Номер, даты, срок',ok1,ok1?'✓':'заполнить',fp[0])+
     step('s2',k==='fire'?'2. Работы и место':k==='lift'?'2. Работы, ПС, ППР':'2. Работы, ППР, техника',ok2,ok2?'✓':'заполнить',fp[1])+
