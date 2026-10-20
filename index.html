@@ -515,7 +515,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='119';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='120';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2552,7 +2552,7 @@ function renderNd(){
     if(!ndTplErr[k]) ndTemplate(k).then(function(){ if(ui.view==='nd') renderNd(); },function(){ ndTplErr[k]=1; if(ui.view==='nd') renderNd(); });
     return;
   }
-  var d=ndDraft(st,k), no=typeof d.no==='string'&&d.no?d.no:ndNext(st,k), dt=ndDates(st,k), d1=dt.d1, d2=dt.d2;
+  var d=ndDraft(st,k), no=ed?(typeof d.no==='string'&&d.no?d.no:ed.no):ndNext(st,''), dt=ndDates(st,k), d1=dt.d1, d2=dt.d2;
   var cbs=ndCb(st,k,tpl), on={}, oo=ndO(st,k); cbs.forEach(function(i){ on[i]=1; });
   var groups=(ND_GROUPS[k]||[]).map(function(g){
     var items=tpl.cb.map(function(c,i){ return {c:c,i:i}; }).filter(function(x){ return x.c.g===g[0]&&x.c.t; });
@@ -2565,7 +2565,8 @@ function renderNd(){
     }).join('')+'</div></details>';
   }).join('');
   var nsel=ndTeamN(d);
-  var noF='<div class="fld"><label for="nd_no">Номер наряда</label><input type="text" inputmode="numeric" id="nd_no" data-nd="no" maxlength="20" value="'+esc(no)+'" placeholder="'+(k==='fire'?'например, 157':'например, 141')+'"></div>';
+  var noF=ed?'<div class="fld"><label for="nd_no">Номер наряда</label><input type="text" inputmode="numeric" id="nd_no" data-nd="no" maxlength="20" value="'+esc(no)+'"></div>'
+    :'<div class="fld"><label>Номер наряда</label><input type="text" value="" placeholder="'+(no?'№ '+esc(no)+' — ':'')+'присвоится при записи" disabled></div>';
   var form;
   if(k==='fire') form=
     '<div class="dgrid">'+noF+'<div class="fld"><label for="nd_rel">К наряду-допуску №</label><input type="text" inputmode="numeric" id="nd_rel" data-nd="rel" maxlength="20" value="'+esc(d.rel||'')+'" placeholder="на опасные работы" list="ndl_rel"></div></div>'+
@@ -2798,7 +2799,7 @@ function ndMake(mode){
   var ed=ndEd(st,k);
   var e=ed?{id:ed.id,kind:k,obj:st.obj,who:ed.who||'',at:ed.at||Date.now(),upd:Date.now(),ed:sync.who||''}:{id:Date.now().toString(36)+Math.random().toString(36).slice(2,8),kind:k,obj:st.obj,who:sync.who||'',at:Date.now()};
   ND_CFGK.forEach(function(f){ e[f]=ndV(st,k,f).trim(); });
-  e.no=String(typeof d.no==='string'&&d.no?d.no:ndNext(st,k)).trim();
+  e.no=ed?String(typeof d.no==='string'&&d.no?d.no:ed.no).trim():'';   // новому наряду номер присвоит сервер при записи
   e.days=String(Math.max(1,Math.min(366,parseInt(e.days,10)||1)));
   var dt=ndDates(st,k); e.d1=ndDmy(dt.d1); e.d2=ndDmy(dt.d2); e.rel=String(d.rel||'').trim();
   if(dt.d2<dt.d1){ msg.textContent='Дата окончания раньше даты выдачи.'; return; }
@@ -2806,13 +2807,13 @@ function ndMake(mode){
   var sel={}; (d.team||[]).forEach(function(x){ sel[x]=1; });
   e.team=ndPeople().filter(function(x){ return sel[x.key]; }).map(function(x){ return {num:x.p.num||'',name:x.p.name,role:x.p.role||'',b:x.b}; }).concat((d.teamX||[]).map(function(x){ return {num:x.num||'',name:x.name,role:x.role||'',b:x.b||''}; }))
     .sort(function(a,b){ return byNum(a,b); });
-  if(!e.no){ msg.textContent='Укажите номер наряда.'; $('nd_no').focus(); return; }
+  if(ed&&!e.no){ msg.textContent='Укажите номер наряда.'; $('nd_no').focus(); return; }
   var miss=(k==='lift'?[['works','описание работы'],['issuer','выдающий наряд-допуск'],['head','руководитель работ'],['exec','ответственный производитель работ'],['tech','подъёмное сооружение']]
     :k==='fire'?[['works','описание работ'],['code','место проведения работ'],['issuer','кто выдал наряд'],['prep','ответственный за подготовку'],['exec','ответственный за проведение']]
     :[['works','наименование работ'],['head','руководитель работ'],['exec','ответственный исполнитель'],['issuer','кто выдал наряд']]).filter(function(x){ return !e[x[0]]; });
   if(miss.length){ msg.textContent='Заполните: '+miss.map(function(x){ return x[1]; }).join(', ')+'.'; var f=$('nd_'+miss[0][0]); if(f) f.focus(); return; }
   if(!e.team.length){ msg.textContent='Отметьте людей в составе бригады.'; return; }
-  var dupe=ndAll(st,k).filter(function(x){ return String(x.no).trim()===e.no&&x.id!==e.id; })[0];
+  var dupe=!ed?null:ndAll(st,k).filter(function(x){ return String(x.no).trim()===e.no&&x.id!==e.id; })[0];
   if(dupe&&ndMake.ok!==e.no){ msg.textContent='Наряд № '+e.no+' уже есть в журнале ('+(dupe.d1||'')+'). Нажмите кнопку ещё раз, если номер верный.'; ndMake.ok=e.no; return; }
   ndMake.ok=null;
   if(ed){
@@ -2826,9 +2827,15 @@ function ndMake(mode){
     ndDownload(e,function(r,name){ if(r!=='cancel') fin(name); else if($('nd_msg')) $('nd_msg').textContent=''; }).catch(function(){ if($('nd_msg')) $('nd_msg').textContent='Не удалось загрузить бланк.'; });
     return;
   }
-  ndMsg=''; msg.textContent='Готовлю файл…'; var ob0=st.obj;
+  if(!syncOn()){ msg.textContent='Нужна связь с сервером: номер наряда присваивает сервер, чтобы номера не повторялись.'; return; }
+  if(ndMake.busy) return; ndMake.busy=true;
+  ndMsg=''; msg.textContent='Получаю номер наряда…'; var ob0=st.obj;
+  var rel=function(){ call({action:'ndnorel',kind:k,no:e.no}).catch(function(){}); };
+  call({action:'ndno',kind:k}).then(function(j){
+  e.no=String(j.no); msg.textContent='Наряд № '+e.no+'. Готовлю файл…';
   ndDownload(e,function(r,name){
-    if(r==='cancel'){ if($('nd_msg')) $('nd_msg').textContent=''; return; }
+    ndMake.busy=false;
+    if(r==='cancel'){ rel(); if($('nd_msg')) $('nd_msg').textContent='Файл не сохранён — наряд не записан.'; return; }
     var s=ndSt(); s.q.push(e); s.mem=s.mem||{}; ['works','tech','doc','hse'].forEach(function(f){ var L=s.mem[f]||[]; String(e[f]||'').split(/\r?\n/).forEach(function(l){ l=l.trim(); if(l&&L.indexOf(l)<0) L.unshift(l); }); s.mem[f]=L.slice(0,80); });
     var sl=ob0+'|'+k, c=s.cfg[sl]={}; ND_CFGK.forEach(function(f){ c[f]=e[f]; }); c.cb=e.cb; c.o=e.o;
     var dd=s.draft[sl]=s.draft[sl]||{}; ND_CFGK.forEach(function(f){ delete dd[f]; }); delete dd.cb; delete dd.o; delete dd.no; delete dd.d1; delete dd.d2; delete dd.rel;
@@ -2836,7 +2843,8 @@ function ndMake(mode){
     if(syncOn()){ var cfg={}; ND_CFGK.forEach(function(f){ cfg[f]=e[f]; }); cfg.cb=e.cb; cfg.o=e.o; call({action:'ndcfg',kind:k,obj:ob0,cfg:cfg}).catch(function(){}); }
     ndFlush(); renderNd();
     ndMsg='Готово: '+name+' ('+e.team.length+' чел.). Наряд № '+e.no+' записан в журнал.'; if($('nd_msg')) $('nd_msg').textContent=ndMsg;
-  }).catch(function(){ if($('nd_msg')) $('nd_msg').textContent='Не удалось загрузить бланк. Нужен интернет при первом запуске.'; });
+  }).catch(function(){ ndMake.busy=false; rel(); if($('nd_msg')) $('nd_msg').textContent='Не удалось загрузить бланк. Нужен интернет при первом запуске.'; });
+  },function(er){ ndMake.busy=false; if($('nd_msg')) $('nd_msg').textContent='Не удалось получить номер наряда: '+((er&&er.message)||'нет связи')+'. Попробуйте ещё раз.'; });
 }
 function ndFromEntry(e,full){
   var d={}; ND_CFGK.forEach(function(f){ if(typeof e[f]==='string') d[f]=e[f]; });
