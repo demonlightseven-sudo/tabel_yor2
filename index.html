@@ -546,6 +546,23 @@ body.nws #nwl{display:flex;flex-direction:column;gap:6px;position:fixed;z-index:
 .wsst.ok{border-color:var(--work)}.wsst.ok b{color:var(--work-t)}.wsst.cur{border:2px solid #D9A92E}
 .wsbody>.xcard{margin:0 0 10px}
 body.nws .wsbody .ndk4{grid-template-columns:repeat(4,minmax(0,1fr))}
+
+/* v136: список бригад и шаги — ровно */
+body.nws #nwl{gap:8px;overflow-x:hidden;scrollbar-gutter:stable;padding:2px 8px 12px 2px;border-right:1px solid var(--line)}
+body.nws #nwl>*{flex:0 0 auto}
+.wsi{min-width:0;overflow:hidden;gap:6px;min-height:92px;justify-content:flex-start;outline:0}
+.wsi.on{outline:0;border-color:#D9A92E;box-shadow:inset 0 0 0 1px #D9A92E}
+.wsit{align-items:flex-start;width:100%}.wsit b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.6em;line-height:1.3}
+.wsi .xchips{display:flex;flex-wrap:wrap;max-width:100%;gap:4px}.wsi .xchip{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.wsnew{flex:0 0 auto}
+.wssteps{align-items:stretch;margin:4px 0 10px}
+#xv .wsst,#nd .wsst{height:auto;min-height:58px;text-align:left;align-items:flex-start;justify-content:flex-start;white-space:normal;cursor:pointer;font:inherit;color:var(--ink)}
+.wsst:hover{border-color:var(--ink)}
+#xv .wsst.act,#nd .wsst.act{background:var(--ink);border-color:var(--ink)}.wsst.act b,.wsst.act small{color:var(--bg)!important}
+body.nws main>*:not(#nwl){max-width:980px;margin-left:0;margin-right:0;box-sizing:border-box}
+body.nws #xv .dh2,body.nws #nd .dh2{margin-top:0}
+body.nws .narsw{margin:0 0 10px}
+body.nws .wsbody>.xcard,body.nws #nd .ndback,body.nws #nd .ndtop{margin-left:0;margin-right:0}
 </style>
 </head>
 <body>
@@ -589,7 +606,7 @@ body.nws .wsbody .ndk4{grid-template-columns:repeat(4,minmax(0,1fr))}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='135';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='136';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2649,7 +2666,7 @@ function renderNd(){
   ndFetch(false); ndFlush(); var hn0=$('hnav'); if(hn0) hn0.innerHTML=hdateStatic(today());
   var st=ndSt(), k=st.kind, tpl=ndTplC[k], el=$('nd'); if(!el) return;
   var objs='<div class="ndtop"><label class="ndobjl"><span>Объект</span><select id="ndobjsel" aria-label="Объект">'+ND_OBJS.map(function(o){ return '<option value="'+o+'"'+(o===st.obj?' selected':'')+'>'+o+'</option>'; }).join('')+'</select></label></div>';
-  var kinds=narSwHtml(k==='log'||k==='tbt'?k:'nd')+ndBackHtml()+objs+(k==='log'||k==='tbt'?'':'<div class="mtype ndkinds ndk4k" role="tablist" aria-label="Вид наряда">'+ND_KINDS.map(function(x){ return '<button role="tab" data-a="ndkind" data-k="'+x[0]+'" aria-selected="'+(x[0]===k)+'">'+ND_KS[x[0]]+'</button>'; }).join('')+'</div>');
+  var kinds=wsNdHead(k)+narSwHtml(k==='log'||k==='tbt'?k:'nd')+ndBackHtml()+objs+(k==='log'||k==='tbt'?'':'<div class="mtype ndkinds ndk4k" role="tablist" aria-label="Вид наряда">'+ND_KINDS.map(function(x){ return '<button role="tab" data-a="ndkind" data-k="'+x[0]+'" aria-selected="'+(x[0]===k)+'">'+ND_KS[x[0]]+'</button>'; }).join('')+'</div>');
   if(k==='log'){ el.innerHTML='<div class="dwrap">'+kinds+ndLog(st)+'</div>'; return; }
   if(k==='tbt'){ el.innerHTML='<div class="dwrap">'+kinds+tbtRender()+'</div>'; return; }
   var ed=ndEd(st,k);
@@ -3095,6 +3112,7 @@ document.addEventListener('click',function(e){
     case 'ndmemdel': ndMemDel(el); break;
     case 'ndmemadd': ndMemNew(el); break;
     case 'wssel': wsPick(el.dataset.l); break;
+    case 'wsstep': wsStepGo(el.dataset.s); break;
     case 'narsw': narSwGo(el.dataset.s); break;
     case 'ndback': ndBackGo(); break;
     case 'ndkind': { var ns=ndSt(); ns.kind=el.dataset.k; if(ND_TITLE[ns.kind]) ns.lastKind=ns.kind; ndSave(ns); ndQ=''; ndMsg=''; ndShowAll=false; ndFetchAt=0; renderNd(); break; }
@@ -3698,7 +3716,7 @@ function tkCard(x){
   var right=f?(b?'<span class="xchr"><span class="xok">'+(b.data.nums||[]).length+' чел. · '+new Date(b.t).toTimeString().slice(0,5)+'</span>'+(b.obj!==x.obj?' <small class="xno">подал на '+esc(b.obj)+'</small>':'')+'</span>':'<span class="xchr xno">численность не подана</span>'):'';
   return '<div class="xcard'+(f?' xs-'+f.lvl:'')+(del?' tkdc':'')+'"><div class="xch"><b>'+esc(x.obj)+'</b> · <b>'+esc(whoBase(dd.brig)||'—')+'</b>'+right+del+'</div>'+(f?'<div class="xchipw">'+f.html+'</div>':'')+
     '<div class="xtask">'+tkTaskBody(x)+'<small class="xtby">Выдал: '+esc(whoBase(x.who))+' · '+fmtDT(x.t)+'</small></div>'+
-    (f?(window.innerWidth<700&&ui.view==='task'?'':doneHtml(x,true)):ackHtml(x))+
+    (f?'':ackHtml(x))+
     (f?(b?brigMembers(b,x.d):'')+ndCompBlock(b,x.d,x.obj)+ndKinds4(x.obj,x.d,b,dd.brig):'')+'</div>';
 }
 /* статистика за месяц: доля полностью и частично выполненных наряд-заданий по каждому бригадиру */
@@ -3975,6 +3993,7 @@ function wsItems(d){
 function wsCur(L){ if(wsSel===null) wsSel=L.length?L[0].k:''; return L.filter(function(i){ return i.k===wsSel; })[0]||null; }
 function wsLeft(){
   var el=$('nwl'); if(!el) return;
+  setTimeout(function(){ var m=document.querySelector('main'); if(!m||!document.body.classList.contains('nws')) return; var c=Array.prototype.filter.call(m.children,function(y){ return y.id!=='nwl'&&y.offsetParent!==null&&y.offsetHeight>0; })[0]; if(c){ var t=Math.round(c.getBoundingClientRect().top+window.scrollY), th=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--toph'),10)||64; el.style.top=Math.max(th+6,t)+'px'; } },0);
   var d=tkDate||tkDef(), L=wsItems(d), cur=wsCur(L);
   el.innerHTML='<div class="wslh"><b>Бригады на '+esc(tbtDmy(d))+'</b><span>'+L.length+'</span></div>'+
     '<button class="wsnew'+(!cur?' on':'')+'" data-a="wssel" data-l="">+ Новое наряд-задание</button>'+
@@ -3982,22 +4001,39 @@ function wsLeft(){
       return '<button class="wsi xs-'+f.lvl+(cur&&cur.k===i.k?' on':'')+'" data-a="wssel" data-l="'+esc(i.lead)+'"><span class="wsit"><b>'+esc(ob)+' · '+esc(whoBase(i.lead))+'</b>'+(i.b?'<span class="xok">'+(i.b.data.nums||[]).length+' чел.</span>':'')+'</span>'+f.html+'</button>'; }).join('')
       :'<p class="note">На этот день заданий и поданной численности пока нет.</p>');
 }
-function wsStep(n,t,sub,cls){ return '<div class="wsst '+(cls||'')+'"><b>'+n+'. '+t+'</b><small>'+sub+'</small></div>'; }
+function wsStep(n,t,sub,cls,act){ return '<button class="wsst '+(cls||'')+(act?' act':'')+'" data-a="wsstep" data-s="'+n+'"'+(act?' aria-current="step"':'')+'><b>'+n+'. '+t+'</b><small>'+sub+'</small></button>'; }
+function wsStepsHtml(d,it,act){
+  var x=it.x, b=it.b, ob=x?x.obj:b.obj, nds=b?ndBrigAll(b,d,ob):[], g=tbtGate(ob,d,b), tb=bdItems(d).some(function(y){ return y.kind==='tbt'&&y.obj===ob; });
+  return '<div class="wssteps">'+
+    wsStep(1,'Наряд-задание',x?(tkAck(x)?'выдано, бригадир получил':'выдано, бригадир ещё не получил'):'не выдано — заполните ниже',x?'ok':'cur',act===1)+
+    wsStep(2,'Наряд-допуск',nds.length?nds.map(function(e){ return '№ '+esc(e.no)+' ('+(ND_SHORT[e.kind]||'')+')'; }).join(', '):(b?'нужно оформить':'после подачи численности'),nds.length?'ok':(b?'cur':''),act===2)+
+    wsStep(3,'TBT',tb?'проведён':(g.ok?'можно проводить':'после наряда-допуска'),tb?'ok':(g.ok?'cur':''),act===3)+'</div>';
+}
+/* шапка рабочей области над формой наряда / TBT (если пришли из бригады) */
+function wsNdHead(k){
+  if(!wsOn()||!ndBack) return '';
+  var d=tkDate||tkDef(), it=wsCur(wsItems(d)); if(!it) return '';
+  return '<h2 class="dh2">'+esc(it.x?it.x.obj:it.b.obj)+' · '+esc(whoBase(it.lead))+'</h2>'+wsStepsHtml(d,it,k==='tbt'?3:2);
+}
+function wsStepGo(n){
+  var d=tkDate||tkDef(), it=wsCur(wsItems(d)); if(!it){ setView('task'); return; }
+  if(n==='1'){ ndBack=null; setView('task'); window.scrollTo(0,0); return; }
+  var x=it.x, b=it.b, ob=x?x.obj:b.obj;
+  if(n==='3'){ ndTbtFromBrig(ob,d,b?b.id:'',it.lead); return; }
+  var nds=b?ndBrigAll(b,d,ob):[], st=ndSt(), k=nds.length?nds[0].kind:(ND_TITLE[st.lastKind]?st.lastKind:'hz');
+  ndFromBrig(k,ob,d,b?b.id:'',it.lead);
+}
 function wsRight(d,tasks,obj){
   var L=wsItems(d), it=wsCur(L), sw=narSwHtml('task');
   var dnote=d===addDays(today(),1)?'<p class="note">Задания выдаются сегодня на завтра.</p>':(d<today()?'<p class="xno">Прошедший день</p>':'');
   if(!it) return sw+'<h2 class="dh2">Новое наряд-задание</h2>'+dnote+'<div class="tktop">'+tkFormHtml(d,tasks,obj)+tkStatsHtml(d)+'</div>';
-  var x=it.x, b=it.b, ob=x?x.obj:b.obj, nds=b?ndBrigAll(b,d,ob):[], g=tbtGate(ob,d,b), tb=bdItems(d).some(function(y){ return y.kind==='tbt'&&y.obj===ob; });
-  var steps='<div class="wssteps">'+
-    wsStep(1,'Наряд-задание',x?(tkAck(x)?'выдано, бригадир получил':'выдано, бригадир ещё не получил'):'не выдано — заполните ниже',x?'ok':'cur')+
-    wsStep(2,'Наряд-допуск',nds.length?nds.map(function(e){ return '№ '+esc(e.no)+' ('+(ND_SHORT[e.kind]||'')+')'; }).join(', '):(b?'нужно оформить — кнопки в карточке':'после подачи численности'),nds.length?(g.ok||tb?'ok':'cur'):(b?'cur':''))+
-    wsStep(3,'TBT',tb?'проведён':(g.ok?'можно проводить':'после наряда-допуска'),tb?'ok':(g.ok?'cur':''))+'</div>';
+  var x=it.x, b=it.b, ob=x?x.obj:b.obj, steps=wsStepsHtml(d,it,1);
   var body;
   if(x) body='<div class="wsbody">'+tkCard(x)+'</div>';
   else { var f=bdStat(b.obj,d,b,null);
     body='<div class="wsbody"><div class="xcard xs-'+f.lvl+'"><div class="xch"><b>'+esc(b.obj)+'</b> · <b>'+esc(whoBase(b.data.lead))+'</b><span class="xchr"><span class="xok">'+(b.data.nums||[]).length+' чел. · '+new Date(b.t).toTimeString().slice(0,5)+'</span></span></div><div class="xchipw">'+f.html+'</div>'+brigMembers(b,d)+ndCompBlock(b,d,b.obj)+ndKinds4(b.obj,d,b,b.data.lead)+'</div>'+
       '<h3 class="tbth3">Выдать наряд-задание этой бригаде</h3>'+tkFormHtml(d,tasks,b.obj||obj)+'</div>'; }
-  return sw+'<h2 class="dh2">'+esc(ob)+' · '+esc(whoBase(it.lead))+'</h2>'+dnote+steps+body;
+  return '<h2 class="dh2">'+esc(ob)+' · '+esc(whoBase(it.lead))+'</h2>'+dnote+steps+sw+body;
 }
 function wsPick(lead){
   wsSel=lead?fioKey(lead):'';
