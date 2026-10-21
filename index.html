@@ -425,6 +425,8 @@ body.r-mont #tabbar [data-v=brig],body.r-nach #tabbar [data-v=board],body.r-tech
 .ndlogb{min-height:46px;padding:0 12px;white-space:nowrap}.ndlogb[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .ndk4k{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}.ndk4k button{min-width:0;padding:8px 2px;font-size:13px;line-height:1.15;hyphens:manual;overflow-wrap:anywhere}
 .narsw{display:grid;margin:0 0 12px}.narsw button{min-width:0;min-height:46px;padding:6px 2px;font-size:15px;font-weight:700;line-height:1.15;overflow-wrap:anywhere}
+.ndwarn{margin:8px 0 10px;padding:10px 12px;border:2px solid var(--ab);border-radius:12px;background:var(--ab-bg);color:var(--ink);display:flex;flex-direction:column;gap:6px;font-size:14px}.ndwarn>b{color:var(--ab-t)}.ndwarn small{color:var(--muted)}.ndwi{padding-top:6px;border-top:1px dashed var(--line)}.ndwi small{color:var(--muted)}
+.ndtbtb.tbtoff{opacity:.75;cursor:not-allowed;border-style:dashed}.ndtbtb .tbtwhy{color:var(--ab-t)}
 .ndback{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:8px 10px;border:1px dashed var(--line);border-radius:10px}.ndback button{min-height:40px;font-weight:700}.ndback span{color:var(--muted);font-size:14px}
 .ndk5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}.ndk5 button{min-width:0;padding:8px 2px;font-size:13px;line-height:1.15;hyphens:manual;overflow-wrap:anywhere}
 .ndstep>summary{display:flex;align-items:center;gap:6px}.ndstep>summary .ndstt{flex:1;min-width:0}.ndst{font-size:13px;font-weight:700;white-space:nowrap}.ndstep.ok .ndst{color:var(--work-t)}.ndstep.need{border-color:#D9A92E}.ndstep.need .ndst{color:var(--ul-t)}.ndstep #nd_nsel{font-weight:400;font-size:14px;color:var(--muted)}
@@ -564,7 +566,7 @@ body.vnar .tkgrid .ndk4{grid-template-columns:repeat(4,minmax(0,1fr))}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='132';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='133';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2783,12 +2785,30 @@ function ndBrigOf(e,d){
 /* кого вывести и кого завести: сравниваем с составом прошлого дня по этому наряду (или с составом при выдаче наряда) */
 function ndComp(e,d){
   var b=ndBrigOf(e,d); if(!b) return null;
-  var lead=normNum(b.data.lnum), cur=numSet(b.data.nums), base, baseTxt='составом наряда';
-  var pd=addDays(d,-1), prev=pd>=ndIso(e.d1)?bdItems(pd).filter(function(x){ return x.kind==='brig'&&fioKey(x.data.lead)===fioKey(b.data.lead); })[0]:null;
-  if(e.ap&&e.ap>=pd){ base=ndTeamSet(e); baseTxt='составом наряда'; }   // изменения уже перенесены в наряд
-  else if(prev){ base=numSet(prev.data.nums); baseTxt='вчерашним составом'; } else base=ndTeamSet(e);
-  var out=Object.keys(base).filter(function(n){ return !cur[n]&&n!==lead; }), inn=Object.keys(cur).filter(function(n){ return !base[n]&&n!==lead; });
-  return {b:b,out:out,inn:inn,baseTxt:baseTxt,base:base};
+  var lead=normNum(b.data.lnum||''), cur=numSet(b.data.nums||[]), base=ndTeamSet(e);   // бригадир — ответственный исполнитель, в списке состава его нет
+  var out=Object.keys(base).filter(function(n){ return n&&n!==lead&&!cur[n]; }), inn=Object.keys(cur).filter(function(n){ return n&&n!==lead&&!base[n]; });
+  return {b:b,out:out,inn:inn,baseTxt:'составом наряда',base:base};
+}
+/* открытые наряды бригады, состав которых не совпадает с поданной сегодня численностью */
+function ndMism(b,d,obj){ return ndBrigAll(b,d,obj).map(function(e){ return {e:e,c:ndComp(e,d)}; }).filter(function(x){ return x.c&&x.c.b.id===b.id&&(x.c.out.length||x.c.inn.length); }); }
+/* можно ли проводить TBT: численность подана, есть наряд, и состав всех открытых нарядов совпадает с поданным */
+function tbtGate(obj,d,b){
+  if(!b) return {ok:false,why:'Бригадир ещё не подал численность на '+tbtDmy(d)+' — инструктаж после подачи численности и оформления наряда.'};
+  var nds=ndBrigAll(b,d,obj);
+  if(!nds.length) return {ok:false,why:'Сначала оформите наряд-допуск на бригаду (после подачи численности).'};
+  var mm=ndMism(b,d,obj);
+  if(mm.length) return {ok:false,why:'Состав не совпадает с нарядом № '+mm.map(function(x){ return x.e.no; }).join(', ')+' — сначала внесите изменения в наряд.'};
+  return {ok:true,nds:nds};
+}
+/* предупреждение бригадиру: кого вывести из наряда и кого внести */
+function ndWarnMont(d){
+  var b=bdItems(d).filter(function(x){ return x.kind==='brig'&&x.id===myBrigId(d); })[0]; if(!b) return '';
+  var mm=ndMism(b,d,b.obj); if(!mm.length) return '';
+  return '<div class="ndwarn"><b>⚠ Состав бригады не совпадает с нарядом-допуском</b>'+mm.map(function(x){
+    return '<div class="ndwi"><b>Наряд № '+esc(x.e.no)+'</b> <small>'+(ND_SHORT[x.e.kind]||'')+' · открыт '+esc(x.e.d1||'')+'</small>'+
+      (x.c.out.length?'<div><b>Вывести из наряда</b> (не отмечены вами в явке сегодня): '+numsNames(x.c.out)+'</div>':'')+
+      (x.c.inn.length?'<div><b>Внести в наряд</b> (сегодня работают, но их нет в наряде): '+numsNames(x.c.inn)+'</div>':'')+'</div>';
+  }).join('')+'<small>Сообщите прорабу или мастеру: пока наряд не исправлен, инструктаж TBT по бригаде не проводится.</small></div>';
 }
 function numsNames(list){ return list.map(function(n){ var p=anyPerson(n); return esc(n)+(p?' '+esc(shortName(p.p.name)):''); }).join(', '); }
 /* процент — всегда от начальной численности по наряду (как при выдаче) */
@@ -2799,7 +2819,7 @@ function ndCompHtml(e,d){
   if(!c) return '<small class="ndcmp no">Бригада по этому наряду на '+esc(tbtDmy(d))+' не подана</small>';
   var who='Бригадир '+esc(whoBase(c.b.data.lead))+': ';
   if(!c.out.length&&!c.inn.length) return '<small class="ndcmp ok">'+who+'✔ состав совпадает с '+c.baseTxt+' ('+(c.b.data.nums||[]).length+' чел.)</small>';
-  var p=ndCompPct(c,e), big=p.pct>=50, edit=role()&&role()!=='mont';
+  var p=ndCompPct(c,e), big=p.pct>=50, edit=role()&&role()!=='mont'&&role()!=='perev';
   return '<small class="ndcmp '+(big?'big':'ch')+'">'+who+'изменение состава (по сравнению с '+c.baseTxt+'):'+
     (c.out.length?'<br><b>Вывести из наряда:</b> '+numsNames(c.out):'')+(c.inn.length?'<br><b>Завести в наряд:</b> '+numsNames(c.inn):'')+
     '<br><b>Изменения: '+p.n+' чел. при начальной численности по наряду '+p.den+' чел. ('+p.pct+'%)</b> — '+(big?'больше половины бригады: <b>нужен новый наряд-допуск</b>, этот наряд закрывается.':'меньше половины: можно внести изменения в наряд вручную (ручкой).')+
@@ -3462,7 +3482,7 @@ function brgRender(){
   var obj=(mine&&mine.obj)||(tasks[0]&&tasks[0].obj)||o.obj||ND_OBJS[0], nums=o.nums!=null?o.nums:((mine&&mine.data&&mine.data.nums)||[]).join(' ');
   var list=parseNums(nums);
   var hn=$('hnav'); if(hn) hn.innerHTML=hdateStatic(d);
-  var h='<h2 class="dh2">Бригада</h2>'+
+  var h='<h2 class="dh2">Бригада</h2>'+(mine?ndWarnMont(d):'')+
     '<h3 class="tbth3">Наряд-задание на сегодня</h3>'+(tasks.length?tasks.map(tkCard).join(''):'<p class="xno">Прораб ещё не выдал вам наряд-задание на сегодня</p>')+
     '<h3 class="tbth3">Численность бригады</h3>'+
     (mine?'<p class="xok">✓ Подано в '+new Date(mine.t).toTimeString().slice(0,5)+' · '+esc(mine.obj)+' · '+((mine.data.nums||[]).length)+' чел.</p>':'<p class="xno">Численность на сегодня ещё не подана</p>')+
@@ -3896,7 +3916,8 @@ function tkRender(){
   var d=tkDate||tkDef(); bdFetch(d,false); if(ndOk()){ ndMemFetch(false); ndFetch(false); } var hn=$('hnav'); if(hn) hn.innerHTML=navDate('tkday',d);
   var tasks=bdItems(d).filter(function(x){ return x.kind==='task'; });
   if(role()==='mont'){ tasks=tasks.filter(function(x){ return fioKey(x.data.brig)===fioKey(sync.who); });
-    return '<h2 class="dh2">Наряд-задание</h2>'+(tasks.length?tasks.map(tkCard).join(''):'<p class="note">Заданий на этот день нет.</p>'); }
+    if(syncOn()&&!brgNdAt){ brgNdAt=1; call({action:'ndlist'}).then(function(j){ var st=ndSt(); st.list=Array.isArray(j.list)?j.list:[]; ndSave(st); if(ui.view==='task'||ui.view==='brig') renderX(); }).catch(function(){}); }
+    return '<h2 class="dh2">Наряд-задание</h2>'+ndWarnMont(today())+(tasks.length?tasks.map(tkCard).join(''):'<p class="note">Заданий на этот день нет.</p>'); }
   var o=brgSt(), obj=tkObjDraft||o.tobj||ND_OBJS[0];
   var h=narSwHtml('task')+'<h2 class="dh2">Наряд-задание</h2>'+
     (d===addDays(today(),1)?'<p class="note">Задания выдаются сегодня на завтра. Завтра бригадир подаст численность бригады по своему заданию.</p>':(d<today()?'<p class="xno">Прошедший день</p>':''))+
@@ -4047,13 +4068,16 @@ function ndKinds4(obj,d,b,lead){
 function ndBrigAll(b,d,obj){ var out=[]; ND_K4.forEach(function(x){ out=out.concat(ndBrigOpen(b,d,obj,x[0])); }); return out; }
 function ndTeamUnion(nds){ var seen={}, out=[]; nds.forEach(function(e){ (e.team||[]).forEach(function(t){ var k=t.num?'n'+normNum(t.num):'f'+String(t.name||'').toLowerCase(); if(seen[k]) return; seen[k]=1; out.push(t); }); }); return out; }
 function ndTbtBtn(obj,d,b,lead){
-  var nds=ndBrigAll(b,d,obj), ppl=ndTeamUnion(nds), done=bdItems(d).filter(function(x){ return x.kind==='tbt'&&x.obj===obj; });
+  var nds=ndBrigAll(b,d,obj), ppl=ndTeamUnion(nds), done=bdItems(d).filter(function(x){ return x.kind==='tbt'&&x.obj===obj; }), g=tbtGate(obj,d,b);
+  if(!g.ok) return '<button class="ndtbtb tbtoff" disabled aria-disabled="true"><b>Инструктаж перед началом работ (TBT)</b><small class="tbtwhy">'+esc(g.why)+'</small>'+
+    (done.length?'<small class="xok">✔ проведён: '+done.map(function(x){ return esc(whoBase(x.who))+' '+new Date(x.t).toTimeString().slice(0,5); }).join(', ')+'</small>':'')+'</button>';
   return '<button class="ndtbtb" data-a="ndtbt" data-o="'+esc(obj)+'" data-d="'+esc(d)+'" data-b="'+esc(b?b.id:'')+'" data-l="'+esc(lead||'')+'"><b>Инструктаж перед началом работ (TBT)</b>'+
     '<small>'+(nds.length?'Наряды: '+nds.map(function(e){ return '№ '+esc(e.no)+' ('+(ND_SHORT[e.kind]||'')+')'; }).join(', ')+' · '+ppl.length+' чел. без повторов':'Открытых нарядов на эту бригаду нет')+'</small>'+
     (done.length?'<small class="xok">✔ проведён: '+done.map(function(x){ return esc(whoBase(x.who))+' '+new Date(x.t).toTimeString().slice(0,5); }).join(', ')+'</small>':'')+'</button>';
 }
 function ndTbtFromBrig(obj,d,bid,lead){
-  var b=bid?bdItems(d).filter(function(x){ return x.id===bid; })[0]:null, nds=ndBrigAll(b,d,obj), ppl=ndTeamUnion(nds);
+  var b=bid?bdItems(d).filter(function(x){ return x.id===bid; })[0]:null, nds=ndBrigAll(b,d,obj), ppl=ndTeamUnion(nds), g=tbtGate(obj,d,b);
+  if(!g.ok){ toast(g.why); return; }
   var o=tbtSt(), t=tbtDraft(o,obj);
   t.date=d<today()?today():d; t.place=tbtPlace(obj);
   t.no=nds.map(function(e){ return String(e.no); }).join(', ');
