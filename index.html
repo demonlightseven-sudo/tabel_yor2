@@ -489,6 +489,38 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 .ndcmp.big{background:var(--ab-bg);color:var(--ab-t)}.ndapply.alt{font-weight:600;opacity:.9}.ndoff{color:var(--muted);font-size:12px;border:1px solid var(--line);border-radius:6px;padding:0 4px}
 
 .btns.two{grid-template-columns:1fr 1fr}.stlock{margin-top:6px;padding:6px 10px;border-radius:8px;background:var(--off-bg);color:var(--off-t);font-weight:600;font-size:14px}
+
+/* вкладка «Наряды» — компактно (v132) */
+body.vnar #xv,body.vnar #nd{font-size:15px}
+body.vnar .dh2{font-size:18px;margin:8px 0 4px}
+body.vnar .tbth3{font-size:16px;margin:12px 0 6px}
+body.vnar #xv button,body.vnar #nd button{min-height:40px}
+body.vnar .narsw{margin:0 0 10px}body.vnar .narsw button{min-height:40px;font-size:14px}
+body.vnar .ndback{padding:6px 10px}body.vnar #nd .ndback button{min-height:34px;font-size:14px}body.vnar .ndback span{font-size:13px}
+body.vnar .tbtf{gap:4px}body.vnar .tbtf label{font-size:13px;margin-top:4px}
+body.vnar .tbtf input:not([type=checkbox]),body.vnar #xv select,body.vnar #nd select{min-height:40px;padding:6px 10px}
+body.vnar .tbtdl{margin-top:10px;padding:10px;font-size:15px}
+body.vnar .ndfold{margin:10px 0 6px}body.vnar .ndfold>summary{padding:8px 0;font-size:15px}
+body.vnar .tkst{padding:10px;font-size:13px}body.vnar .tksth{font-size:14px;margin-bottom:6px}
+body.vnar .tkgrid{gap:10px}
+body.vnar .xcard{padding:10px 12px;font-size:14px;border-radius:12px}
+body.vnar .xcard.xs-ok,body.vnar .xcard.xs-warn,body.vnar .xcard.xs-bad{border-top-width:4px}
+body.vnar .xch{gap:5px;font-size:15px}
+body.vnar .xchipw{margin-top:6px}body.vnar .xchip{font-size:12px;padding:3px 8px}
+body.vnar .xtask{margin-top:6px;padding:7px 9px;font-size:14px}body.vnar .xtby{font-size:11px;margin-top:3px}
+body.vnar .xack{margin-top:6px;padding:6px 9px;font-size:13px}
+body.vnar .xcard .tbtdl,body.vnar .xackbtn,body.vnar .tkrep{margin-top:6px;padding:8px;font-size:14px}
+body.vnar .xcomp,body.vnar .xdnote{font-size:13px}
+body.vnar .ndk4{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-top:8px}
+body.vnar #xv .ndk4b{min-height:44px;padding:4px 1px;hyphens:manual;-webkit-hyphens:manual;overflow-wrap:normal;border-width:1px;font-size:12px;line-height:1.15}body.vnar .ndk4b small{font-size:11px}
+body.vnar #xv .ndtbtb{min-height:40px;padding:6px 8px;margin-top:6px;border-width:1px;font-size:13px}body.vnar .ndtbtb small{font-size:11px}
+body.vnar .xcard.tkdc>.xch{padding-right:36px}body.vnar #xv .xch .tbtx.tkx{width:30px;height:30px;min-height:0;top:6px;right:6px}
+body.vnar .tkrr{grid-template-columns:22px minmax(0,1fr);gap:4px 6px}body.vnar .tkrr>:last-child{grid-column:2}body.vnar .tkrc>:last-child{justify-self:start}
+@media (min-width:700px){
+body.vnar .tbtf input:not([type=checkbox]),body.vnar .tbtf select,body.vnar .tbtf textarea,body.vnar #nd input:not([type=checkbox]),body.vnar #nd select,body.vnar #nd textarea{font-size:15px}
+body.vnar .tkgrid{grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
+body.vnar .tkgrid .ndk4{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
 </style>
 </head>
 <body>
@@ -532,7 +564,7 @@ body.r-nach,body.r-tech{padding-bottom:96px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='131';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='132';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1234,6 +1266,7 @@ function render(){
   document.body.classList.toggle('vmonth',ui.view==='month');
   document.body.classList.toggle('vdocs',ui.view==='docs');
   document.body.classList.toggle('vnd',ui.view==='nd');
+  document.body.classList.toggle('vnar',ui.view==='nd'||ui.view==='task');
   document.body.classList.toggle('vx',isXv());
   document.body.classList.toggle('vboard',ui.view==='board');
   document.body.classList.toggle('vtask',ui.view==='task'||ui.view==='teams');
@@ -4006,7 +4039,7 @@ function ndKinds4(obj,d,b,lead){
   if(!ndOk()) return '';
   return '<div class="ndk4">'+ND_K4.map(function(x){
     var op=ndBrigOpen(b,d,obj,x[0]);
-    return '<button class="ndk4b" data-a="ndfrom" data-k="'+x[0]+'" data-o="'+esc(obj)+'" data-d="'+esc(d)+'" data-b="'+esc(b?b.id:'')+'" data-l="'+esc(lead||'')+'"><b>'+x[1]+'</b>'+
+    return '<button class="ndk4b" data-a="ndfrom" data-k="'+x[0]+'" data-o="'+esc(obj)+'" data-d="'+esc(d)+'" data-b="'+esc(b?b.id:'')+'" data-l="'+esc(lead||'')+'" title="'+x[1]+'"><b>'+ND_KS[x[0]]+'</b>'+
       (op.length?'<small class="xok">открыт № '+op.map(function(e){ return esc(e.no); }).join(', ')+'</small>':'<small>оформить</small>')+'</button>';
   }).join('')+'</div>'+ndTbtBtn(obj,d,b,lead);
 }
