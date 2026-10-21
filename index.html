@@ -527,6 +527,25 @@ body.vnar .tkgrid .ndk4{grid-template-columns:repeat(4,minmax(0,1fr))}
 /* плашка «на кого оформляется наряд»: жёлтая рамка, всегда видна под шапкой */
 #nd .ndback{position:sticky;top:var(--toph,64px);z-index:6;border:2px solid #D9A92E;background:var(--surface);box-shadow:0 4px 10px rgba(0,0,0,.25)}
 #nd .ndback span{color:var(--ink);font-weight:600}
+
+/* компьютер: список бригад + рабочая область (v135) */
+#nwl{display:none}
+body.nws main{max-width:1600px;padding-left:336px}
+body.nws #xv,body.nws #nd{max-width:980px;margin:0}
+body.nws #nwl{display:flex;flex-direction:column;gap:6px;position:fixed;z-index:4;left:calc(max(0px,(100vw - 1600px)/2) + 12px);width:310px;top:calc(var(--toph,64px) + 10px);bottom:66px;overflow-y:auto;padding:2px 6px 12px 2px}
+.wslh{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:var(--muted);padding:2px 2px 4px}.wslh b{color:var(--ink)}
+#nwl button{width:100%;text-align:left;height:auto;min-height:40px;white-space:normal}
+.wsnew{border-style:dashed;font-weight:700;color:var(--muted)}.wsnew.on{border:2px solid #D9A92E;color:var(--ink)}
+.wsi{display:flex;flex-direction:column;gap:5px;padding:8px 10px;border:1px solid var(--line);border-top:4px solid var(--line);border-radius:10px;background:var(--surface);font-size:14px}
+.wsi.xs-ok{border-top-color:var(--work)}.wsi.xs-warn{border-top-color:#D9A92E}.wsi.xs-bad{border-top-color:var(--ab)}
+.wsi.on{outline:2px solid #D9A92E;outline-offset:1px}
+.wsit{display:flex;justify-content:space-between;gap:6px}.wsit b{min-width:0}.wsit .xok{margin:0;white-space:nowrap}
+.wsi .xchip{font-size:11px;padding:2px 6px}
+.wssteps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:6px 0 10px}
+.wsst{border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;font-size:13px;background:var(--surface)}.wsst b{font-size:14px}.wsst small{color:var(--muted)}
+.wsst.ok{border-color:var(--work)}.wsst.ok b{color:var(--work-t)}.wsst.cur{border:2px solid #D9A92E}
+.wsbody>.xcard{margin:0 0 10px}
+body.nws .wsbody .ndk4{grid-template-columns:repeat(4,minmax(0,1fr))}
 </style>
 </head>
 <body>
@@ -556,7 +575,7 @@ body.vnar .tkgrid .ndk4{grid-template-columns:repeat(4,minmax(0,1fr))}
   <ul id="list"></ul>
   <div id="month"></div>
   <div id="docs"></div>
-  <div id="nd"></div>
+  <aside id="nwl" aria-label="Бригады"></aside><div id="nd"></div>
   <div id="xv"></div>
 </main>
 <nav id="tabbar" aria-label="Разделы"><button data-a="view" data-v="day">Явка</button><button data-a="view" data-v="brig">Бригада</button><button data-a="view" data-v="month">Табель</button><button data-a="view" data-v="teams">Бригады</button><button data-a="view" data-v="docs">Служебные записки</button><button data-a="view" data-v="nar">Наряды</button><button data-a="view" data-v="board">Доска руководителя</button></nav>
@@ -570,7 +589,7 @@ body.vnar .tkgrid .ndk4{grid-template-columns:repeat(4,minmax(0,1fr))}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='134';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='135';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1279,7 +1298,9 @@ function render(){
   document.body.classList.toggle('vteams',ui.view==='teams');
   document.body.classList.toggle('vhdate',ui.view==='board'||ui.view==='task'||ui.view==='brig'||ui.view==='nd'||ui.view==='teams');
   renderTop(); renderBanner(); renderSyncBar();
+  var nws=(ui.view==='task'||ui.view==='nd')&&wsOn(); document.body.classList.toggle('nws',nws);
   if(ui.view==='month') renderMonth(); else if(ui.view==='docs') renderDocs(); else if(ui.view==='nd') renderNd(); else if(isXv()) renderX(); else { renderStats(); renderList(); }
+  if(nws) wsLeft(); else { var nwl=$('nwl'); if(nwl) nwl.innerHTML=''; }
 }
 function peopleForMonth(m){
   var recs=bk().records;
@@ -3073,6 +3094,7 @@ document.addEventListener('click',function(e){
     case 'ndmem': ndMemAdd(el); break;
     case 'ndmemdel': ndMemDel(el); break;
     case 'ndmemadd': ndMemNew(el); break;
+    case 'wssel': wsPick(el.dataset.l); break;
     case 'narsw': narSwGo(el.dataset.s); break;
     case 'ndback': ndBackGo(); break;
     case 'ndkind': { var ns=ndSt(); ns.kind=el.dataset.k; if(ND_TITLE[ns.kind]) ns.lastKind=ns.kind; ndSave(ns); ndQ=''; ndMsg=''; ndShowAll=false; ndFetchAt=0; renderNd(); break; }
@@ -3455,6 +3477,7 @@ function parseNums(s){ var seen={}, out=[]; String(s||'').split(/[^0-9]+/).forEa
 function renderX(){
   var el=$('xv'); if(!el) return;
   if(ui.view==='brig') el.innerHTML=brgRender(); else if(ui.view==='task') el.innerHTML=tkRender(); else if(ui.view==='board') el.innerHTML=bdRender(); else if(ui.view==='teams') el.innerHTML=tmRender();
+  if(ui.view==='task'&&document.body.classList.contains('nws')) wsLeft();
 }
 /* --- бригада (бригадир) --- */
 function myBrigId(d){ return 'brig|'+d+'|'+nameKey(sync.who).slice(0,30); }
@@ -3675,7 +3698,7 @@ function tkCard(x){
   var right=f?(b?'<span class="xchr"><span class="xok">'+(b.data.nums||[]).length+' чел. · '+new Date(b.t).toTimeString().slice(0,5)+'</span>'+(b.obj!==x.obj?' <small class="xno">подал на '+esc(b.obj)+'</small>':'')+'</span>':'<span class="xchr xno">численность не подана</span>'):'';
   return '<div class="xcard'+(f?' xs-'+f.lvl:'')+(del?' tkdc':'')+'"><div class="xch"><b>'+esc(x.obj)+'</b> · <b>'+esc(whoBase(dd.brig)||'—')+'</b>'+right+del+'</div>'+(f?'<div class="xchipw">'+f.html+'</div>':'')+
     '<div class="xtask">'+tkTaskBody(x)+'<small class="xtby">Выдал: '+esc(whoBase(x.who))+' · '+fmtDT(x.t)+'</small></div>'+
-    (f?doneHtml(x,true):ackHtml(x))+
+    (f?(window.innerWidth<700&&ui.view==='task'?'':doneHtml(x,true)):ackHtml(x))+
     (f?(b?brigMembers(b,x.d):'')+ndCompBlock(b,x.d,x.obj)+ndKinds4(x.obj,x.d,b,dd.brig):'')+'</div>';
 }
 /* статистика за месяц: доля полностью и частично выполненных наряд-заданий по каждому бригадиру */
@@ -3925,17 +3948,64 @@ function tkRender(){
     if(syncOn()&&!brgNdAt){ brgNdAt=1; call({action:'ndlist'}).then(function(j){ var st=ndSt(); st.list=Array.isArray(j.list)?j.list:[]; ndSave(st); if(ui.view==='task'||ui.view==='brig') renderX(); }).catch(function(){}); }
     return '<h2 class="dh2">Наряд-задание</h2>'+ndWarnMont(today())+(tasks.length?tasks.map(tkCard).join(''):'<p class="note">Заданий на этот день нет.</p>'); }
   var o=brgSt(), obj=tkObjDraft||o.tobj||ND_OBJS[0];
+  if(wsOn()) return wsRight(d,tasks,obj);
   var h=narSwHtml('task')+'<h2 class="dh2">Наряд-задание</h2>'+
     (d===addDays(today(),1)?'<p class="note">Задания выдаются сегодня на завтра. Завтра бригадир подаст численность бригады по своему заданию.</p>':(d<today()?'<p class="xno">Прошедший день</p>':''))+
-    '<div class="tktop"><div class="tbtf"><label for="tk_brig">Бригадир</label><select id="tk_brig"><option value="">— выберите бригадира —</option>'+BRIG_NAMES.map(function(n){ var has=tasks.some(function(x){ return fioKey(x.data.brig)===fioKey(n); }); return '<option value="'+esc(n)+'"'+(n===tkBrigDraft?' selected':'')+'>'+esc(n)+(has?' ✓':'')+'</option>'; }).join('')+'</select>'+
-    '<label for="tk_obj">Объект</label>'+objSelect('tk_obj',obj)+
-    tkItemsForm()+
-    '<button class="tbtdl" data-a="tksend">Выдать наряд-задание</button><p class="note" id="tk_msg"></p></div>'+tkStatsHtml(d)+'</div>'+
+    '<div class="tktop">'+tkFormHtml(d,tasks,obj)+tkStatsHtml(d)+'</div>'+
     '<h3 class="tbth3">Выдано на '+esc(dmyLong(d))+' ('+tasks.length+')</h3>'+(tasks.length?'<div class="tkgrid">'+tasks.map(tkCard).join('')+'</div>':'<p class="note">Пока нет.</p>')+
     (ndOk()?(function(){ var nb=bdItems(d).filter(function(x){ return x.kind==='brig'&&!tasks.some(function(t){ return fioKey(t.data.brig)===fioKey(x.data.lead); }); });
       return nb.length?'<h3 class="tbth3">Подали численность, но без наряд-задания ('+nb.length+')</h3><div class="tkgrid">'+nb.map(function(b){ var f=bdStat(b.obj,d,b,null); return '<div class="xcard xs-'+f.lvl+'"><div class="xch"><b>'+esc(b.obj)+'</b> · <b>'+esc(whoBase(b.data.lead))+'</b><span class="xchr"><span class="xok">'+(b.data.nums||[]).length+' чел. · '+new Date(b.t).toTimeString().slice(0,5)+'</span></span></div><div class="xchipw">'+f.html+'</div>'+brigMembers(b,d)+ndCompBlock(b,d,b.obj)+ndKinds4(b.obj,d,b,b.data.lead)+'</div>'; }).join('')+'</div>':''; })():'');
   return h;
 }
+function tkFormHtml(d,tasks,obj){
+  return '<div class="tbtf"><label for="tk_brig">Бригадир</label><select id="tk_brig"><option value="">— выберите бригадира —</option>'+BRIG_NAMES.map(function(n){ var has=tasks.some(function(x){ return fioKey(x.data.brig)===fioKey(n); }); return '<option value="'+esc(n)+'"'+(n===tkBrigDraft?' selected':'')+'>'+esc(n)+(has?' ✓':'')+'</option>'; }).join('')+'</select>'+
+    '<label for="tk_obj">Объект</label>'+objSelect('tk_obj',obj)+
+    tkItemsForm()+
+    '<button class="tbtdl" data-a="tksend">Выдать наряд-задание</button><p class="note" id="tk_msg"></p></div>';
+}
+/* ---------- компьютер: список бригад слева + рабочая область выбранной бригады (вариант 4) ---------- */
+var wsSel=null;
+function wsOn(){ return window.innerWidth>=1000&&ndOk()&&role()!=='mont'&&role()!=='perev'; }
+function wsItems(d){
+  var all=bdItems(d), tasks=all.filter(function(x){ return x.kind==='task'; }), brigs=all.filter(function(x){ return x.kind==='brig'; }), L=[];
+  tasks.forEach(function(x){ var k=fioKey(x.data.brig); if(L.some(function(i){ return i.k===k; })) return; L.push({k:k,lead:x.data.brig,x:x,b:brigs.filter(function(b){ return fioKey(b.data.lead)===k; })[0]||null}); });
+  brigs.forEach(function(b){ var k=fioKey(b.data.lead); if(!L.some(function(i){ return i.k===k; })) L.push({k:k,lead:b.data.lead,x:null,b:b}); });
+  return L;
+}
+function wsCur(L){ if(wsSel===null) wsSel=L.length?L[0].k:''; return L.filter(function(i){ return i.k===wsSel; })[0]||null; }
+function wsLeft(){
+  var el=$('nwl'); if(!el) return;
+  var d=tkDate||tkDef(), L=wsItems(d), cur=wsCur(L);
+  el.innerHTML='<div class="wslh"><b>Бригады на '+esc(tbtDmy(d))+'</b><span>'+L.length+'</span></div>'+
+    '<button class="wsnew'+(!cur?' on':'')+'" data-a="wssel" data-l="">+ Новое наряд-задание</button>'+
+    (L.length?L.map(function(i){ var ob=i.x?i.x.obj:i.b.obj, f=bdStat(ob,d,i.b,i.x);
+      return '<button class="wsi xs-'+f.lvl+(cur&&cur.k===i.k?' on':'')+'" data-a="wssel" data-l="'+esc(i.lead)+'"><span class="wsit"><b>'+esc(ob)+' · '+esc(whoBase(i.lead))+'</b>'+(i.b?'<span class="xok">'+(i.b.data.nums||[]).length+' чел.</span>':'')+'</span>'+f.html+'</button>'; }).join('')
+      :'<p class="note">На этот день заданий и поданной численности пока нет.</p>');
+}
+function wsStep(n,t,sub,cls){ return '<div class="wsst '+(cls||'')+'"><b>'+n+'. '+t+'</b><small>'+sub+'</small></div>'; }
+function wsRight(d,tasks,obj){
+  var L=wsItems(d), it=wsCur(L), sw=narSwHtml('task');
+  var dnote=d===addDays(today(),1)?'<p class="note">Задания выдаются сегодня на завтра.</p>':(d<today()?'<p class="xno">Прошедший день</p>':'');
+  if(!it) return sw+'<h2 class="dh2">Новое наряд-задание</h2>'+dnote+'<div class="tktop">'+tkFormHtml(d,tasks,obj)+tkStatsHtml(d)+'</div>';
+  var x=it.x, b=it.b, ob=x?x.obj:b.obj, nds=b?ndBrigAll(b,d,ob):[], g=tbtGate(ob,d,b), tb=bdItems(d).some(function(y){ return y.kind==='tbt'&&y.obj===ob; });
+  var steps='<div class="wssteps">'+
+    wsStep(1,'Наряд-задание',x?(tkAck(x)?'выдано, бригадир получил':'выдано, бригадир ещё не получил'):'не выдано — заполните ниже',x?'ok':'cur')+
+    wsStep(2,'Наряд-допуск',nds.length?nds.map(function(e){ return '№ '+esc(e.no)+' ('+(ND_SHORT[e.kind]||'')+')'; }).join(', '):(b?'нужно оформить — кнопки в карточке':'после подачи численности'),nds.length?(g.ok||tb?'ok':'cur'):(b?'cur':''))+
+    wsStep(3,'TBT',tb?'проведён':(g.ok?'можно проводить':'после наряда-допуска'),tb?'ok':(g.ok?'cur':''))+'</div>';
+  var body;
+  if(x) body='<div class="wsbody">'+tkCard(x)+'</div>';
+  else { var f=bdStat(b.obj,d,b,null);
+    body='<div class="wsbody"><div class="xcard xs-'+f.lvl+'"><div class="xch"><b>'+esc(b.obj)+'</b> · <b>'+esc(whoBase(b.data.lead))+'</b><span class="xchr"><span class="xok">'+(b.data.nums||[]).length+' чел. · '+new Date(b.t).toTimeString().slice(0,5)+'</span></span></div><div class="xchipw">'+f.html+'</div>'+brigMembers(b,d)+ndCompBlock(b,d,b.obj)+ndKinds4(b.obj,d,b,b.data.lead)+'</div>'+
+      '<h3 class="tbth3">Выдать наряд-задание этой бригаде</h3>'+tkFormHtml(d,tasks,b.obj||obj)+'</div>'; }
+  return sw+'<h2 class="dh2">'+esc(ob)+' · '+esc(whoBase(it.lead))+'</h2>'+dnote+steps+body;
+}
+function wsPick(lead){
+  wsSel=lead?fioKey(lead):'';
+  if(lead){ var bn=BRIG_NAMES.filter(function(n){ return fioKey(n)===wsSel; })[0]; tkBrigDraft=bn||''; tkObjDraft=''; }
+  if(ui.view!=='task') setView('task'); else { renderX(); wsLeft(); }
+  window.scrollTo(0,0);
+}
+(function(){ var was=null; window.addEventListener('resize',function(){ var k=String(window.innerWidth>=1000)+String(window.innerWidth<700); if(was===null){ was=k; return; } if(k!==was){ was=k; if(ui.view==='task'||ui.view==='nd') render(); } }); })();
 function tkSend(){
   var d=tkDate||tkDef(), o=brgSt(), msg=$('tk_msg');
   var obj=$('tk_obj').value, brig=$('tk_brig').value.trim(), note=($('tk_text')?$('tk_text').value:tkNoteDraft).trim().slice(0,500);
@@ -3949,7 +4019,7 @@ function tkSend(){
   msg.textContent='Отправляю…';
   if(!items.length){ msg.textContent='Впишите хотя бы одну задачу.'; return; }
   var memL=tkwList().map(function(m){ return m.toLowerCase(); }), learn=items.map(function(x){ return x.t+(x.u?', '+x.u:''); }).filter(function(k,i,a){ return memL.indexOf(k.toLowerCase())<0&&a.indexOf(k)===i; });
-  bdPut({kind:'task',d:d,obj:obj,data:{brig:brig,tasks:text.slice(0,3000),items:items,note:note,by:sync.who}}).then(function(){ toast('Наряд-задание выдано: '+brig+', '+dmyLong(d)); tkItems=[{t:'',v:'',u:''}]; tkNoteDraft=''; tkBrigDraft=''; var t=$('tk_text'); if(t) t.value='';
+  bdPut({kind:'task',d:d,obj:obj,data:{brig:brig,tasks:text.slice(0,3000),items:items,note:note,by:sync.who}}).then(function(){ wsSel=fioKey(brig); toast('Наряд-задание выдано: '+brig+', '+dmyLong(d)); tkItems=[{t:'',v:'',u:''}]; tkNoteDraft=''; tkBrigDraft=''; var t=$('tk_text'); if(t) t.value='';
  var b=$('tk_brig'); if(b) b.value=''; bdFetch(d,true); })
     .catch(function(e){ msg.textContent='Не отправлено: '+((e&&e.message)||'ошибка'); });
 }
