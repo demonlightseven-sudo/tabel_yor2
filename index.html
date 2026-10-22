@@ -578,6 +578,10 @@ body.nws #wshead .narsw{margin:0 0 10px}
 #wshead .wsst.act{background:var(--ink);border-color:var(--ink)}
 body.nws #nd .dwrap{padding-top:0}
 body.nws #xv>.note:first-child,body.nws #xv>.xno:first-child{margin-top:0}
+
+.slchk{display:flex;align-items:center;gap:10px;font-weight:700}.slchk input{width:22px;height:22px}
+.sltag{color:var(--work-t);font-weight:700}
+.ndslnote{margin:0 0 8px;padding:6px 10px;border-left:3px solid #D9A92E;font-size:14px}
 </style>
 </head>
 <body>
@@ -621,7 +625,7 @@ body.nws #xv>.note:first-child,body.nws #xv>.xno:first-child{margin-top:0}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='138';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='139';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1329,7 +1333,7 @@ function render(){
   document.body.classList.toggle('vtask',ui.view==='task'||ui.view==='teams');
   document.body.classList.toggle('vteams',ui.view==='teams');
   document.body.classList.toggle('vhdate',ui.view==='board'||ui.view==='task'||ui.view==='brig'||ui.view==='nd'||ui.view==='teams');
-  renderTop(); renderBanner(); renderSyncBar();
+  renderTop(); renderBanner(); renderSyncBar(); slFetch(false);
   var nws=(ui.view==='task'||ui.view==='nd')&&wsOn(); document.body.classList.toggle('nws',nws);
   if(ui.view==='month') renderMonth(); else if(ui.view==='docs') renderDocs(); else if(ui.view==='nd') renderNd(); else if(isXv()) renderX(); else { renderStats(); renderList(); }
   document.documentElement.classList.toggle('nwsr',nws);
@@ -1849,6 +1853,7 @@ function formHtml(p){
   return '<div class="fld"><label for="f_name">Фамилия, имя, отчество</label><input type="text" id="f_name" maxlength="120" value="'+esc(p.name)+'" autocomplete="off"></div>'+
     '<div class="fld"><label for="f_num">Табельный номер</label><input type="text" id="f_num" maxlength="20" inputmode="numeric" value="'+esc(p.num||'')+'" autocomplete="off"></div>'+
     '<div class="fld"><label for="f_role">Профессия или должность</label><input type="text" id="f_role" maxlength="120" value="'+esc(p.role||'')+'" autocomplete="off"></div>'+
+    '<div class="fld"><label class="slchk" for="f_sl"><input type="checkbox" id="f_sl"'+(p.num&&isSling(root.cur,p.num)?' checked':'')+'> Удостоверение стропальщика</label><small class="note">Допуск к работе с подъёмными механизмами. Только эти люди попадают в наряд-допуск на подъёмные механизмы. Нужен табельный номер.</small></div>'+
     '<div class="fld"><label for="f_sched">График работы</label><select id="f_sched">'+SCHEDS.map(function(g){ return '<option value="'+g.id+'"'+(g.id===(p.sched||'')?' selected':'')+'>'+esc(g.name)+'</option>'; }).join('')+'</select></div>'+
     '<div class="fld"><label for="f_fired">Уволен с (дата)</label><input type="date" id="f_fired" value="'+esc(p.fired||'')+'"><small class="note">До конца этого месяца человек остаётся в табеле с пометкой «уволен», со следующего месяца его нет в списке. Оставьте пустым, если работает.</small></div>';
 }
@@ -1931,8 +1936,9 @@ function addBulk(){ if(!canPeople(true)) return;
   save(); render(); sheetPeople(); toast('Добавлено человек: '+added+(dup?'. Повторяются табельные номера: '+dup:''));
 }
 function sheetPeople(){
+  slFetch(false);
   var all=bk().people, act=all.filter(function(p){ return !p.archived; }), arc=all.filter(function(p){ return p.archived; });
-  function row(p){ return '<div class="prow'+(p.archived?' arch':'')+'"><div class="t"><b>'+esc((p.num?p.num+' ':'')+p.name)+'</b><span>'+esc(p.role||'')+(p.sched?' · '+esc(schedById(p.sched).short):'')+(p.fired?' · уволен с '+firedDmy(p):'')+'</span></div><button data-a="pedit" data-id="'+esc(p.id)+'">Изменить</button></div>'; }
+  function row(p){ return '<div class="prow'+(p.archived?' arch':'')+'"><div class="t"><b>'+esc((p.num?p.num+' ':'')+p.name)+'</b><span>'+esc(p.role||'')+(p.sched?' · '+esc(schedById(p.sched).short):'')+(p.fired?' · уволен с '+firedDmy(p):'')+(isSling(root.cur,p.num)?' · <b class="sltag">Удостоверение стропальщика</b>':'')+'</span></div><button data-a="pedit" data-id="'+esc(p.id)+'">Изменить</button></div>'; }
   openSheet('Люди · табель '+BOOKS[root.cur],'<div class="acts" style="margin-top:0"><button class="primary" data-a="padd">+ Добавить человека</button><button data-a="pbulk">Добавить списком</button></div>'+
     '<h3 style="margin:14px 0 0;font-size:16px">В списке ('+act.length+')</h3>'+(act.map(row).join('')||'<p class="note">Пока никого нет.</p>')+
     (arc.length?'<h3 style="margin:14px 0 0;font-size:16px">Убраны из списка ('+arc.length+')</h3>'+arc.map(row).join('')+'<div class="acts"><button class="danger" data-a="pdelarch">Удалить навсегда всех из этого списка</button></div>':''));
@@ -1950,11 +1956,13 @@ function readForm(){
 }
 function savePerson(){ if(!canPeople(true)) return;
   var f=readForm(); if(!f) return;
+  var slOld=editId&&person(editId)?person(editId).num:'', slOn=!!($('f_sl')&&$('f_sl').checked);
   var dup=f.num&&bk().people.some(function(p){ return p.id!==editId&&p.num===f.num&&!p.archived; });
   var np;
   if(editId){ np=person(editId); if(np){ if(np.num!==f.num) np.added=Date.now(); np.name=f.name; np.num=f.num; np.role=f.role; np.sched=f.sched; np.fired=f.fired; np.upd=Date.now(); } }
   else{ np={id:uid(),name:f.name,num:f.num,role:f.role,sched:f.sched,fired:f.fired,archived:false,added:Date.now(),upd:Date.now()}; bk().people.push(np); }
   var shared=queueAdd(root.cur,np);
+  if(f.num||slOld) slApply(root.cur,f.num,slOn,slOld); else if(slOn) toast('Удостоверение стропальщика не отмечено: нужен табельный номер');
   save(); render(); sheetPeople();
   if(dup) toast('Внимание: номер '+f.num+' уже есть у другого человека');
   else if(syncOn()&&!f.num) toast('Без табельного номера человек есть только на этом телефоне');
@@ -2584,12 +2592,12 @@ function ndFlush(){
   }).catch(function(err){ ndBusy=false; if(err&&err.message==='bad_action') return; setTimeout(ndFlush,30000); });
 }
 function ndTeamState(st,k){
-  var d=ndDraft(st,k), d1=ndV(st,k,'d1')||today(), all=ndPeople();
+  var d=ndDraft(st,k), d1=ndV(st,k,'d1')||today(), all=ndPeopleK(k);
   return {d:d,d1:d1,all:all,only:d.only!==false,came:all.filter(function(x){ return ndCame(x,d1); }).length};
 }
 function ndTeamTools(st,k){
   var t=ndTeamState(st,k);
-  return '<div class="ndteamtools"><input type="search" id="ndq" placeholder="Найти: фамилия или №" value="'+esc(ndQ)+'" aria-label="Найти человека">'+
+  return (k==='lift'?'<p class="ndslnote">'+(slAny()?'В наряд на подъёмные механизмы — только люди с удостоверением стропальщика ('+t.all.length+' чел. в табелях).':'Стропальщики ещё не отмечены: Меню → Люди → «Удостоверение стропальщика». Пока показаны все.')+'</p>':'')+'<div class="ndteamtools"><input type="search" id="ndq" placeholder="Найти: фамилия или №" value="'+esc(ndQ)+'" aria-label="Найти человека">'+
     '<label class="ndonly"><input type="checkbox" id="ndonly"'+(t.only?' checked':'')+'> только кто пришёл <span id="ndonlyl">'+esc(ndDmy(t.d1))+' ('+t.came+')</span></label></div>';
 }
 function ndTeamList(st,k){
@@ -2828,6 +2836,27 @@ function nameAr(name){
 }
 /* ------------------------------------------------------------- состав наряда ↔ фактическая бригада бригадира */
 function ndOpenOn(d,obj){ return ndAll(ndSt(),'').filter(function(e){ var a=ndIso(e.d1), b=ndIso(e.d2)||a; return a&&a<=d&&d<=b&&!(e.closed&&e.closed<=d)&&(!obj||ndGuessObj(e.code)===obj); }); }
+/* удостоверение стропальщика (допуск к подъёмным механизмам): табельные номера по табелям РФ и АРЕ, общие для всех телефонов */
+var SL_KEY='tabel-sl-v1', slData={rf:[],are:[]}, slAt=0;
+(function(){ try{ var v=JSON.parse(localStorage.getItem(SL_KEY)||'null'); if(v&&Array.isArray(v.rf)&&Array.isArray(v.are)) slData={rf:v.rf,are:v.are}; }catch(e){} })();
+function slSave(){ try{ localStorage.setItem(SL_KEY,JSON.stringify(slData)); }catch(e){} }
+function slPut(sl){ if(!sl) return false; var was=JSON.stringify(slData); slData={rf:Array.isArray(sl.rf)?sl.rf:[],are:Array.isArray(sl.are)?sl.are:[]}; slSave(); return was!==JSON.stringify(slData); }
+function slFetch(force){ if(!syncOn()||(!force&&Date.now()-slAt<120000)) return; slAt=Date.now();
+  call({action:'slget'}).then(function(j){ if(slPut(j&&j.sl)&&(ui.view==='task'||ui.view==='nd'||ui.view==='brig'||ui.view==='board')) render(); }).catch(function(){}); }
+function slAny(){ return slData.rf.length+slData.are.length>0; }
+function slN(num){ var n=normNum(num==null?'':num); return n==='0'?'':n; }
+function isSling(b,num){ var n=slN(num); return !!n&&(slData[b]||[]).indexOf(n)>=0; }
+function isSlingNum(num){ return isSling('rf',num)||isSling('are',num); }
+function slApply(b,num,on,old){
+  var n=slN(num), o=slN(old), L=(slData[b]||[]).slice();
+  if(o&&o!==n&&L.indexOf(o)>=0){ L.splice(L.indexOf(o),1); if(syncOn()) call({action:'slset',b:b,num:o,on:0,who:sync.who}).catch(function(){}); }
+  if(!n){ slData[b]=L; slSave(); return; }
+  var was=L.indexOf(n)>=0; if(!!on===was){ slData[b]=L; slSave(); return; }
+  if(on) L.push(n); else L.splice(L.indexOf(n),1); slData[b]=L; slSave();
+  if(!syncOn()){ toast('Нет связи: удостоверение стропальщика отмечено только на этом устройстве'); return; }
+  call({action:'slset',b:b,num:n,on:on?1:0,who:sync.who}).then(function(j){ slPut(j&&j.sl); }).catch(function(e){ toast('Удостоверение стропальщика не сохранено на сервере: '+((e&&e.message)||'нет связи')); });
+}
+function ndPeopleK(k){ var a=ndPeople(); return k==='lift'&&slAny()?a.filter(function(x){ return isSling(x.b,x.p.num); }):a; }
 function numSet(arr){ var s={}; (arr||[]).forEach(function(n){ n=normNum(n); if(n&&n!=='0') s[n]=1; }); return s; }
 function ndTeamSet(e){ return numSet((e.team||[]).map(function(t){ return t.num; })); }
 function overlapN(a,b){ var n=0; Object.keys(a).forEach(function(k){ if(b[k]) n++; }); return n; }
@@ -2846,7 +2875,8 @@ function ndBrigOf(e,d){
 /* кого вывести и кого завести: сравниваем с составом прошлого дня по этому наряду (или с составом при выдаче наряда) */
 function ndComp(e,d){
   var b=ndBrigOf(e,d); if(!b) return null;
-  var lead=normNum(b.data.lnum||''), cur=numSet(b.data.nums||[]), base=ndTeamSet(e);   // бригадир — ответственный исполнитель, в списке состава его нет
+  var lead=normNum(b.data.lnum||''), cur=numSet(b.data.nums||[]), base=ndTeamSet(e);
+  if(e.kind==='lift'&&slAny()){ cur=numSet((b.data.nums||[]).concat(b.data.lnum?[b.data.lnum]:[]).filter(isSlingNum)); lead=''; }   // подъёмные: сравниваем только стропальщиков, включая бригадира   // бригадир — ответственный исполнитель, в списке состава его нет
   var out=Object.keys(base).filter(function(n){ return n&&n!==lead&&!cur[n]; }), inn=Object.keys(cur).filter(function(n){ return n&&n!==lead&&!base[n]; });
   return {b:b,out:out,inn:inn,baseTxt:'составом наряда',base:base};
 }
@@ -2965,7 +2995,7 @@ function ndMake(mode){
   if(dt.d2<dt.d1){ msg.textContent='Дата окончания раньше даты выдачи.'; return; }
   e.cb=ndCb(st,k,tpl).slice(); e.o={}; var oo=ndO(st,k); Object.keys(oo).forEach(function(i){ if(String(oo[i]).trim()) e.o[i]=String(oo[i]).trim(); });
   var sel={}; (d.team||[]).forEach(function(x){ sel[x]=1; });
-  e.team=ndPeople().filter(function(x){ return sel[x.key]; }).map(function(x){ return {num:x.p.num||'',name:x.p.name,role:x.p.role||'',b:x.b}; }).concat((d.teamX||[]).map(function(x){ return {num:x.num||'',name:x.name,role:x.role||'',b:x.b||''}; }))
+  e.team=ndPeopleK(k).filter(function(x){ return sel[x.key]; }).map(function(x){ return {num:x.p.num||'',name:x.p.name,role:x.p.role||'',b:x.b}; }).concat((d.teamX||[]).map(function(x){ return {num:x.num||'',name:x.name,role:x.role||'',b:x.b||''}; }))
     .sort(function(a,b){ return byNum(a,b); });
   if(ed&&!e.no){ msg.textContent='Укажите номер наряда.'; $('nd_no').focus(); return; }
   var miss=(k==='lift'?[['works','описание работы'],['issuer','выдающий наряд-допуск'],['head','руководитель работ'],['exec','ответственный производитель работ'],['tech','подъёмное сооружение']]
@@ -4241,7 +4271,8 @@ function ndFromBrig(k,obj,d,bid,lead){
   var st=ndSt(); if(st.edit) ndEndEdit(st);
   st.obj=obj; st.kind=k; if(ND_TITLE[k]) st.lastKind=k;
   var dr={only:true,team:[],teamX:[]}, miss=[], seen={};
-  if(b) [b.data.lnum].concat(b.data.nums||[]).forEach(function(n){ if(!n) return; var p=anyPerson(n); if(!p){ miss.push(n); return; } var key=p.b+'|'+p.p.id; if(!seen[key]){ seen[key]=1; dr.team.push(key); } });
+  var slSkip=0, slOnly=k==='lift'&&slAny();
+  if(b) [b.data.lnum].concat(b.data.nums||[]).forEach(function(n){ if(!n) return; if(slOnly&&!isSlingNum(n)){ slSkip++; return; } var p=anyPerson(n); if(!p){ miss.push(n); return; } var key=p.b+'|'+p.p.id; if(!seen[key]){ seen[key]=1; dr.team.push(key); } });
   var nx=ndNext(st,k); if(nx) dr.no=nx;
   dr.d1=d<today()?today():d;
   if(k==='fire'){ var hz=ndBrigOpen(b,d,obj,'hz'); if(hz.length) dr.rel=String(hz[0].no); }
@@ -4249,7 +4280,7 @@ function ndFromBrig(k,obj,d,bid,lead){
   var lp=brigLeadPerson(b,lead), ex=lp?execEn(lp.p):'';
   if(ex) dr.exec=ex;
   st.draft[obj+'|'+k]=dr; ndSave(st);
-  ndQ=''; ndMsg=(b?'Бригада '+whoBase(lead)+': отмечено '+dr.team.length+' чел.'+(miss.length?' Нет в табеле: '+miss.join(', ')+'.':''):'Бригадир '+whoBase(lead)+' не подал численность — отметьте людей вручную.')+(dr.exec?(k==='fire'?' Ответственный за проведение: ':' Ответственный исполнитель: ')+dr.exec+'.':'');
+  ndQ=''; ndMsg=(b?'Бригада '+whoBase(lead)+': отмечено '+dr.team.length+' чел.'+(slOnly?' (только стропальщики; без удостоверения не включены: '+slSkip+' чел.)':'')+(miss.length?' Нет в табеле: '+miss.join(', ')+'.':''):'Бригадир '+whoBase(lead)+' не подал численность — отметьте людей вручную.')+(dr.exec?(k==='fire'?' Ответственный за проведение: ':' Ответственный исполнитель: ')+dr.exec+'.':'');
   var bv=ui.view==='board'?'board':'task';
   var lk1=fioKey(lead), keep1=ndBack&&ndBack.lk===lk1?ndBack:{}; ndFetchAt=0; setView('nd'); ndBack={v:bv,t:(ND_SHORT[k]||'')+' · '+whoBase(lead)+' · '+obj,lk:lk1,nd:1,tbt:keep1.tbt||0}; renderNd(); window.scrollTo(0,0);
   toast(ndMsg);
