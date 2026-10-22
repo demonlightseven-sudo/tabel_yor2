@@ -563,6 +563,11 @@ body.nws main>*:not(#nwl){max-width:980px;margin-left:0;margin-right:0;box-sizin
 body.nws #xv .dh2,body.nws #nd .dh2{margin-top:0}
 body.nws .narsw{margin:0 0 10px}
 body.nws .wsbody>.xcard,body.nws #nd .ndback,body.nws #nd .ndtop{margin-left:0;margin-right:0}
+
+/* v137: рабочая область на всю ширину справа от списка */
+body.nws main{max-width:none;padding-left:340px;padding-right:max(16px,env(safe-area-inset-right,0px))}
+body.nws #nwl{left:max(12px,env(safe-area-inset-left,0px))}
+body.nws main>*:not(#nwl),body.nws #xv,body.nws #nd{max-width:none}
 </style>
 </head>
 <body>
@@ -606,7 +611,7 @@ body.nws .wsbody>.xcard,body.nws #nd .ndback,body.nws #nd .ndtop{margin-left:0;m
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='136';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='137';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1520,7 +1525,8 @@ function narSwHtml(cur){
 function ndBackHtml(){ return ndBack?'<div class="ndback"><button data-a="ndback">← '+(ndBack.v==='board'?'К доске':'К заданиям')+'</button><span>'+esc(ndBack.t||'')+'</span></div>':''; }
 function ndBackGo(){ if(!ndBack) return; var v=ndBack.v; ndBack=null; setView(v); window.scrollTo(0,0); }
 function narSwGo(sv){
-  ndBack=null;
+  if(wsOn()&&sv!=='log'){ var wi=wsCur(wsItems(tkDate||tkDef())); if(wi){ wsStepGo(sv==='task'?'1':sv==='tbt'?'3':'2'); return; } }
+  if(!wsOn()) ndBack=null;
   if(sv==='task'){ setView('task'); return; }
   var st=ndSt(); st.kind=sv==='nd'?(ND_TITLE[st.kind]?st.kind:(ND_TITLE[st.lastKind]?st.lastKind:'hz')):sv; ndSave(st);
   ndQ=''; ndMsg=''; ndShowAll=false; ndFetchAt=0;
@@ -1529,7 +1535,7 @@ function narSwGo(sv){
 function setView(v){
   if(v==='nar') v=narDef();
   if(v==='task'||v==='nd') narSub=v;
-  if(v!=='nd') ndBack=null;
+  if(v!=='nd'&&!(v==='task'&&wsOn())) ndBack=null;
   if(ui.view===v) return;
   saveViewScroll();
   ui.view=v;
@@ -4011,16 +4017,17 @@ function wsStepsHtml(d,it,act){
 }
 /* шапка рабочей области над формой наряда / TBT (если пришли из бригады) */
 function wsNdHead(k){
-  if(!wsOn()||!ndBack) return '';
+  if(!wsOn()) return '';
   var d=tkDate||tkDef(), it=wsCur(wsItems(d)); if(!it) return '';
-  return '<h2 class="dh2">'+esc(it.x?it.x.obj:it.b.obj)+' · '+esc(whoBase(it.lead))+'</h2>'+wsStepsHtml(d,it,k==='tbt'?3:2);
+  return '<h2 class="dh2">'+esc(it.x?it.x.obj:it.b.obj)+' · '+esc(whoBase(it.lead))+'</h2>'+wsStepsHtml(d,it,k==='tbt'?3:k==='log'?0:2);
 }
 function wsStepGo(n){
   var d=tkDate||tkDef(), it=wsCur(wsItems(d)); if(!it){ setView('task'); return; }
-  if(n==='1'){ ndBack=null; setView('task'); window.scrollTo(0,0); return; }
-  var x=it.x, b=it.b, ob=x?x.obj:b.obj;
-  if(n==='3'){ ndTbtFromBrig(ob,d,b?b.id:'',it.lead); return; }
-  var nds=b?ndBrigAll(b,d,ob):[], st=ndSt(), k=nds.length?nds[0].kind:(ND_TITLE[st.lastKind]?st.lastKind:'hz');
+  if(n==='1'){ setView('task'); window.scrollTo(0,0); return; }
+  var x=it.x, b=it.b, ob=x?x.obj:b.obj, same=ndBack&&ndBack.lk===it.k, st=ndSt();
+  if(n==='3'){ if(same&&ndBack.tbt){ st.kind='tbt'; ndSave(st); if(ui.view!=='nd') setView('nd'); else renderNd(); window.scrollTo(0,0); return; } ndTbtFromBrig(ob,d,b?b.id:'',it.lead); return; }
+  if(same&&ndBack.nd){ st.kind=ND_TITLE[st.lastKind]?st.lastKind:'hz'; ndSave(st); if(ui.view!=='nd') setView('nd'); else renderNd(); window.scrollTo(0,0); return; }
+  var nds=b?ndBrigAll(b,d,ob):[], k=nds.length?nds[0].kind:(ND_TITLE[st.lastKind]?st.lastKind:'hz');
   ndFromBrig(k,ob,d,b?b.id:'',it.lead);
 }
 function wsRight(d,tasks,obj){
@@ -4036,7 +4043,7 @@ function wsRight(d,tasks,obj){
   return '<h2 class="dh2">'+esc(ob)+' · '+esc(whoBase(it.lead))+'</h2>'+dnote+steps+sw+body;
 }
 function wsPick(lead){
-  wsSel=lead?fioKey(lead):'';
+  wsSel=lead?fioKey(lead):''; ndBack=null;
   if(lead){ var bn=BRIG_NAMES.filter(function(n){ return fioKey(n)===wsSel; })[0]; tkBrigDraft=bn||''; tkObjDraft=''; }
   if(ui.view!=='task') setView('task'); else { renderX(); wsLeft(); }
   window.scrollTo(0,0);
@@ -4200,7 +4207,7 @@ function ndTbtFromBrig(obj,d,bid,lead){
   var st=ndSt(); if(st.edit) ndEndEdit(st); st.obj=obj; st.kind='tbt'; ndSave(st);
   var bv=ui.view==='board'?'board':'task';
   tbtMsg=nds.length?'Из нарядов '+t.no+' ('+whoBase(lead)+'): '+t.rows.length+' чел. без повторов.':'На бригаду '+whoBase(lead)+' нет открытых нарядов — добавьте людей вручную.';
-  setView('nd'); ndBack={v:bv,t:'TBT · '+whoBase(lead)+' · '+obj}; renderNd(); window.scrollTo(0,0); toast(tbtMsg);
+  var lk0=fioKey(lead), keep=ndBack&&ndBack.lk===lk0?ndBack:{}; setView('nd'); ndBack={v:bv,t:'TBT · '+whoBase(lead)+' · '+obj,lk:lk0,tbt:1,nd:keep.nd||0}; renderNd(); window.scrollTo(0,0); toast(tbtMsg);
 }
 /* бригадир как человек из табеля: по табельному номеру из поданной численности, иначе по ФИО */
 function brigLeadPerson(b,lead){
@@ -4231,7 +4238,7 @@ function ndFromBrig(k,obj,d,bid,lead){
   st.draft[obj+'|'+k]=dr; ndSave(st);
   ndQ=''; ndMsg=(b?'Бригада '+whoBase(lead)+': отмечено '+dr.team.length+' чел.'+(miss.length?' Нет в табеле: '+miss.join(', ')+'.':''):'Бригадир '+whoBase(lead)+' не подал численность — отметьте людей вручную.')+(dr.exec?(k==='fire'?' Ответственный за проведение: ':' Ответственный исполнитель: ')+dr.exec+'.':'');
   var bv=ui.view==='board'?'board':'task';
-  ndFetchAt=0; setView('nd'); ndBack={v:bv,t:(ND_SHORT[k]||'')+' · '+whoBase(lead)+' · '+obj}; renderNd(); window.scrollTo(0,0);
+  var lk1=fioKey(lead), keep1=ndBack&&ndBack.lk===lk1?ndBack:{}; ndFetchAt=0; setView('nd'); ndBack={v:bv,t:(ND_SHORT[k]||'')+' · '+whoBase(lead)+' · '+obj,lk:lk1,nd:1,tbt:keep1.tbt||0}; renderNd(); window.scrollTo(0,0);
   toast(ndMsg);
   if(k==='fire'&&!dr.rel) toast('Открытого наряда на опасные работы у этой бригады на '+esc(tbtDmy(d))+' нет');
 }
