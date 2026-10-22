@@ -625,7 +625,7 @@ body.nws #xv>.note:first-child,body.nws #xv>.xno:first-child{margin-top:0}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='140';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='141';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2431,8 +2431,21 @@ function memoSignTable(doc,sg){
   sg.appr.forEach(function(v){ out.push(sp,fill(rP,pk,v,pk.toLowerCase())); });
   return doc.slice(0,a)+head+out.join('')+doc.slice(b);
 }
+/* run с плейсхолдером из ячейки — как образец оформления текста */
+function memoRun(cell,ph){ var i=cell.indexOf(ph); if(i<0) return ''; var a=-1, k=i; while(k>0){ k=cell.lastIndexOf('<w:r',k-1); if(k<0) break; var ch=cell.charAt(k+4); if(ch==='>'||ch===' '){ a=k; break; } } var b=cell.indexOf('</w:r>',i); return a>=0&&b>0?cell.slice(a,b+6):''; }
+function memoCellPut(cell,run,ph,txt,bottom){ if(!run) return cell; var p=cell.lastIndexOf('</w:p>'); if(p<0) return cell; var rr=run.split(ph).join(xesc(txt)); if(bottom) rr=rr.replace(/<w:t[ >]/,function(m){ return '<w:br /><w:br />'+m; }); cell=cell.slice(0,p)+rr+cell.slice(p); if(bottom){ if(/<w:vAlign /.test(cell)) cell=cell.replace(/<w:vAlign w:val="[a-zA-Z]+" \/>/,'<w:vAlign w:val="bottom" />'); else cell=cell.replace('</w:tcPr>','<w:vAlign w:val="bottom" /></w:tcPr>'); } return cell; }
+/* РВД, АРЕ: «Вид компенсации» — Повышенная оплата; «Согласие работника» и «С правом отказаться…» — дата предыдущего дня внизу клетки (место для подписи) */
+function memoRvdAre(rowT,prev){
+  var cs=rowT.split('</w:tc>'); if(cs.length!==14) return rowT;
+  var run=memoRun(cs[4],'{{DATE}}');
+  cs[10]=memoCellPut(cs[10],run,'{{DATE}}','Повышенная оплата',false);
+  cs[11]=memoCellPut(cs[11],run,'{{DATE}}',prev,true);
+  cs[12]=memoCellPut(cs[12],run,'{{DATE}}',prev,true);
+  return cs.join('</w:tc>');
+}
 function memoBuild(tpl,data){
   var doc=tpl.files['word/document.xml'], rowT=tpl.row;
+  if(data.rvdAre) rowT=memoRvdAre(rowT,data.prev||'');
   if(data.noBreak){ var nb=memoNoBreak(doc,rowT); doc=nb.doc; rowT=nb.row; }
   var rows=data.people.map(function(x){
     return rowT.replace('{{TN}}',xesc(x.num)).replace('{{FIO}}',xesc(x.name)).replace('{{ROLE}}',xesc(x.role)).replace('{{DATE}}',xesc(data.date))
@@ -2470,7 +2483,8 @@ function memoMake(){
   if(people.some(function(x){ return !(x.h>0); })){ msg.textContent='Проверьте время: у кого-то получилось 0 часов.'; return; }
   msg.textContent='Готовлю файл…';
   memoTemplate(mt).then(function(tpl){
-    var blob=memoBuild(tpl,{hdr:hdr,date:date,people:people,objs:objs,resp:c.resp.trim(),sg:sg,noBreak:mt!=='rvd'});
+    var pv=addDays(ui.date,-1).split('-');
+    var blob=memoBuild(tpl,{hdr:hdr,date:date,people:people,objs:objs,resp:c.resp.trim(),sg:sg,noBreak:mt!=='rvd',rvdAre:mt==='rvd'&&root.cur==='are',prev:pv[2]+'.'+pv[1]+'.'+pv[0]});
     var name=(mt==='rvd'?'РВД_':'Сверхурочная_работа_')+a[2]+'_'+a[1]+'_'+a[0].slice(2)+(root.cur==='are'?'_АРЕ':'')+'.docx';
     return saveFile(name,blob.type,blob).then(function(r){ if($('m_msg')) $('m_msg').textContent=r==='cancel'?'':'Готово: '+name+' ('+people.length+' чел.)'; reportDone(r); });
   }).catch(function(){ if($('m_msg')) $('m_msg').textContent='Не удалось загрузить образец записки. Нужен интернет при первом запуске.'; });
