@@ -625,7 +625,7 @@ body.nws #xv>.note:first-child,body.nws #xv>.xno:first-child{margin-top:0}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='141';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='142';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2432,8 +2432,20 @@ function memoSignTable(doc,sg){
   return doc.slice(0,a)+head+out.join('')+doc.slice(b);
 }
 /* run с плейсхолдером из ячейки — как образец оформления текста */
+function memoRole(r){ r=String(r||'').trim(); return /^подс/i.test(r)?'Подсобный рабочий':r; }
 function memoRun(cell,ph){ var i=cell.indexOf(ph); if(i<0) return ''; var a=-1, k=i; while(k>0){ k=cell.lastIndexOf('<w:r',k-1); if(k<0) break; var ch=cell.charAt(k+4); if(ch==='>'||ch===' '){ a=k; break; } } var b=cell.indexOf('</w:r>',i); return a>=0&&b>0?cell.slice(a,b+6):''; }
-function memoCellPut(cell,run,ph,txt,bottom){ if(!run) return cell; var p=cell.lastIndexOf('</w:p>'); if(p<0) return cell; var rr=run.split(ph).join(xesc(txt)); if(bottom) rr=rr.replace(/<w:t[ >]/,function(m){ return '<w:br /><w:br />'+m; }); cell=cell.slice(0,p)+rr+cell.slice(p); if(bottom){ if(/<w:vAlign /.test(cell)) cell=cell.replace(/<w:vAlign w:val="[a-zA-Z]+" \/>/,'<w:vAlign w:val="bottom" />'); else cell=cell.replace('</w:tcPr>','<w:vAlign w:val="bottom" /></w:tcPr>'); } return cell; }
+function memoCellPut(cell,run,ph,txt,bottom){ if(!run) return cell; var p=cell.lastIndexOf('</w:p>'); if(p<0) return cell; var rr=run.split(ph).join(xesc(txt)); if(bottom) rr=rr.replace(/<w:t[ >]/,function(m){ return '<w:br /><w:br />'+m; }); cell=cell.slice(0,p)+rr+cell.slice(p); if(bottom){ if(/<w:vAlign /.test(cell)) cell=cell.replace(/<w:vAlign w:val="[a-zA-Z]+" \/>/,'<w:vAlign w:val="bottom" />'); else cell=cell.replace('</w:tcPr>','<w:vAlign w:val="bottom" /></w:tcPr>'); cell=memoJcCenter(cell); } return cell; }
+/* абзац в клетке — по центру */
+function memoJcCenter(cell){
+  var a=cell.lastIndexOf('<w:p '), a2=cell.lastIndexOf('<w:p>'); a=Math.max(a,a2); if(a<0) return cell;
+  var e=cell.indexOf('>',a)+1, end=cell.indexOf('</w:p>',e); if(e<=0||end<0) return cell;
+  var para=cell.slice(a,end), head=cell.slice(a,e), body=para.slice(e-a);
+  if(/<w:jc w:val="[a-zA-Z]+" ?\/>/.test(body)) body=body.replace(/<w:jc w:val="[a-zA-Z]+" ?\/>/,'<w:jc w:val="center" />');
+  else if(body.indexOf('<w:pPr>')===0){ var pe=body.indexOf('</w:pPr>'), pr=body.slice(0,pe), ri=pr.indexOf('<w:rPr'); body=ri>=0?body.slice(0,ri)+'<w:jc w:val="center" />'+body.slice(ri):body.slice(0,pe)+'<w:jc w:val="center" />'+body.slice(pe); }
+  else if(body.indexOf('<w:pPr />')===0||body.indexOf('<w:pPr/>')===0) body=body.replace(/<w:pPr ?\/>/,'<w:pPr><w:jc w:val="center" /></w:pPr>');
+  else body='<w:pPr><w:jc w:val="center" /></w:pPr>'+body;
+  return cell.slice(0,a)+head+body+cell.slice(end);
+}
 /* РВД, АРЕ: «Вид компенсации» — Повышенная оплата; «Согласие работника» и «С правом отказаться…» — дата предыдущего дня внизу клетки (место для подписи) */
 function memoRvdAre(rowT,prev){
   var cs=rowT.split('</w:tc>'); if(cs.length!==14) return rowT;
@@ -2479,7 +2491,7 @@ function memoMake(){
   var sg0=memoSigners(mt), sg={}; SG_G.forEach(function(g){ sg[g[0]]=sg0[g[0]].map(function(v){ return String(v||'').trim(); }).filter(Boolean); });
   if(!sg.sign.length){ msg.textContent='Добавьте в «Шапка и подписи» хотя бы одного, кто подписывает.'; var dd0=document.querySelector('.mhdr'); if(dd0) dd0.open=true; return; }
   var a=ui.date.split('-'), date=a[2]+'.'+a[1]+'.'+a[0];
-  var people=list.map(function(x){ var t=memoTimes(x,c); return {num:x.p.num||'',name:x.p.name,role:x.p.role||'',from:t.from,to:t.to,bf:t.bf,bt:t.bt,h:t.h}; });
+  var people=list.map(function(x){ var t=memoTimes(x,c); return {num:x.p.num||'',name:x.p.name,role:memoRole(x.p.role),from:t.from,to:t.to,bf:t.bf,bt:t.bt,h:t.h}; });
   if(people.some(function(x){ return !(x.h>0); })){ msg.textContent='Проверьте время: у кого-то получилось 0 часов.'; return; }
   msg.textContent='Готовлю файл…';
   memoTemplate(mt).then(function(tpl){
