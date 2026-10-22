@@ -625,7 +625,7 @@ body.nws #xv>.note:first-child,body.nws #xv>.xno:first-child{margin-top:0}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='139';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='140';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2592,12 +2592,13 @@ function ndFlush(){
   }).catch(function(err){ ndBusy=false; if(err&&err.message==='bad_action') return; setTimeout(ndFlush,30000); });
 }
 function ndTeamState(st,k){
-  var d=ndDraft(st,k), d1=ndV(st,k,'d1')||today(), all=ndPeopleK(k);
+  var d=ndDraft(st,k), d1=ndV(st,k,'d1')||today(), all=ndPeopleK(k,ndV(st,k,'tech'));
   return {d:d,d1:d1,all:all,only:d.only!==false,came:all.filter(function(x){ return ndCame(x,d1); }).length};
 }
 function ndTeamTools(st,k){
   var t=ndTeamState(st,k);
-  return (k==='lift'?'<p class="ndslnote">'+(slAny()?'В наряд на подъёмные механизмы — только люди с удостоверением стропальщика ('+t.all.length+' чел. в табелях).':'Стропальщики ещё не отмечены: Меню → Люди → «Удостоверение стропальщика». Пока показаны все.')+'</p>':'')+'<div class="ndteamtools"><input type="search" id="ndq" placeholder="Найти: фамилия или №" value="'+esc(ndQ)+'" aria-label="Найти человека">'+
+  var cr=k==='lift'&&isCrane(ndV(st,k,'tech'));
+  return (k==='lift'?'<p class="ndslnote">'+(!cr?'В технике нет крана (crane) — удостоверение стропальщика не требуется, подходят все рабочие.':slAny()?'В технике есть кран (crane): в наряд — только люди с удостоверением стропальщика ('+t.all.length+' чел. в табелях). Ответственный производитель работ — только: '+CRANE_EXEC.join(', ')+'.':'В технике есть кран (crane), но стропальщики ещё не отмечены: Меню → Люди → «Удостоверение стропальщика». Пока показаны все.')+'</p>':'')+'<div class="ndteamtools"><input type="search" id="ndq" placeholder="Найти: фамилия или №" value="'+esc(ndQ)+'" aria-label="Найти человека">'+
     '<label class="ndonly"><input type="checkbox" id="ndonly"'+(t.only?' checked':'')+'> только кто пришёл <span id="ndonlyl">'+esc(ndDmy(t.d1))+' ('+t.came+')</span></label></div>';
 }
 function ndTeamList(st,k){
@@ -2856,7 +2857,17 @@ function slApply(b,num,on,old){
   if(!syncOn()){ toast('Нет связи: удостоверение стропальщика отмечено только на этом устройстве'); return; }
   call({action:'slset',b:b,num:n,on:on?1:0,who:sync.who}).then(function(j){ slPut(j&&j.sl); }).catch(function(e){ toast('Удостоверение стропальщика не сохранено на сервере: '+((e&&e.message)||'нет связи')); });
 }
-function ndPeopleK(k){ var a=ndPeople(); return k==='lift'&&slAny()?a.filter(function(x){ return isSling(x.b,x.p.num); }):a; }
+function isCrane(tech){ return /crane/i.test(String(tech||'')); }
+function slNeed(k,tech){ return k==='lift'&&isCrane(tech)&&slAny(); }
+function ndPeopleK(k,tech){ var a=ndPeople(); return slNeed(k,tech)?a.filter(function(x){ return isSling(x.b,x.p.num); }):a; }
+/* ответственный производитель работ по наряду на подъёмные механизмы с краном — только эти люди */
+var CRANE_EXEC=['Глушко Вячеслав','Бородин Максим','Горбач Евгений','Кавурас Роман','Шефер Сергей','Айдинов Пулатжон','Тюрин Даниил','Стрельцов Иван'];
+function latN(s){ return tbtLat(String(s||'')).toLowerCase().replace(/yu/g,'iu').replace(/ya/g,'ia').replace(/y/g,'i').replace(/[^a-z\s.]/g,' '); }
+function craneExecOk(exec){
+  var e=latN(exec), toks=e.split(/[\s.]+/).filter(Boolean);
+  return CRANE_EXEC.some(function(f){ var a=f.split(' '), sur=latN(a[0]).trim(), ini=latN(a[1]).trim().charAt(0);
+    return toks.indexOf(sur)>=0&&toks.some(function(t){ return t===ini||(t.length>1&&t.charAt(0)===ini&&t!==sur&&latN(a[1]).trim()===t); }); });
+}
 function numSet(arr){ var s={}; (arr||[]).forEach(function(n){ n=normNum(n); if(n&&n!=='0') s[n]=1; }); return s; }
 function ndTeamSet(e){ return numSet((e.team||[]).map(function(t){ return t.num; })); }
 function overlapN(a,b){ var n=0; Object.keys(a).forEach(function(k){ if(b[k]) n++; }); return n; }
@@ -2876,7 +2887,7 @@ function ndBrigOf(e,d){
 function ndComp(e,d){
   var b=ndBrigOf(e,d); if(!b) return null;
   var lead=normNum(b.data.lnum||''), cur=numSet(b.data.nums||[]), base=ndTeamSet(e);
-  if(e.kind==='lift'&&slAny()){ cur=numSet((b.data.nums||[]).concat(b.data.lnum?[b.data.lnum]:[]).filter(isSlingNum)); lead=''; }   // подъёмные: сравниваем только стропальщиков, включая бригадира   // бригадир — ответственный исполнитель, в списке состава его нет
+  if(slNeed(e.kind,e.tech)){ cur=numSet((b.data.nums||[]).concat(b.data.lnum?[b.data.lnum]:[]).filter(isSlingNum)); lead=''; }   // подъёмные: сравниваем только стропальщиков, включая бригадира   // бригадир — ответственный исполнитель, в списке состава его нет
   var out=Object.keys(base).filter(function(n){ return n&&n!==lead&&!cur[n]; }), inn=Object.keys(cur).filter(function(n){ return n&&n!==lead&&!base[n]; });
   return {b:b,out:out,inn:inn,baseTxt:'составом наряда',base:base};
 }
@@ -2995,12 +3006,13 @@ function ndMake(mode){
   if(dt.d2<dt.d1){ msg.textContent='Дата окончания раньше даты выдачи.'; return; }
   e.cb=ndCb(st,k,tpl).slice(); e.o={}; var oo=ndO(st,k); Object.keys(oo).forEach(function(i){ if(String(oo[i]).trim()) e.o[i]=String(oo[i]).trim(); });
   var sel={}; (d.team||[]).forEach(function(x){ sel[x]=1; });
-  e.team=ndPeopleK(k).filter(function(x){ return sel[x.key]; }).map(function(x){ return {num:x.p.num||'',name:x.p.name,role:x.p.role||'',b:x.b}; }).concat((d.teamX||[]).map(function(x){ return {num:x.num||'',name:x.name,role:x.role||'',b:x.b||''}; }))
+  e.team=ndPeopleK(k,e.tech).filter(function(x){ return sel[x.key]; }).map(function(x){ return {num:x.p.num||'',name:x.p.name,role:x.p.role||'',b:x.b}; }).concat((d.teamX||[]).map(function(x){ return {num:x.num||'',name:x.name,role:x.role||'',b:x.b||''}; }))
     .sort(function(a,b){ return byNum(a,b); });
   if(ed&&!e.no){ msg.textContent='Укажите номер наряда.'; $('nd_no').focus(); return; }
   var miss=(k==='lift'?[['works','описание работы'],['issuer','выдающий наряд-допуск'],['head','руководитель работ'],['exec','ответственный производитель работ'],['tech','подъёмное сооружение']]
     :k==='fire'?[['works','описание работ'],['code','место проведения работ'],['issuer','кто выдал наряд'],['prep','ответственный за подготовку'],['exec','ответственный за проведение']]
     :[['works','наименование работ'],['head','руководитель работ'],['exec','ответственный исполнитель'],['issuer','кто выдал наряд']]).filter(function(x){ return !e[x[0]]; });
+  if(k==='lift'&&isCrane(e.tech)&&!craneExecOk(e.exec)){ msg.textContent='Наряд не выдан: в технике есть кран (crane), а ответственным производителем работ может быть только: '+CRANE_EXEC.join(', ')+'.'; var fx=$('nd_exec'); if(fx) fx.focus(); return; }
   if(miss.length){ msg.textContent='Заполните: '+miss.map(function(x){ return x[1]; }).join(', ')+'.'; var f=$('nd_'+miss[0][0]); if(f) f.focus(); return; }
   if(!e.team.length){ msg.textContent='Отметьте людей в составе бригады.'; return; }
   var dupe=!ed?null:ndAll(st,k).filter(function(x){ return String(x.no).trim()===e.no&&x.id!==e.id; })[0];
@@ -4271,7 +4283,7 @@ function ndFromBrig(k,obj,d,bid,lead){
   var st=ndSt(); if(st.edit) ndEndEdit(st);
   st.obj=obj; st.kind=k; if(ND_TITLE[k]) st.lastKind=k;
   var dr={only:true,team:[],teamX:[]}, miss=[], seen={};
-  var slSkip=0, slOnly=k==='lift'&&slAny();
+  var slSkip=0, slOnly=slNeed(k,(b&&b.data&&Array.isArray(b.data.tech)&&b.data.tech.length)?b.data.tech.join(', '):ndV(st,k,'tech'));
   if(b) [b.data.lnum].concat(b.data.nums||[]).forEach(function(n){ if(!n) return; if(slOnly&&!isSlingNum(n)){ slSkip++; return; } var p=anyPerson(n); if(!p){ miss.push(n); return; } var key=p.b+'|'+p.p.id; if(!seen[key]){ seen[key]=1; dr.team.push(key); } });
   var nx=ndNext(st,k); if(nx) dr.no=nx;
   dr.d1=d<today()?today():d;
