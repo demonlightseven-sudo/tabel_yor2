@@ -629,7 +629,7 @@ body.nws #xv>.note:first-child,body.nws #xv>.xno:first-child{margin-top:0}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='145';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='146';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4083,7 +4083,7 @@ function teamDel(id){
   teamsPut((tmTeams||[]).filter(function(x){ return x.id!==id; }),'Бригада № '+t.no+' удалена');
 }
 function tkRender(){
-  var d=tkDate||tkDef(); bdFetch(d,false); if(ndOk()){ ndMemFetch(false); ndFetch(false); } var hn=$('hnav'); if(hn) hn.innerHTML=navDate('tkday',d);
+  var d=tkDate||tkDef(); bdFetch(d,false); if(ndOk()){ ndMemFetch(false); ndFetch(false); if(d!==today()) bdFetch(today(),false); setTimeout(function(){ tkAutoMerge(d); if(d!==today()) tkAutoMerge(today()); },0); } var hn=$('hnav'); if(hn) hn.innerHTML=navDate('tkday',d);
   var tasks=bdItems(d).filter(function(x){ return x.kind==='task'; });
   if(role()==='mont'){ tasks=tasks.filter(function(x){ return fioKey(x.data.brig)===fioKey(sync.who); });
     if(syncOn()&&!brgNdAt){ brgNdAt=1; call({action:'ndlist'}).then(function(j){ var st=ndSt(); st.list=Array.isArray(j.list)?j.list:[]; ndSave(st); if(ui.view==='task'||ui.view==='brig') renderX(); }).catch(function(){}); }
@@ -4177,15 +4177,45 @@ function tkMergeByPermit(e,hint){
   var d=ndIso(e.d1)||today();
   call({action:'bget',d:d}).then(function(j){
     bdCache[d]={items:j.items||[],at:Date.now()};
-    var raw=j.items||[], live=raw.filter(function(x){ return !(x.data&&x.data.into); });
-    var brigs=live.filter(function(x){ return x.kind==='brig'; }), tasks=live.filter(function(x){ return x.kind==='task'; });
+    var live=(j.items||[]).filter(function(x){ return !(x.data&&x.data.into); }), brigs=live.filter(function(x){ return x.kind==='brig'; });
     var b1=(hint?brigs.filter(function(b){ return fioKey(b.data.lead)===hint; })[0]:null)||ndBrigOf(e,d); if(!b1) return;
-    var L1=b1.data.lead, team=numSet(e.team.map(function(t){ return t.num; }));
+    return tkMergeCore(d,j.items||[],b1,numSet(e.team.map(function(t){ return t.num; })));
+  }).catch(function(){});
+}
+/* табельный № бригадира */
+function leadNum(b,L){ if(b&&b.data&&b.data.lnum) return normNum(b.data.lnum); var p=brigLeadPerson(b,L); return p&&p.p.num?normNum(p.p.num):''; }
+/* кто из других бригадиров (с заданием или бригадой на этот день) попал в состав бригады b1 / её открытые наряды */
+function tkMergeCands(raw,b1,team){
+  var live=raw.filter(function(x){ return !(x.data&&x.data.into); }), brigs=live.filter(function(x){ return x.kind==='brig'; }), tasks=live.filter(function(x){ return x.kind==='task'; });
+  var L1=b1.data.lead, leads={};
+  tasks.concat(brigs).forEach(function(x){ var L=x.kind==='brig'?x.data.lead:x.data.brig; if(L&&fioKey(L)!==fioKey(L1)) leads[fioKey(L)]=L; });
+  return Object.keys(leads).map(function(k){ var L2=leads[k], b2=brigs.filter(function(b){ return fioKey(b.data.lead)===k; })[0]||null, n2=leadNum(b2,L2); return n2&&team[n2]?k:null; }).filter(Boolean);
+}
+/* автоматически: бригадир №2 есть в поданном составе бригадира №1 или в его открытых нарядах -> объединяем (делает прораб / начальник / техник при открытии «Нарядов») */
+var tkAutoAt={}, tkAutoBusy=false;
+function tkAutoMerge(d){
+  if(!syncOn()||!ndOk()||tkAutoBusy||Date.now()-(tkAutoAt[d]||0)<20000) return;
+  var raw=bdRaw(d); if(!raw.length) return; tkAutoAt[d]=Date.now();
+  var live=raw.filter(function(x){ return !(x.data&&x.data.into); }), brigs=live.filter(function(x){ return x.kind==='brig'; });
+  for(var i=0;i<brigs.length;i++){
+    var b1=brigs[i], ts=(b1.data.nums||[]).concat(b1.data.lnum?[b1.data.lnum]:[]);
+    ndBrigAll(b1,d,b1.obj).forEach(function(e){ (e.team||[]).forEach(function(t){ ts.push(t.num); }); });
+    var team=numSet(ts); delete team[leadNum(b1,b1.data.lead)];
+    if(!tkMergeCands(raw,b1,team).length) continue;
+    tkAutoBusy=true;
+    tkMergeCore(d,raw,b1,team).then(function(){ tkAutoBusy=false; tkAutoAt[d]=0; },function(){ tkAutoBusy=false; });
+    return;
+  }
+}
+function tkMergeCore(d,raw,b1,team){
+    var live=raw.filter(function(x){ return !(x.data&&x.data.into); });
+    var brigs=live.filter(function(x){ return x.kind==='brig'; }), tasks=live.filter(function(x){ return x.kind==='task'; });
+    var L1=b1.data.lead;
     var leads={}; tasks.concat(brigs).forEach(function(x){ var L=x.kind==='brig'?x.data.lead:x.data.brig; if(L&&fioKey(L)!==fioKey(L1)) leads[fioKey(L)]=L; });
     var todo=Object.keys(leads).map(function(k){ var L2=leads[k], b2=brigs.filter(function(b){ return fioKey(b.data.lead)===k; })[0]||null, t2=tasks.filter(function(t){ return fioKey(t.data.brig)===k; })[0]||null;
-      var p2=brigLeadPerson(b2,L2), n2=b2&&b2.data.lnum?normNum(b2.data.lnum):(p2&&p2.p.num?normNum(p2.p.num):'');
+      var n2=leadNum(b2,L2);
       return n2&&team[n2]?{L2:L2,b2:b2,t2:t2,n2:n2}:null; }).filter(Boolean);
-    if(!todo.length) return;
+    if(!todo.length) return Promise.resolve();
     var puts=[], names=[], t1=tasks.filter(function(x){ return fioKey(x.data.brig)===fioKey(L1); })[0]||null, d1=t1?JSON.parse(JSON.stringify(t1.data||{})):null, base1=t1;
     var db=JSON.parse(JSON.stringify(b1.data||{})), bChanged=false;
     todo.forEach(function(x){
@@ -4215,10 +4245,10 @@ function tkMergeByPermit(e,hint){
     function have1(dd,n){ return !!numSet((dd.nums||[]).concat(dd.lnum?[dd.lnum]:[]))[n]; }
     if(base1) puts.unshift({kind:'task',d:d,obj:base1.obj,id:base1.id,data:d1});
     if(bChanged) puts.unshift({kind:'brig',d:d,obj:b1.obj,id:b1.id,data:db});
+    if(!todo.length) return Promise.resolve();
     var ch=Promise.resolve(); puts.forEach(function(it){ ch=ch.then(function(){ return bdPut(it); }); });
-    ch.then(function(){ toast('Бригадир '+names.join(', ')+' включён в наряд бригадира '+whoBase(L1)+': задание и состав добавлены, отвечает '+whoBase(L1)); bdFetch(d,true); })
+    return ch.then(function(){ toast('Бригадир '+names.join(', ')+' включён в бригаду '+whoBase(L1)+': задание и состав добавлены, отвечает '+whoBase(L1)); bdFetch(d,true); })
       .catch(function(er){ toast('Не удалось объединить бригады: '+((er&&er.message)||'нет связи')); });
-  }).catch(function(){});
 }
 function tkSend(){
   var d=tkDate||tkDef(), o=brgSt(), msg=$('tk_msg');
