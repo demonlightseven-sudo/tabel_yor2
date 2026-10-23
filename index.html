@@ -589,6 +589,8 @@ body.nws #xv>.note:first-child,body.nws #xv>.xno:first-child{margin-top:0}
 
 .tkedb{margin-top:6px;min-height:34px;padding:0 10px;font-size:13px}
 .tked .tkir{display:grid;grid-template-columns:22px minmax(0,1fr) 70px 76px 40px;gap:6px;align-items:center;margin:4px 0}.tked .tkih{font-size:12px;color:var(--muted)}
+
+body.vhdate #dateBtn{display:none}
 </style>
 </head>
 <body>
@@ -632,7 +634,7 @@ body.nws #xv>.note:first-child,body.nws #xv>.xno:first-child{margin-top:0}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='150';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='151';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1295,6 +1297,7 @@ function renderTop(){
   var btn=$('dateBtn');
   btn.textContent=WD[d.getDay()]+', '+d.getDate()+' '+MONTHS_G[d.getMonth()]+(ui.date===t?'':' ⚠');
   btn.className=ui.date===t?'':'past';
+  if(ui.view==='day'||ui.view==='docs'){ var hnd=$('hnav'); if(hnd) hnd.innerHTML=navDate('dayday',ui.date); }
   btn.setAttribute('aria-label','День: '+d.getDate()+' '+MONTHS_G[d.getMonth()]+(ui.date===t?', сегодня':', не сегодня')+'. Выбрать другой день');
   var q=$('q');
   q.placeholder=ui.numMode?'Табельный №':'Фамилия или №';
@@ -1339,7 +1342,7 @@ function render(){
   document.body.classList.toggle('vboard',ui.view==='board');
   document.body.classList.toggle('vtask',ui.view==='task'||ui.view==='teams');
   document.body.classList.toggle('vteams',ui.view==='teams');
-  document.body.classList.toggle('vhdate',ui.view==='board'||ui.view==='task'||ui.view==='brig'||ui.view==='nd'||ui.view==='teams');
+  document.body.classList.toggle('vhdate',ui.view==='board'||ui.view==='task'||ui.view==='brig'||ui.view==='nd'||ui.view==='teams'||ui.view==='day'||ui.view==='docs');
   renderTop(); renderBanner(); renderSyncBar(); slFetch(false);
   var nws=(ui.view==='task'||ui.view==='nd')&&wsOn(); document.body.classList.toggle('nws',nws);
   if(ui.view==='month') renderMonth(); else if(ui.view==='docs') renderDocs(); else if(ui.view==='nd') renderNd(); else if(isXv()) renderX(); else { renderStats(); renderList(); }
@@ -3173,6 +3176,7 @@ document.addEventListener('click',function(e){
   switch(a){
     case 'book': if(root.cur!==el.dataset.b){ root.cur=el.dataset.b; save(); ui.q=''; $('q').value=''; ui.open={}; clearMsg(); render(); window.scrollTo(0,0); pull(); } break;
     case 'date': sheetDate(); break;
+    case 'dayday': xDateSet('dayday',addDays(ui.date,Number(el.dataset.d))); break;
     case 'view': setView(el.dataset.v); break;
     case 'mnav': ui.month=shiftMonth(ui.month,Number(el.dataset.d)); renderMonth(); pull(); break;
     case 'mday': if($('mpop')&&$('mpop').dataset.d===el.dataset.d){ mPopClose(); break; } mDayPop(el.dataset.d,el); if($('mpop')) $('mpop').dataset.d=el.dataset.d; break;
@@ -3609,8 +3613,8 @@ function navDate(a,d){ var t=today();
     '<button class="xarr" data-a="'+a+'" data-d="1" aria-label="Следующий день">'+dmS(addDays(d,1))+' ▶</button></div>'; }
 function hdateStatic(d){ return '<div class="xnav"><span class="hdate hstatic">'+esc(dmyLong(d))+'</span></div>'; }
 /* окно выбора дня для доски и наряд-задания */
-function xDateGet(k){ return k==='bdday'?(bdDate||today()):k==='tmday'?(tmDate||today()):(tkDate||tkDef()); }
-function xDateSet(k,d){ if(k==='bdday') bdDate=d; else if(k==='tmday') tmDate=d; else tkDate=d; if(ui.view==='nd'){ ndBack=null; setView('task'); } else renderX(); }
+function xDateGet(k){ if(k==='dayday') return ui.date; return k==='bdday'?(bdDate||today()):k==='tmday'?(tmDate||today()):(tkDate||tkDef()); }
+function xDateSet(k,d){ if(k==='dayday'){ ui.date=d; ui.follow=d===today(); ui.open={}; clearMsg(); render(); pull(); return; } if(k==='bdday') bdDate=d; else if(k==='tmday') tmDate=d; else tkDate=d; if(ui.view==='nd'){ ndBack=null; setView('task'); } else renderX(); }
 function sheetXDate(k){ var d=xDateGet(k);
   openSheet('День','<div class="acts" style="margin-top:0"><button data-a="xdshift" data-k="'+k+'" data-d="-1">◀ '+dmS(addDays(d,-1))+'</button><button data-a="xdtoday" data-k="'+k+'" class="primary">'+dmS(today())+'</button><button data-a="xdshift" data-k="'+k+'" data-d="1">'+dmS(addDays(d,1))+' ▶</button></div>'+
     '<div class="fld" style="margin-top:12px"><label for="xdpick">Выбрать дату</label><input type="date" id="xdpick" data-k="'+k+'" value="'+d+'"></div>'+
