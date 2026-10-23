@@ -632,7 +632,7 @@ body.nws #xv>.note:first-child,body.nws #xv>.xno:first-child{margin-top:0}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='149';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='150';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3627,13 +3627,14 @@ function renderX(){
 function myBrigId(d){ return 'brig|'+d+'|'+nameKey(sync.who).slice(0,30); }
 function bookDay(b,d){
   var bb=root.books[b], day=(bb.records||{})[d]||{}, norm=memoNorm(b);
-  var c={list:0,work:0,ab:0,off:0,dob:0,sick:0,pl:0,ul:0,unm:0,fired:0,ot:0};
+  var c={list:0,work:0,ab:0,off:0,dob:0,sick:0,pl:0,ul:0,unm:0,fired:0,ot:0,wo:0};
   bb.people.forEach(function(p){
     if(p.archived||firedGone(p,d)) return;
     if(firedOn(p,d)&&!day[p.id]){ c.fired++; return; }
     c.list++; var r=day[p.id];
     if(!r){ if(planOff(p,d)===true) c.dob++; else c.unm++; return; }
-    if(c[r.s]!=null) c[r.s]++; if(r.s==='work'&&(Number(r.h)||0)>norm) c.ot++;
+    if(c[r.s]!=null) c[r.s]++;
+    if(r.s==='work'){ if(planOff(p,d)===true) c.wo++; else if((Number(r.h)||0)>norm) c.ot++; }   // в выходной по графику — отдельно, не сверхурочка
   });
   return c;
 }
@@ -4399,7 +4400,7 @@ function brigMembers(x,d){ var dd=x.data||{}, bad=0, no=0;
 document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classList&&(t.classList.contains('xmem')||t.classList.contains('xmore')||t.classList.contains('xobjd'))) bdMemOpen[t.dataset.bid]=t.open; },true);
 function bdRender(){
   var d=bdDate||today(); bdFetch(d,false); bdFetch(addDays(d,-1),false); bdPullDay(d);
-  var cols=[['list','В списке'],['work','Пришли'],['ab','Прогул'],['dob','Выходной по графику'],['sick','Больничный'],['pl','Отпуск'],['ul','Отпуск без ЗП'],['unm','Без отметки'],['fired','Уволены'],['ot','Сверхурочка']];
+  var cols=[['list','В списке'],['work','Пришли'],['ab','Прогул'],['dob','Выходной по графику'],['sick','Больничный'],['pl','Отпуск'],['ul','Отпуск без ЗП'],['unm','Без отметки'],['wo','Работают в выходной'],['ot','Сверхурочка']];
   var rf=bookDay('rf',d), ar=bookDay('are',d), tot={}; cols.forEach(function(c){ tot[c[0]]=rf[c[0]]+ar[c[0]]; });
   var hn=$('hnav'); if(hn) hn.innerHTML=navDate('bdday',d);
   var h=
