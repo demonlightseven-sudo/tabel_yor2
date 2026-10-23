@@ -632,7 +632,7 @@ body.nws #xv>.note:first-child,body.nws #xv>.xno:first-child{margin-top:0}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='147';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='148';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2906,15 +2906,15 @@ function ndTeamSet(e){ return numSet((e.team||[]).map(function(t){ return t.num;
 function overlapN(a,b){ var n=0; Object.keys(a).forEach(function(k){ if(b[k]) n++; }); return n; }
 /* бригада (поданная бригадиром численность) на день d, которая работает по этому наряду */
 function ndBrigOf(e,d){
-  var obj=ndGuessObj(e.code), ts=ndTeamSet(e), best=null, bestN=-1;
-  var brigs=bdItems(d).filter(function(x){ return x.kind==='brig'&&(!obj||x.obj===obj); });
+  var obj=ndGuessObj(e.code), ts=ndTeamSet(e), best=null, bestN=-1, who=(e.exec||'')+' '+(e.head||'')+' '+(e.prep||''), whoL=latN(who);
+  var brigs=bdItems(d).filter(function(x){ return x.kind==='brig'; });
   brigs.forEach(function(x){
     var s=numSet((x.data.nums||[]).concat([x.data.lnum])), n=overlapN(ts,s);
-    var nm=fioKey(x.data.lead).split(' ')[0]; if(nm&&fioKey((e.exec||'')+' '+(e.head||'')+' '+(e.prep||'')).indexOf(nm)>=0) n+=0.5;
+    var nm=fioKey(x.data.lead).split(' ')[0]; if(nm&&(fioKey(who).indexOf(nm)>=0||whoL.indexOf(latN(nm).trim())>=0)) n+=0.5;
+    if(obj&&x.obj===obj) n+=0.25;
     if(n>bestN){ bestN=n; best=x; }
   });
-  if(best&&bestN<=0&&brigs.length>1) return null;
-  return best;
+  return best&&bestN>=0.5?best:null;   // ни одного общего человека и не его ФИО — наряд не этой бригады
 }
 /* кого вывести и кого завести: сравниваем с составом прошлого дня по этому наряду (или с составом при выдаче наряда) */
 function ndComp(e,d){
@@ -3207,6 +3207,7 @@ document.addEventListener('click',function(e){
     case 'ndmemadd': ndMemNew(el); break;
     case 'wssel': wsPick(el.dataset.l); break;
     case 'tkedit': tkEditOpen(el.dataset.id,el.dataset.d); break;
+    case 'tkunm': tkUnmerge(el.dataset.d,el.dataset.l1,el.dataset.l2); break;
     case 'tkedel': if(tkEd){ tkEd.items.splice(Number(el.dataset.i),1); tkEditRender(); } break;
     case 'tkerow': if(tkEd){ tkEd.items.push({t:'',v:'',u:'',fr:'',o:null}); tkEditRender(); var nl=tkEd.items.length-1; setTimeout(function(){ var e=document.querySelector('[data-tke="'+nl+'"][data-tkk="t"]'); if(e) e.focus(); },30); } break;
     case 'tkesave': tkEditSave(); break;
@@ -3845,7 +3846,7 @@ function tkCard(x){
   var del=role()!=='mont'&&(isAdmin()||x.role===role())?'<button class="tbtx tkx" data-a="tkdel" data-id="'+esc(x.id)+'" aria-label="Удалить задание">✕</button>':'';
   var right=f?(b?'<span class="xchr"><span class="xok">'+(b.data.nums||[]).length+' чел. · '+new Date(b.t).toTimeString().slice(0,5)+'</span>'+(b.obj!==x.obj?' <small class="xno">подал на '+esc(b.obj)+'</small>':'')+'</span>':'<span class="xchr xno">численность не подана</span>'):'';
   return '<div class="xcard'+(f?' xs-'+f.lvl:'')+(del?' tkdc':'')+'"><div class="xch"><b>'+esc(x.obj)+'</b> · <b>'+esc(whoBase(dd.brig)||'—')+'</b>'+right+del+'</div>'+(f?'<div class="xchipw">'+f.html+'</div>':'')+
-    '<div class="xtask">'+tkTaskBody(x)+'<small class="xtby">Выдал: '+esc(whoBase(x.who))+' · '+fmtDT(x.t)+((x.data||{}).edited?' · изменил: '+esc(whoBase(x.data.edited.by))+' '+fmtDT(x.data.edited.t):'')+'</small>'+(role()==='nach'?'<button type="button" class="tkedb" data-a="tkedit" data-id="'+esc(x.id)+'" data-d="'+esc(x.d)+'">✎ Изменить задание</button>':'')+'</div>'+
+    '<div class="xtask">'+tkTaskBody(x)+'<small class="xtby">Выдал: '+esc(whoBase(x.who))+' · '+fmtDT(x.t)+((x.data||{}).edited?' · изменил: '+esc(whoBase(x.data.edited.by))+' '+fmtDT(x.data.edited.t):'')+'</small>'+(role()==='nach'?'<button type="button" class="tkedb" data-a="tkedit" data-id="'+esc(x.id)+'" data-d="'+esc(x.d)+'">✎ Изменить задание</button>'+tkMergedInto(x.d,dd.brig).map(function(L2){ return '<button type="button" class="tkedb" data-a="tkunm" data-d="'+esc(x.d)+'" data-l1="'+esc(dd.brig)+'" data-l2="'+esc(L2)+'">⇄ Разъединить: '+esc(whoBase(L2))+'</button>'; }).join(''):'')+'</div>'+
     (f?'':ackHtml(x))+
     (f?(b?brigMembers(b,x.d):'')+ndCompBlock(b,x.d,x.obj)+ndKinds4(x.obj,x.d,b,dd.brig):'')+'</div>';
 }
@@ -4196,7 +4197,7 @@ function tkMergeCands(raw,b1,team){
   var live=raw.filter(function(x){ return !(x.data&&x.data.into); }), brigs=live.filter(function(x){ return x.kind==='brig'; }), tasks=live.filter(function(x){ return x.kind==='task'; });
   var L1=b1.data.lead, leads={};
   tasks.concat(brigs).forEach(function(x){ var L=x.kind==='brig'?x.data.lead:x.data.brig; if(L&&fioKey(L)!==fioKey(L1)) leads[fioKey(L)]=L; });
-  return Object.keys(leads).map(function(k){ var L2=leads[k], b2=brigs.filter(function(b){ return fioKey(b.data.lead)===k; })[0]||null, n2=leadNum(b2,L2); return n2&&team[n2]?k:null; }).filter(Boolean);
+  return Object.keys(leads).map(function(k){ var L2=leads[k], b2=brigs.filter(function(b){ return fioKey(b.data.lead)===k; })[0]||null, n2=leadNum(b2,L2); return n2&&team[n2]&&!tkNoMerge(live,k,L1)?k:null; }).filter(Boolean);
 }
 /* автоматически: бригадир №2 есть в поданном составе бригадира №1 или в его открытых нарядах -> объединяем (делает прораб / начальник / техник при открытии «Нарядов») */
 var tkAutoAt={}, tkAutoBusy=false;
@@ -4205,14 +4206,44 @@ function tkAutoMerge(d){
   var raw=bdRaw(d); if(!raw.length) return; tkAutoAt[d]=Date.now();
   var live=raw.filter(function(x){ return !(x.data&&x.data.into); }), brigs=live.filter(function(x){ return x.kind==='brig'; });
   for(var i=0;i<brigs.length;i++){
-    var b1=brigs[i], ts=(b1.data.nums||[]).concat(b1.data.lnum?[b1.data.lnum]:[]);
-    ndBrigAll(b1,d,b1.obj).forEach(function(e){ (e.team||[]).forEach(function(t){ ts.push(t.num); }); });
+    var b1=brigs[i], ts=(b1.data.nums||[]).concat(b1.data.lnum?[b1.data.lnum]:[]), own=numSet(ts);
+    ndBrigAll(b1,d,b1.obj).forEach(function(e){ var et=ndTeamSet(e), n=Object.keys(et).length; if(n&&overlapN(et,own)*2>n) (e.team||[]).forEach(function(t){ ts.push(t.num); }); });
     var team=numSet(ts); delete team[leadNum(b1,b1.data.lead)];
     if(!tkMergeCands(raw,b1,team).length) continue;
     tkAutoBusy=true;
     tkMergeCore(d,raw,b1,team).then(function(){ tkAutoBusy=false; tkAutoAt[d]=0; },function(){ tkAutoBusy=false; });
     return;
   }
+}
+function tkNoMerge(items,k2,L1){ var k1=fioKey(L1); return items.some(function(x){ var L=x.kind==='brig'?x.data.lead:x.data.brig; return (x.kind==='brig'||x.kind==='task')&&fioKey(L)===k2&&Array.isArray(x.data.nm)&&x.data.nm.indexOf(k1)>=0; }); }
+/* кого присоединили к бригаде L1 (для кнопки «Разъединить») */
+function tkMergedInto(d,L1){ var k1=fioKey(L1), out={}; bdRaw(d).forEach(function(x){ var dd=x.data||{}; if(dd.into&&fioKey(dd.intoLead||dd.intoBrig)===k1){ var L=x.kind==='brig'?dd.lead:dd.brig; if(L) out[fioKey(L)]=L; } }); return Object.keys(out).map(function(k){ return out[k]; }); }
+function tkUnmerge(d,L1,L2){
+  if(role()!=='nach'){ toast('Разъединить может только начальник участка'); return; }
+  if(!confirm('Разъединить: вернуть '+whoBase(L2)+' его наряд-задание и людей из его бригады, убрать их у '+whoBase(L1)+'?')) return;
+  var raw=bdRaw(d), k1=fioKey(L1), k2=fioKey(L2), puts=[];
+  var b1=raw.filter(function(x){ return x.kind==='brig'&&fioKey(x.data.lead)===k1&&!x.data.into; })[0], t1=raw.filter(function(x){ return x.kind==='task'&&fioKey(x.data.brig)===k1&&!x.data.into; })[0];
+  var b2=raw.filter(function(x){ return x.kind==='brig'&&fioKey(x.data.lead)===k2; })[0], t2=raw.filter(function(x){ return x.kind==='task'&&fioKey(x.data.brig)===k2; })[0];
+  if(b1&&b2){ var db=JSON.parse(JSON.stringify(b1.data)), rm={}, mn=numSet(db.mnums||[]);
+    (b2.data.nums||[]).concat(b2.data.lnum?[b2.data.lnum]:[]).forEach(function(n){ var k=normNum(n); if(mn[k]) rm[k]=1; });
+    db.nums=(db.nums||[]).filter(function(n){ return !rm[normNum(n)]; }); db.mnums=(db.mnums||[]).filter(function(n){ return !rm[normNum(n)]; });
+    db.mergedB=(db.mergedB||[]).filter(function(m){ return fioKey(m.lead)!==k2; });
+    puts.push({kind:'brig',d:d,obj:b1.obj,id:b1.id,data:db}); }
+  if(b2&&b2.data.into){ var d2=JSON.parse(JSON.stringify(b2.data)); delete d2.into; delete d2.intoLead; d2.nm=(d2.nm||[]).concat([k1]); puts.push({kind:'brig',d:d,obj:b2.obj,id:b2.id,data:d2}); }
+  if(t1){ var dt=JSON.parse(JSON.stringify(t1.data)), keep=[], its=tkItemsFor(dt);
+    its.forEach(function(it,i){ if(fioKey(it.fr||'')!==k2) keep.push(i); });
+    if(keep.length<its.length){
+      var dn=tkDone(t1);
+      dt.items=keep.map(function(i){ return its[i]; }); dt.tasks=tkText(dt.items,dt.note); dt.merged=(dt.merged||[]).filter(function(m){ return fioKey(m.brig)!==k2; });
+      puts.push({kind:'task',d:d,obj:t1.obj,id:t1.id,data:dt});
+      if(dn&&dn.data&&Array.isArray(dn.data.facts)&&dt.items.length){ var nd=JSON.parse(JSON.stringify(dn.data)); nd.facts=keep.map(function(i){ return dn.data.facts[i]||{f:null,p:0}; });
+        var sm=nd.facts.reduce(function(a,f){ return a+(Number(f.p)||0); },0); nd.pct=Math.round(sm/nd.facts.length); nd.st=nd.facts.every(function(f){ return f.p>=100; })?'ok':nd.pct===0?'no':'part'; puts.push({kind:'done',d:d,obj:dn.obj||t1.obj,id:dn.id,data:nd}); }
+    } }
+  if(t2&&t2.data.into){ var e2=JSON.parse(JSON.stringify(t2.data)); delete e2.into; delete e2.intoBrig; e2.nm=(e2.nm||[]).concat([k1]); puts.push({kind:'task',d:d,obj:t2.obj,id:t2.id,data:e2}); }
+  else if(t2&&fioKey(t2.data.brig)===k1&&t2.data.from&&fioKey(t2.data.from)===k2){ var e3=JSON.parse(JSON.stringify(t2.data)); e3.brig=t2.data.from; delete e3.from; e3.nm=(e3.nm||[]).concat([k1]); puts.push({kind:'task',d:d,obj:t2.obj,id:t2.id,data:e3}); }
+  if(!puts.length){ toast('Нечего разъединять'); return; }
+  var ch=Promise.resolve(); puts.forEach(function(it){ ch=ch.then(function(){ return bdPut(it); }); });
+  ch.then(function(){ toast('Разъединено: '+whoBase(L2)+' снова отдельно'); tkAutoAt[d]=Date.now(); bdFetch(d,true); }).catch(function(er){ toast('Не удалось: '+((er&&er.message)||'нет связи')); });
 }
 function tkMergeCore(d,raw,b1,team){
     var live=raw.filter(function(x){ return !(x.data&&x.data.into); });
@@ -4221,7 +4252,7 @@ function tkMergeCore(d,raw,b1,team){
     var leads={}; tasks.concat(brigs).forEach(function(x){ var L=x.kind==='brig'?x.data.lead:x.data.brig; if(L&&fioKey(L)!==fioKey(L1)) leads[fioKey(L)]=L; });
     var todo=Object.keys(leads).map(function(k){ var L2=leads[k], b2=brigs.filter(function(b){ return fioKey(b.data.lead)===k; })[0]||null, t2=tasks.filter(function(t){ return fioKey(t.data.brig)===k; })[0]||null;
       var n2=leadNum(b2,L2);
-      return n2&&team[n2]?{L2:L2,b2:b2,t2:t2,n2:n2}:null; }).filter(Boolean);
+      return n2&&team[n2]&&!tkNoMerge(live,fioKey(L2),L1)?{L2:L2,b2:b2,t2:t2,n2:n2}:null; }).filter(Boolean);
     if(!todo.length) return Promise.resolve();
     var puts=[], names=[], t1=tasks.filter(function(x){ return fioKey(x.data.brig)===fioKey(L1); })[0]||null, d1=t1?JSON.parse(JSON.stringify(t1.data||{})):null, base1=t1;
     var db=JSON.parse(JSON.stringify(b1.data||{})), bChanged=false;
