@@ -632,7 +632,7 @@ body.nws #xv>.note:first-child,body.nws #xv>.xno:first-child{margin-top:0}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='148';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='149';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3577,7 +3577,8 @@ function brgListHtml(list,pk){
         all.map(function(x){ return '<button type="button" class="ndchip'+(pk[k]===x.b?' on':'')+'" data-a="brgpk" data-n="'+esc(k)+'" data-b="'+x.b+'">'+esc(x.p.name)+' <small>'+BOOKS[x.b]+(x.p.role?' · '+esc(x.p.role):'')+'</small></button>'; }).join('')+'</div></div>';
     }
     var x=all[0]||anyPerson(n);
-    return '<div class="xrow"><b>'+(i+1)+'.</b> '+esc(n)+' '+(x?esc(x.p.name)+' <small>'+esc(x.p.role||'')+'</small>':'<span class="xno">нет в табеле</span>')+'</div>';
+    var gone=x&&firedOn(x.p,today());
+    return '<div class="xrow'+(x&&!gone?'':' xbad')+'"><b>'+(i+1)+'.</b> '+esc(n)+' '+(x?esc(x.p.name)+' <small>'+esc(x.p.role||'')+'</small>'+(gone?' <span class="xno">уволен — проверьте №</span>':''):'<span class="xno">нет на участке — проверьте табельный №</span>')+'</div>';
   }).join('');
 }
 function brgDups(list,pk){ pk=pk||{}; return list.filter(function(n){ return anyPersons(n).length>1&&!(pk[normNum(n)]==='rf'||pk[normNum(n)]==='are'); }); }
@@ -3688,6 +3689,11 @@ function brgSend(){
   var o=brgSt(), d=today(), msg=$('brg_msg');
   o.obj=$('brg_obj').value; o.nums=$('brg_nums').value; o.lnum=$('brg_lnum').value.trim(); brgSave(o);
   var nums=parseNums(o.nums); if(!nums.length){ msg.textContent='Введите табельные номера.'; return; }
+  var booksOk=root.books.rf.people.length>0&&root.books.are.people.length>0;   // на телефоне есть оба списка — можно проверять
+  if(booksOk){
+    var bad=nums.concat(o.lnum?[o.lnum]:[]).filter(function(n){ return !anyPersons(n).some(function(x){ return !firedOn(x.p,d); }); });
+    if(bad.length){ msg.textContent='Табельного № '+bad.join(', ')+' нет на участке. Проверьте правильность ввода табельного номера — численность не подана.'; var ta=$('brg_nums'); if(ta) ta.focus(); return; }
+  }
   var mineP=bdItems(d).filter(function(x){ return x.kind==='brig'&&x.id===myBrigId(d); })[0], pk0=o.pk||((mineP&&mineP.data&&mineP.data.pk)||{});
   var dups=brgDups(nums,pk0); if(dups.length){ msg.textContent='Одинаковый табельный № '+dups.join(', ')+' — выберите в списке выше, кого из рабочих взять в бригаду.'; return; }
   if(bdRaw(d).some(function(x){ return x.kind==='brig'&&x.id===myBrigId(d)&&x.data&&x.data.into; })){ msg.textContent='Ваша бригада включена в другую бригаду — численность подаёт её бригадир.'; return; }
