@@ -597,6 +597,11 @@ body.vhdate #dateBtn{display:none}
 .tkbx{display:inline-block;padding:0 6px;border:1px solid var(--line);border-radius:5px;font-size:12px;line-height:18px;white-space:nowrap}
 .tkpl~.tkbx{border-color:#d4a017}.tkfa~.tkbx{border-color:#2fa84f}
 .xmem>.ndk4,.xmem>.ndtbtb{margin-top:6px}
+
+.xobjtk{font-weight:400;font-size:14px;color:var(--ink);margin-top:8px;display:grid;gap:6px}
+.xobjd[open] .xobjtk{display:none}
+.xotr{padding:6px 10px;border:1px solid var(--line);border-radius:8px}
+.xotn{font-weight:700;font-size:13px;color:var(--muted);margin-bottom:2px}
 </style>
 </head>
 <body>
@@ -640,7 +645,7 @@ body.vhdate #dateBtn{display:none}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='154';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='155';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4467,7 +4472,8 @@ function bdRender(){
     if(sum.comp) oChip('warn','состав ≠ наряд: '+sum.comp);
     if(sum.n&&!sum.bad&&!sum.warn) oc=['<span class="xchip ok">✓ всё в порядке</span>'];
     var olvl=sum.bad?'bad':sum.warn?'warn':'ok';
-    fl.push({lvl:olvl, i:fl.length, html:'<div class="xobj xo-'+olvl+'"><details class="xobjd" data-bid="'+esc(ok)+'"'+(bdMemOpen[ok]?' open':'')+'><summary class="xobjh">'+esc(o)+' <small>Бригадиров: '+to.length+' · чел.: <b class="xok">'+bo.reduce(function(s,x){ return s+(x.data.nums||[]).length; },0)+'</b></small>'+(oc.length?'<span class="xchips xochips">'+oc.join('')+'</span>':'')+'</summary>'+
+    fl.push({lvl:olvl, i:fl.length, html:'<div class="xobj xo-'+olvl+'"><details class="xobjd" data-bid="'+esc(ok)+'"'+(bdMemOpen[ok]?' open':'')+'><summary class="xobjh">'+esc(o)+' <small>Бригадиров: '+to.length+' · чел.: <b class="xok">'+bo.reduce(function(s,x){ return s+(x.data.nums||[]).length; },0)+'</b></small>'+(oc.length?'<span class="xchips xochips">'+oc.join('')+'</span>':'')+
+      (to.length?'<div class="xobjtk">'+to.map(function(t){ return '<div class="xotr"><div class="xotn">'+esc(whoBase(t.data.brig))+'</div>'+(tkHasItems(t)?tkTaskBody(t,'bd'):'<div class="tkil">'+tkTaskBody(t,true)+'</div>')+'</div>'; }).join('')+'</div>':'')+'</summary>'+
       (cards||'<p class="note">Наряд-заданий и бригад нет.</p>')+foot+'</details></div>'});
   });
   var LV={bad:0,warn:1,ok:2}; fl.sort(function(a,b){ return LV[a.lvl]-LV[b.lvl]||a.i-b.i; }); frames=fl.map(function(x){ return x.html; }).join('');
