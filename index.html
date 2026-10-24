@@ -645,7 +645,7 @@ body.vhdate #dateBtn{display:none}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='156';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='157';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3942,7 +3942,7 @@ function tkHasItems(x){ var it=(x.data||{}).items; return Array.isArray(it)&&it.
 function tkBodyBd(x,noF){
   var dd=x.data||{}, dn=noF?null:tkDone(x), fc=dn&&dn.data&&Array.isArray(dn.data.facts)?dn.data.facts:null;
   return '<div class="tkil">'+dd.items.map(function(it,i){ var f=fc&&fc[i], pl=tkNum(it.v), u=it.u?' '+esc(it.u):'', fv;
-      if(!f) fv='—'; else if(pl!=null) fv=esc(tkFmt(f.f))+u+' <b class="'+(f.p>=100?'tkok':f.p>0?'tkpart':'xno')+'">'+f.p+'%</b>'; else fv=f.p>=100?'сделано':'<span class="xno">не сделано</span>';
+      if(!f||(pl!=null&&f.f==null)) fv='—'; else if(pl!=null) fv=esc(tkFmt(f.f))+u+' <b class="'+(f.p>=100?'tkok':f.p>0?'tkpart':'xno')+'">'+f.p+'%</b>'; else fv=f.p>=100?'сделано':'<span class="xno">не сделано</span>';
       return '<div class="tki"><b>'+(i+1)+'.</b> '+esc(it.t)+(it.fr?' <small class="tkfr">(из задания '+esc(whoBase(it.fr))+')</small>':'')+
         '<div class="tkpf">'+(pl!=null?'<span><b class="tkpl">План</b> — <span class="tkbx">'+esc(it.v)+u+'</span></span>':'')+(noF?'':'<span><b class="tkfa">Факт</b> — <span class="tkbx">'+fv+'</span></span>')+'</div></div>'; }).join('')+
     (dd.note?'<div class="tkinote">'+esc(dd.note)+'</div>':'')+'</div>';
@@ -4233,7 +4233,9 @@ function tkMergeCands(raw,b1,team){
 /* автоматически: бригадир №2 есть в поданном составе бригадира №1 или в его открытых нарядах -> объединяем (делает прораб / начальник / техник при открытии «Нарядов») */
 var tkAutoAt={}, tkAutoBusy=false;
 function tkJoinData(base,add,who){
-  var a=JSON.parse(JSON.stringify(base.data||{})), items=tkItemsFor(a).concat(tkItemsFor(add.data||add));
+  var a=JSON.parse(JSON.stringify(base.data||{})), old=tkItemsFor(a), key=function(x){ return [String(x.t||'').trim().toLowerCase(),String(x.v||'').trim(),x.u||''].join('|'); }, seen={};
+  old.forEach(function(x){ seen[key(x)]=1; });
+  var items=old.concat(tkItemsFor(add.data||add).filter(function(x){ var k=key(x); if(seen[k]) return false; seen[k]=1; return true; }));   // одинаковые пункты не повторяем
   var notes=[a.note,(add.data||add).note].map(function(x){ return String(x||'').trim(); }).filter(function(x,i,arr){ return x&&arr.indexOf(x)===i; });
   a.items=items; a.note=notes.join('; ').slice(0,500); a.tasks=tkText(items,a.note).slice(0,3000); a.added={by:who||'',t:Date.now()};
   return a;
