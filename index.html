@@ -640,7 +640,7 @@ body.vhdate #dateBtn{display:none}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='153';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='154';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3863,7 +3863,7 @@ function tkCard(x){
   var del=role()!=='mont'&&(isAdmin()||x.role===role())?'<button class="tbtx tkx" data-a="tkdel" data-id="'+esc(x.id)+'" aria-label="Удалить задание">✕</button>':'';
   var right=f?(b?'<span class="xchr"><span class="xok">'+(b.data.nums||[]).length+' чел. · '+new Date(b.t).toTimeString().slice(0,5)+'</span>'+(b.obj!==x.obj?' <small class="xno">подал на '+esc(b.obj)+'</small>':'')+'</span>':'<span class="xchr xno">численность не подана</span>'):'';
   return '<div class="xcard'+(f?' xs-'+f.lvl:'')+(del?' tkdc':'')+'"><div class="xch"><b>'+esc(x.obj)+'</b> · <b>'+esc(whoBase(dd.brig)||'—')+'</b>'+right+del+'</div>'+(f?'<div class="xchipw">'+f.html+'</div>':'')+
-    '<div class="xtask">'+tkTaskBody(x)+'<small class="xtby">Выдал: '+esc(whoBase(x.who))+' · '+fmtDT(x.t)+((x.data||{}).edited?' · изменил: '+esc(whoBase(x.data.edited.by))+' '+fmtDT(x.data.edited.t):'')+'</small>'+(role()==='nach'?'<button type="button" class="tkedb" data-a="tkedit" data-id="'+esc(x.id)+'" data-d="'+esc(x.d)+'">✎ Изменить задание</button>'+tkMergedInto(x.d,dd.brig).map(function(L2){ return '<button type="button" class="tkedb" data-a="tkunm" data-d="'+esc(x.d)+'" data-l1="'+esc(dd.brig)+'" data-l2="'+esc(L2)+'">⇄ Разъединить: '+esc(whoBase(L2))+'</button>'; }).join(''):'')+'</div>'+
+    '<div class="xtask">'+tkTaskBody(x,'nd')+'<small class="xtby">Выдал: '+esc(whoBase(x.who))+' · '+fmtDT(x.t)+((x.data||{}).edited?' · изменил: '+esc(whoBase(x.data.edited.by))+' '+fmtDT(x.data.edited.t):'')+'</small>'+(role()==='nach'?'<button type="button" class="tkedb" data-a="tkedit" data-id="'+esc(x.id)+'" data-d="'+esc(x.d)+'">✎ Изменить задание</button>'+tkMergedInto(x.d,dd.brig).map(function(L2){ return '<button type="button" class="tkedb" data-a="tkunm" data-d="'+esc(x.d)+'" data-l1="'+esc(dd.brig)+'" data-l2="'+esc(L2)+'">⇄ Разъединить: '+esc(whoBase(L2))+'</button>'; }).join(''):'')+'</div>'+
     (f?'':ackHtml(x))+
     (f?(b?brigMembers(b,x.d):'')+ndCompBlock(b,x.d,x.obj)+ndKinds4(x.obj,x.d,b,dd.brig):'')+'</div>';
 }
@@ -3934,18 +3934,18 @@ document.addEventListener('input',function(e){ var t=e.target; if(!t||!t.dataset
 document.addEventListener('change',function(e){ var t=e.target; if(t&&t.dataset&&t.dataset.tki!=null&&tkItems[Number(t.dataset.tki)]) tkItems[Number(t.dataset.tki)][t.dataset.tkk]=t.value; if(t&&t.dataset&&t.dataset.tkf&&t.type==='checkbox'){ var a=t.dataset.tkf.split('|'); (tkFacts[a[0]]=tkFacts[a[0]]||{})[a[1]]=t.checked; } },true);
 /* текст задания: пункты с планом и фактом (если бригадир отчитался) */
 function tkHasItems(x){ var it=(x.data||{}).items; return Array.isArray(it)&&it.length>0; }
-function tkBodyBd(x){
-  var dd=x.data||{}, dn=tkDone(x), fc=dn&&dn.data&&Array.isArray(dn.data.facts)?dn.data.facts:null;
+function tkBodyBd(x,noF){
+  var dd=x.data||{}, dn=noF?null:tkDone(x), fc=dn&&dn.data&&Array.isArray(dn.data.facts)?dn.data.facts:null;
   return '<div class="tkil">'+dd.items.map(function(it,i){ var f=fc&&fc[i], pl=tkNum(it.v), u=it.u?' '+esc(it.u):'', fv;
       if(!f) fv='—'; else if(pl!=null) fv=esc(tkFmt(f.f))+u+' <b class="'+(f.p>=100?'tkok':f.p>0?'tkpart':'xno')+'">'+f.p+'%</b>'; else fv=f.p>=100?'сделано':'<span class="xno">не сделано</span>';
       return '<div class="tki"><b>'+(i+1)+'.</b> '+esc(it.t)+(it.fr?' <small class="tkfr">(из задания '+esc(whoBase(it.fr))+')</small>':'')+
-        '<div class="tkpf">'+(pl!=null?'<span><b class="tkpl">План</b> — <span class="tkbx">'+esc(it.v)+u+'</span></span>':'')+'<span><b class="tkfa">Факт</b> — <span class="tkbx">'+fv+'</span></span></div></div>'; }).join('')+
+        '<div class="tkpf">'+(pl!=null?'<span><b class="tkpl">План</b> — <span class="tkbx">'+esc(it.v)+u+'</span></span>':'')+(noF?'':'<span><b class="tkfa">Факт</b> — <span class="tkbx">'+fv+'</span></span>')+'</div></div>'; }).join('')+
     (dd.note?'<div class="tkinote">'+esc(dd.note)+'</div>':'')+'</div>';
 }
 function tkTaskBody(x,noFact){
   var dd=x.data||{};
   if(!tkHasItems(x)) return esc(dd.tasks||'').replace(/\n/g,'<br>');
-  if(noFact==='bd') return tkBodyBd(x);
+  if(noFact==='bd'||noFact==='nd') return tkBodyBd(x,noFact==='nd');
   var dn=noFact?null:tkDone(x), fc=dn&&dn.data&&Array.isArray(dn.data.facts)?dn.data.facts:null;
   return '<div class="tkil">'+dd.items.map(function(it,i){ var f=fc&&fc[i], pl=tkNum(it.v), fx='';
       if(f){ fx=pl!=null?' · факт '+esc(tkFmt(f.f))+(it.u?' '+esc(it.u):'')+' <b class="'+(f.p>=100?'tkok':f.p>0?'tkpart':'xno')+'">'+f.p+'%</b>':' · <b class="'+(f.p>=100?'tkok':'xno')+'">'+(f.p>=100?'сделано':'не сделано')+'</b>'; }
