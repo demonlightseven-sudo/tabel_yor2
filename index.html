@@ -637,7 +637,8 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 .monstrip{gap:8px 10px!important}
 .monstrip .ms{display:flex;flex-direction:column;gap:2px;min-width:92px;padding:6px 10px;border:1px solid var(--line);border-radius:8px}
 .monstrip .ms small{font-size:11px;line-height:1.2;color:var(--muted)}
-.monstrip .ms b{font-size:22px;margin:0}
+.monstrip .ms b{font-size:22px;margin:0;text-align:center}
+.monstrip .y b{color:#d4a017}.monstrip .v b{color:#9b59d0}
 .montt .mppl{color:#2fa84f;font-weight:800}
 .montt tr.og .mppl{font-size:14px}
 .montt td.mw .mrf{display:block;font-size:12px;line-height:1.35;color:var(--ink);opacity:.85;margin-top:2px}
@@ -684,7 +685,7 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='166';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='167';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4564,7 +4565,7 @@ function monHtml(d,rf,ar,tot){
   var r0=role(); if(!MV&&r0!=='nach'&&r0!=='tech') return '<div class="monwrap"><p class="note">Мониторинг доступен начальнику участка и техникам. Войдите в приложение под своей учётной записью.</p></div>';
   monAt=Date.now();
   function n(v){ return v?String(v):'0'; }
-  var strip=[['list','В списке',''],['work','Пришли','g'],['ab','Прогул','r'],['dob','Выходной по графику',''],['sick','Больничный',''],['pl','Отпуск',''],['ul','Отпуск без ЗП',''],['wo','Работа в выходной',''],['ot','Сверхурочная работа','']]
+  var strip=[['list','В списке',''],['work','Пришли','g'],['ab','Прогул','r'],['dob','Выходной по графику','y'],['sick','Больничный',''],['pl','Отпуск','v'],['ul','Отпуск без ЗП',''],['wo','Работа в выходной',''],['ot','Сверхурочная работа','']]
     .map(function(c){ return '<span class="ms '+c[2]+'" title="РФ '+n(rf[c[0]])+' · АРЕ '+n(ar[c[0]])+'"><small>'+c[1]+'</small><b>'+n(tot[c[0]])+'</b></span>'; }).join('');
   var items=bdItems(d), brigs=items.filter(function(x){ return x.kind==='brig'; }), tasks=items.filter(function(x){ return x.kind==='task'; });
   var objs=ND_OBJS.slice(); items.forEach(function(x){ if(x.obj&&objs.indexOf(x.obj)<0) objs.push(x.obj); });
