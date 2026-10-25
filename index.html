@@ -602,6 +602,12 @@ body.vhdate #dateBtn{display:none}
 .xobjd[open] .xobjtk{display:none}
 .xotr{padding:6px 10px;border:1px solid var(--line);border-radius:8px}
 .xotn{font-weight:700;font-size:13px;color:var(--muted);margin-bottom:2px}
+
+.xtj{table-layout:fixed;min-width:760px}
+.xtj th:first-child{width:64px}
+.xtj thead th{height:44px;line-height:1.2;vertical-align:middle;word-break:break-word;hyphens:auto}
+.xtj tbody td{font-size:22px;font-weight:700;height:46px;padding:4px 2px}
+.xtj tbody th{font-size:15px}
 </style>
 </head>
 <body>
@@ -645,7 +651,7 @@ body.vhdate #dateBtn{display:none}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='160';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='161';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4471,7 +4477,7 @@ function bdRender(){
   var rf=bookDay('rf',d), ar=bookDay('are',d), tot={}; cols.forEach(function(c){ tot[c[0]]=rf[c[0]]+ar[c[0]]; });
   var hn=$('hnav'); if(hn) hn.innerHTML=navDate('bdday',d);
   var h=
-    '<h3 class="tbth3">1. Явка</h3><div class="xtw"><table class="xt"><thead><tr><th></th>'+cols.map(function(c){ return '<th>'+c[1]+'</th>'; }).join('')+'</tr></thead><tbody>'+
+    '<h3 class="tbth3">1. Явка</h3><div class="xtw"><table class="xt xtj"><thead><tr><th></th>'+cols.map(function(c){ return '<th>'+c[1]+'</th>'; }).join('')+'</tr></thead><tbody>'+
     [['РФ',rf],['АРЕ',ar],['Всего',tot]].map(function(r){ return '<tr'+(r[0]==='Всего'?' class="xtot"':'')+'><th>'+r[0]+'</th>'+cols.map(function(c){ var v=r[1][c[0]]; return '<td class="'+(c[0]==='ab'&&v?'xbad':c[0]==='work'?'xgood':'')+'">'+(v||'')+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></div>';
   /* 2. наряд-задания по бригадирам и поданная ими численность */
   var items=bdItems(d), brigs=items.filter(function(x){ return x.kind==='brig'; }), tasks=items.filter(function(x){ return x.kind==='task'; }), usedB={};
