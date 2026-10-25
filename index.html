@@ -658,6 +658,16 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 .monstrip .g b{color:var(--work-t)}
 
 .tksub{display:inline-block;font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-right:2px;white-space:nowrap}
+
+.wsi{position:relative}.bellc{position:relative}
+.bell{position:absolute;right:8px;bottom:8px;display:inline-flex;align-items:center;gap:4px;min-width:34px;height:30px;padding:0 7px;border:1px solid var(--line);border-radius:8px;background:var(--surface,transparent);font-size:16px;line-height:1;cursor:pointer;z-index:2}
+.bellc .bell{top:8px;bottom:auto;right:48px}
+.bell small{font-size:11px;font-weight:700}
+.bell.bsent{border-color:#d4a017;background:rgba(212,160,23,.15)}.bell.bsent small{color:#d4a017}
+.bell.bok{border-color:#2fa84f;background:rgba(47,168,79,.15)}.bell.bok small{color:#2fa84f}
+.bell:focus-visible{outline:2px solid #d4a017;outline-offset:2px}
+.callbox{text-align:center}.callmsg{font-size:20px;line-height:1.35;margin:6px 0}
+.notifb{display:block;width:100%;margin:0 0 12px;padding:10px 12px;border:1px dashed #d4a017;border-radius:10px;background:transparent;color:inherit;font-weight:700;text-align:left}
 </style>
 </head>
 <body>
@@ -701,7 +711,7 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='176';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='177';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -885,7 +895,7 @@ function canPeople(show){ var r=role(); if(r==='nach'||r==='tech'||r==='prorab')
 var DAY_A={set:1,hstep:1,hset:1,undo:1,go:1,scan:1,fill:1,fillok:1};
 var PEOPLE_A={padd:1,pbulk:1,pbulkok:1,pdel:1,pdelarch:1,pdelall:1,pdelok:1,pedit:1,psave:1,parch:1,imp:1,'import':1,pwgo:1,pwsheet:1,defh:1};
 var ADMIN_A={ssave:1,slink:1,lshare:1,lcopy:1,spl:1,splok:1,smonth:1,soff:1,soffok:1};
-var MONT_A={extadd:1,brgpk:1,tmday:1,ktusave:1,tkrep:1,tkall:1,xdpick:1,xdshift:1,xdtoday:1,tkack:1,brgsend:1,brgpick:1,brgpickadd:1,tkdone:1,tkdoneedit:1,tkday:1,book:1,view:1,mnav:1,mday:1,msort:1,msortx:1,mfile:1,mfget:1,mfshare:1,mfull:1,mexp:1,mexport:1,close:1,menu:1,snow:1,install:1,doinstall:1,month:1,mshift:1};
+var MONT_A={callok:1,notifon:1,extadd:1,brgpk:1,tmday:1,ktusave:1,tkrep:1,tkall:1,xdpick:1,xdshift:1,xdtoday:1,tkack:1,brgsend:1,brgpick:1,brgpickadd:1,tkdone:1,tkdoneedit:1,tkday:1,book:1,view:1,mnav:1,mday:1,msort:1,msortx:1,mfile:1,mfget:1,mfshare:1,mfull:1,mexp:1,mexport:1,close:1,menu:1,snow:1,install:1,doinstall:1,month:1,mshift:1};
 function roleClick(a,el){
   var r=role(); if(!r) return false;
   if(r==='mont'&&(!MONT_A[a]||(a==='view'&&['month','brig','task','nar','teams'].indexOf(el.dataset.v)<0)||(a==='book'&&el.dataset.b==='are'))){ if(a!=='mcell'&&a!=='mdayopen') toast(a==='book'?'Бригадиру доступен только табель РФ':'Недоступно для бригадира'); return false; }
@@ -3289,6 +3299,9 @@ document.addEventListener('click',function(e){
     case 'tkedel': if(tkEd){ tkEd.items.splice(Number(el.dataset.i),1); tkEditRender(); } break;
     case 'tkerow': if(tkEd){ tkEd.items.push({t:'',v:'',u:'',fr:'',o:null}); tkEditRender(); var nl=tkEd.items.length-1; setTimeout(function(){ var e=document.querySelector('[data-tke="'+nl+'"][data-tkk="t"]'); if(e) e.focus(); },30); } break;
     case 'tkesave': tkEditSave(); break;
+    case 'bell': bellSend(el); break;
+    case 'callok': callOk(); break;
+    case 'notifon': try{ Notification.requestPermission().then(function(p){ toast(p==='granted'?'Оповещения включены':'Оповещения не разрешены — включите их в настройках браузера'); renderX(); }); }catch(e){} break;
     case 'extadd': extAdd(el); break;
     case 'pfedit': pfOpen(el.dataset.id,el.dataset.d); break;
     case 'pfxdel': if(pfEd){ pfEd.ext.splice(Number(el.dataset.i),1); pfRender(); } break;
@@ -3742,7 +3755,7 @@ function brgRender(){
   var obj=(mine&&mine.obj)||(tasks[0]&&tasks[0].obj)||o.obj||ND_OBJS[0], nums=o.nums!=null?o.nums:((mine&&mine.data&&mine.data.nums)||[]).join(' ');
   var list=parseNums(nums);
   var hn=$('hnav'); if(hn) hn.innerHTML=hdateStatic(d);
-  var h='<h2 class="dh2">Бригада</h2>'+(mine?ndWarnMont(d):'')+
+  var h='<h2 class="dh2">Бригада</h2>'+notifBanner()+(mine?ndWarnMont(d):'')+
     '<h3 class="tbth3">Наряд-задание на сегодня</h3>'+(tasks.length?tasks.map(tkCard).join(''):'<p class="xno">Прораб ещё не выдал вам наряд-задание на сегодня</p>')+
     '<h3 class="tbth3">Численность бригады</h3>'+
     (mine?'<p class="xok">✓ Подано в '+new Date(mine.t).toTimeString().slice(0,5)+' · '+esc(mine.obj)+' · '+((mine.data.nums||[]).length)+' чел.</p>':'<p class="xno">Численность на сегодня ещё не подана</p>')+
@@ -3937,7 +3950,7 @@ function tkCard(x){
   if(ndOk()){ b=bdItems(x.d).filter(function(y){ return y.kind==='brig'&&fioKey(y.data.lead)===fioKey(dd.brig); })[0]||null; f=bdStat(x.obj,x.d,b,x); }
   var del=role()!=='mont'&&(isAdmin()||x.role===role())?'<button class="tbtx tkx" data-a="tkdel" data-id="'+esc(x.id)+'" aria-label="Удалить задание">✕</button>':'';
   var right=f?(b?'<span class="xchr"><span class="xok">'+(b.data.n!=null?b.data.n:(b.data.nums||[]).length)+' чел. · '+new Date(b.t).toTimeString().slice(0,5)+'</span>'+(b.obj!==x.obj?' <small class="xno">подал на '+esc(b.obj)+'</small>':'')+'</span>':'<span class="xchr xno">численность не подана</span>'):'';
-  return '<div class="xcard'+(f?' xs-'+f.lvl:'')+(del?' tkdc':'')+'"><div class="xch"><b>'+esc(x.obj)+'</b> · <b>'+esc(whoBase(dd.brig)||'—')+'</b>'+right+del+'</div>'+(f?'<div class="xchipw">'+f.html+'</div>':'')+
+  return '<div class="xcard bellc'+(f?' xs-'+f.lvl:'')+(del?' tkdc':'')+'">'+(f&&!wsOn()?bellHtml(x.d,dd.brig):'')+'<div class="xch"><b>'+esc(x.obj)+'</b> · <b>'+esc(whoBase(dd.brig)||'—')+'</b>'+right+del+'</div>'+(f?'<div class="xchipw">'+f.html+'</div>':'')+
     '<div class="xtask">'+tkTaskBody(x,'nd')+'<small class="xtby">Выдал: '+esc(whoBase(x.who))+' · '+fmtDT(x.t)+((x.data||{}).edited?' · изменил: '+esc(whoBase(x.data.edited.by))+' '+fmtDT(x.data.edited.t):'')+'</small>'+(role()==='nach'?'<button type="button" class="tkedb" data-a="tkedit" data-id="'+esc(x.id)+'" data-d="'+esc(x.d)+'">✎ Изменить задание</button>'+tkMergedInto(x.d,dd.brig).map(function(L2){ return '<button type="button" class="tkedb" data-a="tkunm" data-d="'+esc(x.d)+'" data-l1="'+esc(dd.brig)+'" data-l2="'+esc(L2)+'">⇄ Разъединить: '+esc(whoBase(L2))+'</button>'; }).join(''):'')+'</div>'+
     (f?'':ackHtml(x))+
     (f?(b?brigMembers(b,x.d):'')+ndCompBlock(b,x.d,x.obj)+ndKinds4(x.obj,x.d,b,dd.brig):'')+'</div>';
@@ -4304,6 +4317,67 @@ function wsItems(d){
   return L;
 }
 function wsCur(L){ if(wsSel===null) wsSel=L.length?L[0].k:''; return L.filter(function(i){ return i.k===wsSel; })[0]||null; }
+/* ---- «звоночек»: позвать бригадира забрать наряд-допуск с инструктажом (TBT) ---- */
+function callKey(lead){ return fioKey(whoBase(lead)).slice(0,40); }
+function bellHtml(d,lead){
+  if(!ndOk()||d!==today()||!lead) return '';
+  var k=callKey(lead), raw=bdRaw(d), c=raw.filter(function(x){ return x.id==='call|'+d+'|'+k; })[0], a=raw.filter(function(x){ return x.id==='callok|'+d+'|'+k; })[0];
+  var ct=c&&c.data?c.data.t:0, ok=a&&a.data&&ct&&a.data.t>=ct;
+  var st=ok?'bok':ct?'bsent':'', tip=ok?'Бригадир принял вызов в '+hhmm(a.data.t):ct?'Вызов отправлен в '+hhmm(ct)+' — бригадир ещё не ответил. Нажмите, чтобы позвать снова':'Позвать бригадира забрать наряд-допуск с инструктажом (TBT)';
+  return '<span class="bell '+st+'" role="button" tabindex="0" data-a="bell" data-l="'+esc(whoBase(lead))+'" data-d="'+esc(d)+'" title="'+esc(tip)+'" aria-label="'+esc(tip)+'">🔔'+(ok?'<small>✓ '+hhmm(a.data.t)+'</small>':ct?'<small>'+hhmm(ct)+'</small>':'')+'</span>';
+}
+function bellSend(el){
+  if(!ndOk()){ toast('Звать бригадира может прораб или начальник участка'); return; }
+  if(!syncOn()){ toast('Нет связи с сервером'); return; }
+  var lead=el.dataset.l, d=el.dataset.d, k=callKey(lead);
+  bdPut({kind:'call',d:d,obj:'',id:('call|'+d+'|'+k).slice(0,60),data:{lead:lead,t:Date.now(),by:whoBase(sync.who)}})
+    .then(function(){ toast('Бригадиру '+whoBase(lead)+' отправлено: забрать наряд-допуск с TBT'); bdFetch(d,true); })
+    .catch(function(e){ toast('Не отправлено: '+((e&&e.message)||'нет связи')); });
+}
+/* у бригадира: проверка вызова раз в 20 с, звук + вибрация + уведомление */
+var CALL_SEEN='tabel-callseen-v1', callAC=null, callCur=null, callRep=null;
+document.addEventListener('click',function(){ try{ if(!callAC&&(window.AudioContext||window.webkitAudioContext)) callAC=new (window.AudioContext||window.webkitAudioContext)(); if(callAC&&callAC.state==='suspended') callAC.resume(); }catch(e){} },true);
+function callBeep(){
+  try{ if(!callAC) return; var t0=callAC.currentTime;
+    [0,0.35,0.7,1.4,1.75,2.1].forEach(function(dt){ var o=callAC.createOscillator(), g=callAC.createGain(); o.type='square'; o.frequency.value=dt<1.2?880:1175; g.gain.setValueAtTime(0.0001,t0+dt); g.gain.exponentialRampToValueAtTime(0.35,t0+dt+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t0+dt+0.25); o.connect(g); g.connect(callAC.destination); o.start(t0+dt); o.stop(t0+dt+0.3); });
+  }catch(e){}
+  try{ if(navigator.vibrate) navigator.vibrate([400,150,400,150,700]); }catch(e){}
+}
+function callNotify(c){
+  try{ if(!('Notification' in window)||Notification.permission!=='granted') return;
+    var opt={body:'Заберите наряд-допуск с инструктажом (TBT)'+(c.by?' · зовёт '+c.by:''),tag:'tabel-call',renotify:true,requireInteraction:true,vibrate:[400,150,400,150,700],icon:'icon-192.png',badge:'icon-192.png'};
+    if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration) navigator.serviceWorker.getRegistration().then(function(rg){ if(rg) rg.showNotification('🔔 Вас зовут за нарядом',opt); else new Notification('🔔 Вас зовут за нарядом',opt); });
+    else new Notification('🔔 Вас зовут за нарядом',opt);
+  }catch(e){}
+}
+function callAlarm(c){
+  callCur=c; callBeep(); callNotify(c);
+  openSheet('🔔 Вас зовут',
+    '<div class="callbox"><p class="callmsg">Заберите <b>наряд-допуск с инструктажом (TBT)</b>.</p><p class="note">Зовёт: '+esc(c.by||'прораб')+' · '+hhmm(c.t)+'</p></div>'+
+    '<div class="acts"><button class="primary" data-a="callok">Иду забирать</button></div>');
+  if(callRep) clearInterval(callRep); var n=0;
+  callRep=setInterval(function(){ if(!callCur||++n>6){ clearInterval(callRep); callRep=null; return; } callBeep(); },30000);
+}
+function callOk(){
+  var c=callCur; callCur=null; if(callRep){ clearInterval(callRep); callRep=null; } closeSheet();
+  if(!c) return; try{ localStorage.setItem(CALL_SEEN,String(c.t)); }catch(e){}
+  var d=today(), me=whoBase(sync.who);
+  bdPut({kind:'call',d:d,obj:'',id:('callok|'+d+'|'+callKey(me)).slice(0,60),data:{lead:me,t:Date.now(),ct:c.t}}).then(function(){ toast('Прораб увидит, что вы идёте'); }).catch(function(){});
+}
+function callPoll(){
+  if(role()!=='mont'||!syncOn()||document.hidden&&callCur) return;
+  var d=today(), k=callKey(sync.who);
+  call({action:'callchk',d:d,k:k},15000).then(function(j){
+    var c=j&&j.call; if(!c||!c.t) return;
+    var seen=0; try{ seen=Number(localStorage.getItem(CALL_SEEN)||0); }catch(e){}
+    if((j.ack&&j.ack.t>=c.t)||c.t<=seen) return;
+    if(callCur&&callCur.t===c.t) return;
+    callAlarm(c);
+  }).catch(function(){});
+}
+setInterval(callPoll,20000); setTimeout(callPoll,3000);
+document.addEventListener('visibilitychange',function(){ if(!document.hidden) callPoll(); });
+function notifBanner(){ if(!('Notification' in window)||Notification.permission!=='default') return ''; return '<button class="notifb" data-a="notifon">🔔 Включить оповещения — чтобы слышать, когда прораб зовёт за нарядом</button>'; }
 function wsLeft(){
   var el=$('nwl'); if(!el) return;
   setTimeout(function(){ var m=document.querySelector('main'); if(!m||!document.body.classList.contains('nws')) return; var c=Array.prototype.filter.call(m.children,function(y){ return y.id!=='nwl'&&y.offsetParent!==null&&y.offsetHeight>0; })[0]; if(c){ var t=Math.round(c.getBoundingClientRect().top+window.scrollY), th=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--toph'),10)||64; el.style.top=Math.max(th+6,t)+'px'; } },0);
@@ -4311,7 +4385,7 @@ function wsLeft(){
   el.innerHTML='<div class="wslh"><b>Бригады на '+esc(tbtDmy(d))+'</b><span>'+L.length+'</span></div>'+
     '<button class="wsnew'+(!cur?' on':'')+'" data-a="wssel" data-l="">+ Новое наряд-задание</button>'+
     (L.length?L.map(function(i){ var ob=i.x?i.x.obj:i.b.obj, f=bdStat(ob,d,i.b,i.x);
-      return '<button class="wsi xs-'+f.lvl+(cur&&cur.k===i.k?' on':'')+'" data-a="wssel" data-l="'+esc(i.lead)+'"><span class="wsit"><b>'+esc(ob)+' · '+esc(whoBase(i.lead))+'</b>'+(i.b?'<span class="xok">'+(i.b.data.nums||[]).length+' чел.</span>':'')+'</span>'+f.html+'</button>'; }).join('')
+      return '<button class="wsi xs-'+f.lvl+(cur&&cur.k===i.k?' on':'')+'" data-a="wssel" data-l="'+esc(i.lead)+'"><span class="wsit"><b>'+esc(ob)+' · '+esc(whoBase(i.lead))+'</b>'+(i.b?'<span class="xok">'+(i.b.data.nums||[]).length+' чел.</span>':'')+'</span>'+f.html+bellHtml(d,i.lead)+'</button>'; }).join('')
       :'<p class="note">На этот день заданий и поданной численности пока нет.</p>');
 }
 function wsStep(n,t,sub,cls,act){ return '<button class="wsst '+(cls||'')+(act?' act':'')+'" data-a="wsstep" data-s="'+n+'"'+(act?' aria-current="step"':'')+'><b>'+n+'. '+t+'</b><small>'+sub+'</small></button>'; }
