@@ -645,7 +645,7 @@ body.vhdate #dateBtn{display:none}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='158';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='159';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4312,6 +4312,7 @@ function tkUnmerge(d,L1,L2){
   var ch=Promise.resolve(); puts.forEach(function(it){ ch=ch.then(function(){ return bdPut(it); }); });
   ch.then(function(){ toast('Разъединено: '+whoBase(L2)+' снова отдельно'); tkAutoAt[d]=Date.now(); bdFetch(d,true); }).catch(function(er){ toast('Не удалось: '+((er&&er.message)||'нет связи')); });
 }
+var tkPkClash=[];
 function tkMergeCore(d,raw,b1,team){
     var live=raw.filter(function(x){ return !(x.data&&x.data.into); });
     var brigs=live.filter(function(x){ return x.kind==='brig'; }), tasks=live.filter(function(x){ return x.kind==='task'; });
@@ -4322,7 +4323,7 @@ function tkMergeCore(d,raw,b1,team){
       return n2&&team[n2]&&tkNumIsLead(b1,n2,L2,d)&&!tkNoMerge(live,fioKey(L2),L1)?{L2:L2,b2:b2,t2:t2,n2:n2}:null; }).filter(Boolean);
     if(!todo.length) return Promise.resolve();
     var puts=[], names=[], t1=tasks.filter(function(x){ return fioKey(x.data.brig)===fioKey(L1); })[0]||null, d1=t1?JSON.parse(JSON.stringify(t1.data||{})):null, base1=t1;
-    var db=JSON.parse(JSON.stringify(b1.data||{})), bChanged=false;
+    var db=JSON.parse(JSON.stringify(b1.data||{})), bChanged=false; tkPkClash=[];
     todo.forEach(function(x){
       var L2=x.L2; names.push(whoBase(L2));
       /* состав бригады №2 — в бригаду №1 */
@@ -4330,12 +4331,14 @@ function tkMergeCore(d,raw,b1,team){
         var have=numSet((db.nums||[]).concat(db.lnum?[db.lnum]:[])), add=[];
         (x.b2.data.nums||[]).concat(x.b2.data.lnum?[x.b2.data.lnum]:[]).forEach(function(n){ var k=normNum(n); if(k!=='0'&&!have[k]){ have[k]=1; add.push(String(n)); } });
         db.nums=(db.nums||[]).concat(add); db.mnums=(db.mnums||[]).concat(add);
-        if(x.b2.data.pk) db.pk=Object.assign({},x.b2.data.pk,db.pk||{});
+        var pk2=Object.assign({},x.b2.data.pk||{}), lp2=brigLeadPerson(x.b2,L2); if(lp2&&x.n2&&anyPersons(x.n2).length>1) pk2[x.n2]=lp2.b;
+        db.pk=db.pk||{}; Object.keys(pk2).forEach(function(k){ if(!db.pk[k]) db.pk[k]=pk2[k]; else if(db.pk[k]!==pk2[k]) tkPkClash.push(k); });   // кого выбрал бригадир — того и берём
         ['tech','doc'].forEach(function(f){ var a=Array.isArray(db[f])?db[f]:[]; (x.b2.data[f]||[]).forEach(function(v){ if(a.indexOf(v)<0) a.push(v); }); db[f]=a; });
         db.mergedB=(db.mergedB||[]).concat([{id:x.b2.id,lead:L2,n:add.length,t:Date.now(),by:sync.who||''}]); bChanged=true;
         var bd2=JSON.parse(JSON.stringify(x.b2.data)); bd2.into=b1.id; bd2.intoLead=L1;
         puts.push({kind:'brig',d:d,obj:x.b2.obj,id:x.b2.id,data:bd2});
       } else if(!have1(db,x.n2)){ db.nums=(db.nums||[]).concat([x.n2]); db.mnums=(db.mnums||[]).concat([x.n2]); bChanged=true; }
+      if(!x.b2&&anyPersons(x.n2).length>1){ var lpx=brigLeadPerson(null,L2); if(lpx){ db.pk=db.pk||{}; if(!db.pk[x.n2]){ db.pk[x.n2]=lpx.b; bChanged=true; } } }
       /* наряд-задание №2 — пунктами в задание №1 */
       if(x.t2){
         var d2=JSON.parse(JSON.stringify(x.t2.data||{})), its2=tkItemsFor(d2).map(function(it){ return {t:it.t,v:it.v||'',u:it.u||'',fr:it.fr||L2}; });
@@ -4352,7 +4355,7 @@ function tkMergeCore(d,raw,b1,team){
     if(bChanged) puts.unshift({kind:'brig',d:d,obj:b1.obj,id:b1.id,data:db});
     if(!todo.length) return Promise.resolve();
     var ch=Promise.resolve(); puts.forEach(function(it){ ch=ch.then(function(){ return bdPut(it); }); });
-    return ch.then(function(){ toast('Бригадир '+names.join(', ')+' включён в бригаду '+whoBase(L1)+': задание и состав добавлены, отвечает '+whoBase(L1)); bdFetch(d,true); })
+    return ch.then(function(){ toast('Бригадир '+names.join(', ')+' включён в бригаду '+whoBase(L1)+': задание и состав добавлены, отвечает '+whoBase(L1)+(tkPkClash.length?'. Внимание: табельный № '+tkPkClash.join(', ')+' в двух бригадах у разных людей — проверьте состав':'')); bdFetch(d,true); })
       .catch(function(er){ toast('Не удалось объединить бригады: '+((er&&er.message)||'нет связи')); });
 }
 /* начальник участка: изменить наряд-задание, удалить пункты */
@@ -4589,7 +4592,7 @@ function ndFromBrig(k,obj,d,bid,lead){
   st.obj=obj; st.kind=k; if(ND_TITLE[k]) st.lastKind=k;
   var dr={only:true,team:[],teamX:[]}, miss=[], seen={};
   var slSkip=0, slOnly=slNeed(k,(b&&b.data&&Array.isArray(b.data.tech)&&b.data.tech.length)?b.data.tech.join(', '):ndV(st,k,'tech'));
-  if(b) [b.data.lnum].concat(b.data.nums||[]).forEach(function(n){ if(!n) return; if(slOnly&&!isSlingNum(n)){ slSkip++; return; } var p=brigP(b,n); if(!p){ miss.push(n); return; } var key=p.b+'|'+p.p.id; if(!seen[key]){ seen[key]=1; dr.team.push(key); } });
+  if(b) [b.data.lnum].concat(b.data.nums||[]).forEach(function(n){ if(!n) return; var p=brigP(b,n); if(slOnly&&!(p?isSling(p.b,n):isSlingNum(n))){ slSkip++; return; } if(!p){ miss.push(n); return; } var key=p.b+'|'+p.p.id; if(!seen[key]){ seen[key]=1; dr.team.push(key); } });
   var nx=ndNext(st,k); if(nx) dr.no=nx;
   dr.d1=d<today()?today():d;
   if(k==='fire'){ var hz=ndBrigOpen(b,d,obj,'hz'); if(hz.length) dr.rel=String(hz[0].no); }
