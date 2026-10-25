@@ -645,7 +645,7 @@ body.vhdate #dateBtn{display:none}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='159';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='160';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1267,7 +1267,7 @@ function matches(p,q){
 function planHidden(p,day){ return !day[p.id]&&planOff(p,ui.date)===true; }
 function stats(){
   var ppl=activePeople(), day=dayRec(ui.date), c={work:0,off:0,sick:0,pl:0,ul:0,ab:0}, hrs=0, unm=0, plan=0, ot=0, fired=0, norm=memoNorm(root.cur);
-  ppl.forEach(function(p){ var r=day[p.id]; if(firedOn(p,ui.date)){ fired++; return; } if(!r){ if(planHidden(p,day)){ plan++; return; } unm++; return; } c[r.s]++; if(r.s==='work'){ hrs+=r.h; if((Number(r.h)||0)>norm) ot++; } });
+  ppl.forEach(function(p){ var r=day[p.id]; if(firedOn(p,ui.date)){ fired++; return; } if(!r){ if(planHidden(p,day)){ plan++; return; } unm++; return; } c[r.s]++; if(r.s==='work'){ hrs+=r.h; if((Number(r.h)||0)>norm&&planOff(p,ui.date)!==true) ot++; } });
   return {n:ppl.length-plan-fired,c:c,hrs:hrs,unm:unm,plan:plan,ot:ot,norm:norm,fired:fired};
 }
 function renderStats(){
@@ -1294,7 +1294,7 @@ function fltOk(p,day){
   if(f==='work'&&!(r&&r.s==='work')) return false;
   if(f==='ab'&&!(r&&r.s==='ab')) return false;
   if(f==='sick'&&!(r&&r.s==='sick')) return false;
-  if(f==='ot'&&!(r&&r.s==='work'&&(Number(r.h)||0)>memoNorm(root.cur))) return false;
+  if(f==='ot'&&!(r&&r.s==='work'&&(Number(r.h)||0)>memoNorm(root.cur)&&planOff(p,ui.date)!==true)) return false;
   if(ui.brig){
     var n=p.num?normNum(p.num):'', bl=fltBrigs(), inB=function(b){ return !!n&&numSet((b.data.nums||[]).concat([b.data.lnum]))[n]; };
     if(ui.brig==='-') return !bl.some(inB);
@@ -2291,7 +2291,7 @@ var memoSel={};   // кто отмечен галочкой (ключ: табе�
 /* кто работал в выбранный день; сверх нормы — первыми */
 function memoPeople(){
   var day=dayRec(ui.date), n=memoNorm(root.cur);
-  return activePeople().map(function(p){ var r=day[p.id]; return r&&r.s==='work'?{p:p,h:r.h,over:r.h>n}:null; }).filter(Boolean)
+  return activePeople().map(function(p){ var r=day[p.id], off=planOff(p,ui.date)===true; return r&&r.s==='work'?{p:p,h:r.h,off:off,over:!off&&r.h>n}:null; }).filter(Boolean)
     .sort(function(a,b){ return byNum(a.p,b.p); });
 }
 function memoChecked(x){
@@ -2303,6 +2303,7 @@ function memoChecked(x){
 function memoTimes(x,c){
   if(memoType()==='rvd'){
     var f=tmin(c.rfrom), e=tmin(c.rto), bf=tmin(c.rbf), bt=tmin(c.rbt), br=isFinite(bf)&&isFinite(bt)&&bt>bf?bt-bf:0;
+    if(isFinite(f)&&x.h>0) e=f+br+Math.round(x.h*60);   // все часы из табеля — работа в выходной
     return {from:tstr(f),to:tstr(e),bf:br?tstr(bf):'-',bt:br?tstr(bt):'-',h:Math.max(0,(e-f-br)/60)};
   }
   var to=tmin(c.to), n=memoNorm(root.cur), from=x.h>n?to-Math.round((x.h-n)*60):tmin(c.from);
@@ -2352,7 +2353,7 @@ function renderDocs(){
     var t=memoTimes(x,c), on=memoChecked(x);
     return '<label class="mrow'+(on?' on':'')+'"><input type="checkbox" data-mk="'+esc(x.p.id)+'"'+(on?' checked':'')+'>'+
       '<span class="mn">'+esc(x.p.num||'')+'</span><span class="mf"><b>'+esc(x.p.name)+'</b><small>'+esc(x.p.role||'')+'</small></span>'+
-      '<span class="mh">'+fmtH(x.h)+' ч в табеле'+(rvd?(planOff(x.p,ui.date)===true?' · выходной по графику':''):(x.over?'':' (норма)'))+'<small>'+t.from+'–'+t.to+' · '+fmtH(t.h)+' ч</small></span></label>';
+      '<span class="mh">'+fmtH(x.h)+' ч в табеле'+(rvd?(planOff(x.p,ui.date)===true?' · выходной по графику':''):(x.off?' · выходной по графику — все часы в записку о работе в выходной':x.over?'':' (норма)'))+'<small>'+t.from+'–'+t.to+' · '+fmtH(t.h)+' ч</small></span></label>';
   }).join('');
   var sel=list.filter(memoChecked).length;
   $('docs').innerHTML='<div class="dwrap">'+
