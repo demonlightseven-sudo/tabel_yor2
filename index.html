@@ -633,6 +633,14 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 .mvbox .primary{min-height:40px;padding:0 14px}.mvbox .note{margin:0}
 #mvurl{flex:1 1 100%;min-width:0;font-size:13px;padding:8px;border:1px solid var(--line);border-radius:8px;background:transparent;color:inherit}
 .mvmain{padding:16px max(16px,env(safe-area-inset-right,0px)) 32px max(16px,env(safe-area-inset-left,0px))}
+
+.monstrip{gap:8px 10px!important}
+.monstrip .ms{display:flex;flex-direction:column;gap:2px;min-width:92px;padding:6px 10px;border:1px solid var(--line);border-radius:8px}
+.monstrip .ms small{font-size:11px;line-height:1.2;color:var(--muted)}
+.monstrip .ms b{font-size:22px;margin:0}
+.montt .mppl{color:#2fa84f;font-weight:800}
+.montt tr.og .mppl{font-size:14px}
+.montt td.mw .mrf{display:block;font-size:12px;line-height:1.35;color:var(--ink);opacity:.85;margin-top:2px}
 </style>
 </head>
 <body>
@@ -676,7 +684,7 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='165';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='166';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3216,7 +3224,7 @@ document.addEventListener('click',function(e){
   if(a.indexOf('tbt')===0){ tbtClick(a,el); return; }
   if(a==='ndapply'||a==='ndmanual'){ ndApplyComp(el.dataset.id,el.dataset.d,a==='ndmanual'?'manual':'file'); return; }
   if(a==='ndrenew'){ ndRenew(el.dataset.id,el.dataset.d); return; }
-  if(a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'||a==='tmday'||a==='ktusave'||a==='ndfrom'||a==='ndtbt'||a==='tkdone'||a==='tkdoneedit'||a==='tkrep'||a==='tkall'||a==='tkirow'||a==='tkidel'||a==='tkwadd'||a==='tkwdel'||a==='brgpick'||a==='brgpk'||a==='brgpickadd'||a==='xdpick'||a==='xdshift'||a==='xdtoday'){ xClick(a,el); return; }
+  if(a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'||a==='tmday'||a==='ktusave'||a==='ndfrom'||a==='ndtbt'||a==='tkdone'||a==='tkdoneedit'||a==='tkrep'||a==='tkall'||a==='tkirow'||a==='tkidel'||a==='tkwadd'||a==='tkwdel'||a==='brgpick'||a==='brgpk'||a==='brgpickadd'||a==='xdpick'||a==='xdshift'||a==='xdtoday'||a==='mvcopy'){ xClick(a,el); return; }
   switch(a){
     case 'book': if(root.cur!==el.dataset.b){ root.cur=el.dataset.b; save(); ui.q=''; $('q').value=''; ui.open={}; clearMsg(); render(); window.scrollTo(0,0); pull(); } break;
     case 'date': sheetDate(); break;
@@ -4498,6 +4506,12 @@ function brigMembers(x,d){ var dd=x.data||{}, bad=0, no=0;
   return tx+'<details class="xmem" data-bid="'+esc(x.id)+'"'+(bdMemOpen[x.id]?' open':'')+'><summary>Состав бригады: '+(dd.nums||[]).length+' чел.'+(bad?' · <span class="xbad">прогул: '+bad+'</span>':'')+(no?' · <span class="xno">нет в табеле: '+no+'</span>':'')+'</summary><div class="xlist">'+list+'</div></details>'; }   // какие списки бригад развёрнуты (сохраняется между обновлениями доски)
 document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classList&&(t.classList.contains('xmem')||t.classList.contains('xmore')||t.classList.contains('xobjd'))) bdMemOpen[t.dataset.bid]=t.open; },true);
 /* страница мониторинга (index.html?mon=1): явка + таблица работ по объектам */
+/* РФ-сотрудники в бригаде (кроме бригадира) */
+var mvRfm={};
+function monRfList(b,lead){ if(!b) return []; var k=fioKey(lead), out=[], seen={};
+  (b.data.nums||[]).forEach(function(n){ var x=brigP(b,n); if(!x||x.b!=='rf') return; var nm=x.p.name; if(fioKey(nm)===k||seen[nm]) return; seen[nm]=1; out.push(shortName(nm)); });
+  return out; }
+function monRf(b,lead){ var L=MV?(mvRfm[fioKey(lead)]||[]):monRfList(b,lead); return L.length?'<span class="mrf">'+L.map(esc).join('<br>')+'</span>':''; }
 var monAt=0, mvLink='', mvAttKey='', mvAttT=0, mvAttAt=0;
 var MV=(location.search.match(/[?&]mv=([0-9a-f]{8,64})/)||[])[1]||'', MVD=(location.search.match(/[?&]d=(\d{4}-\d{2}-\d{2})/)||[])[1]||'';
 var mvLinkD='', mvTokBusy=false;
@@ -4519,7 +4533,9 @@ function mvCopy(){
 function mvPushAtt(){
   var r0=role(); if(MV||!syncOn()||(r0!=='nach'&&r0!=='tech'&&r0!=='prorab')) return;
   if(!root.books.rf.people.length&&!root.books.are.people.length) return;
-  var d=today(), att={rf:bookDay('rf',d),are:bookDay('are',d)}, k=d+JSON.stringify(att);
+  var d=today(); if(!bdCache[d]){ bdFetch(d,false); return; }
+  var rfm={}; bdItems(d).forEach(function(x){ if(x.kind==='brig'){ var L=monRfList(x,x.data.lead); if(L.length) rfm[fioKey(x.data.lead)]=L; } });
+  var att={rf:bookDay('rf',d),are:bookDay('are',d),rfm:rfm}, k=d+JSON.stringify(att);
   if(k===mvAttKey&&Date.now()-mvAttT<600000) return;
   mvAttKey=k; mvAttT=Date.now();
   call({action:'mvatt',d:d,att:att}).catch(function(){ mvAttKey=''; });
@@ -4538,7 +4554,7 @@ function mvLoad(){
     if(!j||!j.ok){ var e=j&&j.error;
       el.innerHTML='<div class="monwrap"><h2>Участок УОР №2 · мониторинг</h2><p class="note">'+(e==='expired'?'Эта ссылка действовала только '+esc(MVD?dmyLong(MVD):'')+'. Попросите у начальника участка ссылку на сегодня.':e==='bad_link'||e==='bad_date'?'Ссылка неверная. Попросите у начальника участка новую ссылку.':'Не удалось загрузить данные. Проверьте интернет — страница попробует снова через 2 минуты.')+'</p></div>'; return; }
     bdCache[j.d]={items:j.items||[],at:Date.now()};
-    var a=j.att&&j.att.att, z={}; mvAttAt=j.att?j.att.at:0;
+    var a=j.att&&j.att.att, z={}; mvAttAt=j.att?j.att.at:0; mvRfm=(a&&a.rfm)||{};
     var rf=(a&&a.rf)||z, ar=(a&&a.are)||z, tot={};
     ['list','work','ab','dob','sick','pl','ul','wo','ot'].forEach(function(k){ tot[k]=(rf[k]||0)+(ar[k]||0); });
     el.innerHTML=monHtml(j.d,rf,ar,tot);
@@ -4548,8 +4564,8 @@ function monHtml(d,rf,ar,tot){
   var r0=role(); if(!MV&&r0!=='nach'&&r0!=='tech') return '<div class="monwrap"><p class="note">Мониторинг доступен начальнику участка и техникам. Войдите в приложение под своей учётной записью.</p></div>';
   monAt=Date.now();
   function n(v){ return v?String(v):'0'; }
-  var strip=[['list','в списке',''],['work','пришли','g'],['ab','прогул','r'],['dob','выходной',''],['sick','больничный',''],['pl','отпуск',''],['ul','без ЗП',''],['wo','в выходной',''],['ot','сверхурочка','']]
-    .map(function(c){ return '<span class="'+c[2]+'" title="РФ '+n(rf[c[0]])+' · АРЕ '+n(ar[c[0]])+'"><b>'+n(tot[c[0]])+'</b>'+c[1]+'</span>'; }).join('');
+  var strip=[['list','В списке',''],['work','Пришли','g'],['ab','Прогул','r'],['dob','Выходной по графику',''],['sick','Больничный',''],['pl','Отпуск',''],['ul','Отпуск без ЗП',''],['wo','Работа в выходной',''],['ot','Сверхурочная работа','']]
+    .map(function(c){ return '<span class="ms '+c[2]+'" title="РФ '+n(rf[c[0]])+' · АРЕ '+n(ar[c[0]])+'"><small>'+c[1]+'</small><b>'+n(tot[c[0]])+'</b></span>'; }).join('');
   var items=bdItems(d), brigs=items.filter(function(x){ return x.kind==='brig'; }), tasks=items.filter(function(x){ return x.kind==='task'; });
   var objs=ND_OBJS.slice(); items.forEach(function(x){ if(x.obj&&objs.indexOf(x.obj)<0) objs.push(x.obj); });
   var rows='';
@@ -4558,11 +4574,11 @@ function monHtml(d,rf,ar,tot){
     var bo=brigs.filter(function(x){ return x.obj===o; });
     if(!to.length&&!bo.length) return;
     var ppl=bo.reduce(function(sm,x){ return sm+(x.data.n!=null?x.data.n:(x.data.nums||[]).length); },0);
-    rows+='<tr class="og"><td colspan="5">'+esc(o)+' <small>· '+ppl+' чел.</small></td></tr>';
+    rows+='<tr class="og"><td colspan="5">'+esc(o)+' · <span class="mppl">'+ppl+' чел.</span></td></tr>';
     to.forEach(function(t){
       var b=brigs.filter(function(x){ return fioKey(x.data.lead)===fioKey(t.data.brig); })[0]; if(b) used[b.id]=1;
       var its=tkItemsFor(t.data||{}), dn=tkDone(t), fc=dn&&dn.data&&Array.isArray(dn.data.facts)?dn.data.facts:null;
-      var who='<b>'+esc(shortName(whoBase(t.data.brig)))+'</b><small>'+(b?(b.data.n!=null?b.data.n:(b.data.nums||[]).length)+' чел.':'<span class="xno">численность не подана</span>')+'</small>';
+      var who='<b>'+esc(shortName(whoBase(t.data.brig)))+'</b>'+monRf(b,t.data.brig)+'<small>'+(b?'<span class="mppl">'+(b.data.n!=null?b.data.n:(b.data.nums||[]).length)+' чел.</span>':'<span class="xno">численность не подана</span>')+'</small>';
       if(!its.length) its=[{t:String(t.data.tasks||''),v:'',u:''}];
       its.forEach(function(it,i){
         var f=fc&&fc[i], pl=tkNum(it.v), u=it.u?' '+esc(it.u):'', pv=pl!=null?'<span class="bx p">'+esc(it.v)+u+'</span>':'<span class="dash">—</span>', fv, pc;
@@ -4571,7 +4587,7 @@ function monHtml(d,rf,ar,tot){
         rows+='<tr><td class="mw">'+(i===0?who:'')+'</td><td>'+esc(it.t)+(it.fr?' <small class="tkfr">(из задания '+esc(whoBase(it.fr))+')</small>':'')+'</td><td class="r">'+pv+'</td><td class="r">'+fv+'</td><td class="r">'+pc+'</td></tr>';
       });
     });
-    bo.forEach(function(b){ if(used[b.id]) return; rows+='<tr><td class="mw"><b>'+esc(shortName(whoBase(b.data.lead)))+'</b><small>'+(b.data.n!=null?b.data.n:(b.data.nums||[]).length)+' чел.</small></td><td colspan="4"><span class="xno">Наряд-задание не выдано</span></td></tr>'; });
+    bo.forEach(function(b){ if(used[b.id]) return; rows+='<tr><td class="mw"><b>'+esc(shortName(whoBase(b.data.lead)))+'</b>'+monRf(b,b.data.lead)+'<small><span class="mppl">'+(b.data.n!=null?b.data.n:(b.data.nums||[]).length)+' чел.</span></small></td><td colspan="4"><span class="xno">Наряд-задание не выдано</span></td></tr>'; });
   });
   if(!rows) rows='<tr><td colspan="5" class="note">На этот день наряд-заданий и бригад нет.</td></tr>';
   return '<div class="monwrap"><div class="montop"><h2>Участок УОР №2 · мониторинг</h2><span class="note">'+esc(dmyLong(d))+' · обновлено '+hhmm(Date.now())+' · обновляется само каждые 2 минуты</span></div>'+
