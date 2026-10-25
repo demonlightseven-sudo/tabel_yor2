@@ -1,6 +1,6 @@
 /* Служебный файл: хранит копию приложения на телефоне, чтобы оно открывалось без интернета.
    Когда интернет есть, приложение подтягивает обновления само. */
-const CACHE = 'tabel-app-v174';
+const CACHE = 'tabel-app-v175';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png',
                 './icon-maskable-512.png', './apple-touch-icon.png', './memo-template.json', './memo-rvd.json', './nd-hz.json', './nd-fire.json', './nd-lift.json', './tbt.json', './akt-abs.json'];
 

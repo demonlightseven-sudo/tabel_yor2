@@ -631,7 +631,8 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 
 .mvbox{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 14px}
 .mvbox .primary{min-height:40px;padding:0 14px}.mvbox .note{margin:0}
-#mvurl{flex:0 1 320px;width:320px;min-width:0;font-size:13px;padding:8px;border:1px solid var(--line);border-radius:8px;background:transparent;color:inherit}
+.mvurl{flex:1 1 300px;min-width:0;font-size:13px;line-height:1.35;padding:8px 10px;border:1px solid var(--line);border-radius:8px;word-break:break-all;user-select:all;-webkit-user-select:all}
+.mvbox .primary{flex:0 0 auto}
 .mvmain{padding:16px max(16px,env(safe-area-inset-right,0px)) 32px max(16px,env(safe-area-inset-left,0px))}
 
 .monstrip{gap:8px 10px!important}
@@ -699,7 +700,7 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='174';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='175';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4631,7 +4632,7 @@ function mvTokGet(){
 function mvCopy(){
   var i=$('mvurl');
   if(!mvLink||mvLinkD!==today()){ mvLink=''; mvTokGet(); toast('Готовлю ссылку — нажмите ещё раз через секунду'); return; }
-  function sel(){ if(i){ i.focus(); i.select(); } }
+  function sel(){ if(i){ try{ var rg=document.createRange(); rg.selectNodeContents(i); var sl=window.getSelection(); sl.removeAllRanges(); sl.addRange(rg); }catch(e){} } }
   try{
     if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(mvLink).then(function(){ toast('Ссылка скопирована — действует только сегодня'); },function(){ sel(); toast('Скопируйте ссылку из поля'); }); }
     else { sel(); var ok=false; try{ ok=document.execCommand('copy'); }catch(e){} toast(ok?'Ссылка скопирована — действует только сегодня':'Скопируйте ссылку из поля'); }
@@ -4711,7 +4712,7 @@ function bdRender(){
   var hn=$('hnav'); if(hn) hn.innerHTML=navDate('bdday',d);
   if(MON) return monHtml(d,rf,ar,tot);
   setTimeout(mvPushAtt,0); setTimeout(mvTokGet,0);
-  var h='<div class="mvbox">'+(mvLink&&mvLinkD===today()?'<input id="mvurl" readonly value="'+esc(mvLink)+'" aria-label="Ссылка для просмотра на сегодня" title="Ссылка для просмотра — действует только сегодня" onclick="this.select()">':'')+'<button type="button" class="primary" data-a="mvcopy">🔗 Скопировать ссылку для просмотра</button></div>'+
+  var h='<div class="mvbox">'+(mvLink&&mvLinkD===today()?'<span id="mvurl" class="mvurl" title="Ссылка для просмотра — действует только сегодня">'+esc(mvLink)+'</span>':'')+'<button type="button" class="primary" data-a="mvcopy">🔗 Скопировать ссылку для просмотра</button></div>'+
     '<h3 class="tbth3">1. Явка</h3><div class="xtw"><table class="xt xtj"><thead><tr><th></th>'+cols.map(function(c){ return '<th>'+c[1]+'</th>'; }).join('')+'</tr></thead><tbody>'+
     [['РФ',rf],['АРЕ',ar],['Всего',tot]].map(function(r){ return '<tr'+(r[0]==='Всего'?' class="xtot"':'')+'><th>'+r[0]+'</th>'+cols.map(function(c){ var v=r[1][c[0]]; return '<td class="'+(c[0]==='ab'&&v?'xbad':c[0]==='work'?'xgood':'')+'">'+(v||'')+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></div>';
   /* 2. наряд-задания по бригадирам и поданная ими численность */
