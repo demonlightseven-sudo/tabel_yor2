@@ -649,6 +649,11 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 .pfgrid{display:grid;gap:6px}.pfh,.pfr{display:grid;grid-template-columns:minmax(0,1fr) 72px 78px 84px 34px;gap:6px;align-items:center}
 .pfh{font-size:12px;color:var(--muted)}.pfh2{margin-top:8px}.pft{font-size:14px;min-width:0}.pfck{font-size:13px;display:flex;gap:4px;align-items:center}
 .montt tr.mex td{font-size:13px}.montt .exl{display:inline-block;font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-right:4px}
+
+.montt tr.og td{line-height:20px}.montt tr.og .mon{font-size:18px;line-height:20px}
+.monstrip .mjr{display:flex;justify-content:center;gap:14px}.monstrip .mjr>span{display:flex;align-items:baseline;gap:4px}
+.monstrip .mjr i{font-style:normal;font-size:11px;color:var(--muted)}
+.monstrip .g b{color:var(--work-t)}
 </style>
 </head>
 <body>
@@ -692,7 +697,7 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='168';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='169';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4656,8 +4661,9 @@ function monHtml(d,rf,ar,tot){
   var r0=role(); if(!MV&&r0!=='nach'&&r0!=='tech') return '<div class="monwrap"><p class="note">Мониторинг доступен начальнику участка и техникам. Войдите в приложение под своей учётной записью.</p></div>';
   monAt=Date.now();
   function n(v){ return v?String(v):'0'; }
-  var strip=[['list','В списке',''],['work','Пришли','g'],['ab','Прогул','r'],['dob','Выходной по графику','y'],['sick','Больничный',''],['pl','Отпуск','v'],['ul','Отпуск без ЗП',''],['wo','Работа в выходной',''],['ot','Сверхурочная работа','']]
+  var strip='<span class="ms g mjav"><small>Явка</small><span class="mjr"><span><i>РФ</i><b>'+n(rf.work)+'</b></span><span><i>АРЕ</i><b>'+n(ar.work)+'</b></span></span></span>'+[['list','В списке',''],['ab','Прогул','r'],['dob','Выходной по графику','y'],['sick','Больничный',''],['pl','Отпуск','v'],['ul','Отпуск без ЗП',''],['wo','Работа в выходной',''],['ot','Сверхурочная работа','']]
     .map(function(c){ return '<span class="ms '+c[2]+'" title="РФ '+n(rf[c[0]])+' · АРЕ '+n(ar[c[0]])+'"><small>'+c[1]+'</small><b>'+n(tot[c[0]])+'</b></span>'; }).join('');
+  strip=strip.replace(/^(<span class="ms g mjav">[\s\S]*?<\/span><\/span><\/span>)(<span class="ms " [^>]*>[\s\S]*?<\/span>)/,'$2$1');   // «В списке», затем «Явка»
   var items=bdItems(d), brigs=items.filter(function(x){ return x.kind==='brig'; }), tasks=items.filter(function(x){ return x.kind==='task'; });
   var objs=ND_OBJS.slice(); items.forEach(function(x){ if(x.obj&&objs.indexOf(x.obj)<0) objs.push(x.obj); });
   var rows='';
@@ -4666,7 +4672,7 @@ function monHtml(d,rf,ar,tot){
     var bo=brigs.filter(function(x){ return x.obj===o; });
     if(!to.length&&!bo.length) return;
     var ppl=bo.reduce(function(sm,x){ return sm+(x.data.n!=null?x.data.n:(x.data.nums||[]).length); },0);
-    rows+='<tr class="og"><td colspan="5">'+esc(o)+' · <span class="mppl">'+ppl+' чел.</span></td></tr>';
+    rows+='<tr class="og"><td colspan="5"><span class="mon">'+esc(o)+'</span> · <span class="mppl">'+ppl+' чел.</span></td></tr>';
     to.forEach(function(t){
       var b=brigs.filter(function(x){ return fioKey(x.data.lead)===fioKey(t.data.brig); })[0]; if(b) used[b.id]=1;
       var its=tkItemsFor(t.data||{}), dn=tkDone(t), fc=dn&&dn.data&&Array.isArray(dn.data.facts)?dn.data.facts:null;
@@ -4684,7 +4690,7 @@ function monHtml(d,rf,ar,tot){
   });
   if(!rows) rows='<tr><td colspan="5" class="note">На этот день наряд-заданий и бригад нет.</td></tr>';
   return '<div class="monwrap"><div class="montop"><h2>Участок УОР №2 · мониторинг</h2><span class="note">'+esc(dmyLong(d))+' · обновлено '+hhmm(Date.now())+' · обновляется само каждые 2 минуты</span></div>'+
-    (MV&&!mvAttAt?'<p class="note">Явка за этот день ещё не передана.</p>':'<div class="monstrip">'+strip+(MV?'<span class="note">явка на '+hhmm(mvAttAt)+'</span>':'')+'</div>')+
+    (MV&&!mvAttAt?'<p class="note">Явка за этот день ещё не передана.</p>':'<div class="monstrip">'+strip+'</div>')+
     '<div class="montw"><table class="montt"><thead><tr><th>Бригадир</th><th>Работа</th><th class="r">План</th><th class="r">Факт</th><th class="r">%</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
 }
 if(MON) setInterval(function(){ if(document.hidden) return; var d=bdDate||today(); bdFetch(d,true); bdPullDay(d); if(ui.view==='board') renderX(); },120000);
