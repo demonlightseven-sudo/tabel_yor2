@@ -711,7 +711,7 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='177';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='178';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3301,7 +3301,7 @@ document.addEventListener('click',function(e){
     case 'tkesave': tkEditSave(); break;
     case 'bell': bellSend(el); break;
     case 'callok': callOk(); break;
-    case 'notifon': try{ Notification.requestPermission().then(function(p){ toast(p==='granted'?'Оповещения включены':'Оповещения не разрешены — включите их в настройках браузера'); renderX(); }); }catch(e){} break;
+    case 'notifon': try{ Notification.requestPermission().then(function(p){ if(p==='granted') pushSetup(true); else toast('Оповещения не разрешены — включите их в настройках браузера'); renderX(); }); }catch(e){} break;
     case 'extadd': extAdd(el); break;
     case 'pfedit': pfOpen(el.dataset.id,el.dataset.d); break;
     case 'pfxdel': if(pfEd){ pfEd.ext.splice(Number(el.dataset.i),1); pfRender(); } break;
@@ -4331,7 +4331,7 @@ function bellSend(el){
   if(!syncOn()){ toast('Нет связи с сервером'); return; }
   var lead=el.dataset.l, d=el.dataset.d, k=callKey(lead);
   bdPut({kind:'call',d:d,obj:'',id:('call|'+d+'|'+k).slice(0,60),data:{lead:lead,t:Date.now(),by:whoBase(sync.who)}})
-    .then(function(){ toast('Бригадиру '+whoBase(lead)+' отправлено: забрать наряд-допуск с TBT'); bdFetch(d,true); })
+    .then(function(j){ toast('Бригадиру '+whoBase(lead)+' отправлено: забрать наряд-допуск с TBT'+(j&&j.push?' · push на '+j.push+' устр.':' · push не настроен — увидит при открытом приложении')); bdFetch(d,true); })
     .catch(function(e){ toast('Не отправлено: '+((e&&e.message)||'нет связи')); });
 }
 /* у бригадира: проверка вызова раз в 20 с, звук + вибрация + уведомление */
@@ -4377,6 +4377,26 @@ function callPoll(){
 }
 setInterval(callPoll,20000); setTimeout(callPoll,3000);
 document.addEventListener('visibilitychange',function(){ if(!document.hidden) callPoll(); });
+/* push: подписка устройства бригадира на сервере */
+var PUSH_KEY='tabel-push-v1', pushBusy=false;
+function pushU8(b){ var p='='.repeat((4-b.length%4)%4), s=atob((b+p).replace(/-/g,'+').replace(/_/g,'/')), a=new Uint8Array(s.length); for(var i=0;i<s.length;i++) a[i]=s.charCodeAt(i); return a; }
+function pushSetup(force){
+  if(pushBusy||role()!=='mont'||!syncOn()) return;
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)||Notification.permission!=='granted') return;
+  pushBusy=true;
+  navigator.serviceWorker.ready.then(function(rg){
+    return rg.pushManager.getSubscription().then(function(sub){
+      if(sub) return sub;
+      return call({action:'pushkey'}).then(function(j){ if(!j||!j.key) throw new Error('no_key'); return rg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:pushU8(j.key)}); });
+    });
+  }).then(function(sub){
+    var js=sub.toJSON(), mark=js.endpoint+'|'+whoBase(sync.who)+'|'+today().slice(0,7), old='';
+    try{ old=localStorage.getItem(PUSH_KEY)||''; }catch(e){}
+    if(!force&&old===mark){ pushBusy=false; return; }
+    return call({action:'pushsub',sub:{endpoint:js.endpoint}}).then(function(){ try{ localStorage.setItem(PUSH_KEY,mark); }catch(e){} pushBusy=false; if(force) toast('Оповещения включены — придут, даже если приложение закрыто'); });
+  }).catch(function(e){ pushBusy=false; if(force) toast('Не удалось включить push: '+((e&&e.message)||'')); });
+}
+setTimeout(function(){ pushSetup(false); },4000);
 function notifBanner(){ if(!('Notification' in window)||Notification.permission!=='default') return ''; return '<button class="notifb" data-a="notifon">🔔 Включить оповещения — чтобы слышать, когда прораб зовёт за нарядом</button>'; }
 function wsLeft(){
   var el=$('nwl'); if(!el) return;
