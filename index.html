@@ -662,6 +662,8 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 .wsi{position:relative}.bellc{position:relative}
 .bell{position:absolute;right:8px;bottom:8px;display:inline-flex;align-items:center;gap:4px;min-width:34px;height:30px;padding:0 7px;border:1px solid var(--line);border-radius:8px;background:var(--surface,transparent);font-size:16px;line-height:1;cursor:pointer;z-index:2}
 .bellc .bell{top:8px;bottom:auto;right:48px}
+.wsi .wsbr:empty{display:none}.wsi .bell{position:static;flex:0 0 auto;height:28px}
+.wsit .xok{margin-left:auto}
 .bell small{font-size:11px;font-weight:700}
 .bell.bsent{border-color:#d4a017;background:rgba(212,160,23,.15)}.bell.bsent small{color:#d4a017}
 .bell.bok{border-color:#2fa84f;background:rgba(47,168,79,.15)}.bell.bok small{color:#2fa84f}
@@ -711,7 +713,7 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='178';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='179';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4405,7 +4407,7 @@ function wsLeft(){
   el.innerHTML='<div class="wslh"><b>Бригады на '+esc(tbtDmy(d))+'</b><span>'+L.length+'</span></div>'+
     '<button class="wsnew'+(!cur?' on':'')+'" data-a="wssel" data-l="">+ Новое наряд-задание</button>'+
     (L.length?L.map(function(i){ var ob=i.x?i.x.obj:i.b.obj, f=bdStat(ob,d,i.b,i.x);
-      return '<button class="wsi xs-'+f.lvl+(cur&&cur.k===i.k?' on':'')+'" data-a="wssel" data-l="'+esc(i.lead)+'"><span class="wsit"><b>'+esc(ob)+' · '+esc(whoBase(i.lead))+'</b>'+(i.b?'<span class="xok">'+(i.b.data.nums||[]).length+' чел.</span>':'')+'</span>'+f.html+bellHtml(d,i.lead)+'</button>'; }).join('')
+      return '<button class="wsi xs-'+f.lvl+(cur&&cur.k===i.k?' on':'')+'" data-a="wssel" data-l="'+esc(i.lead)+'"><span class="wsit"><b>'+esc(ob)+' · '+esc(whoBase(i.lead))+'</b>'+(i.b?'<span class="xok">'+(i.b.data.nums||[]).length+' чел.</span>':'')+'<span class="wsbr">'+bellHtml(d,i.lead)+'</span></span>'+f.html+'</button>'; }).join('')
       :'<p class="note">На этот день заданий и поданной численности пока нет.</p>');
 }
 function wsStep(n,t,sub,cls,act){ return '<button class="wsst '+(cls||'')+(act?' act':'')+'" data-a="wsstep" data-s="'+n+'"'+(act?' aria-current="step"':'')+'><b>'+n+'. '+t+'</b><small>'+sub+'</small></button>'; }
