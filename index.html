@@ -651,7 +651,7 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 .montt tr.mex td{font-size:13px}.montt .exl{display:inline-block;font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-right:4px}
 
 .montt tr.og td{line-height:20px}.montt tr.og .mon{font-size:18px;line-height:20px}
-.monstrip .mjr{display:flex;justify-content:center;gap:14px}.monstrip .mjr>span{display:flex;align-items:baseline;gap:4px}
+.monstrip .mjr{display:flex;justify-content:space-around;gap:18px;height:100%}.monstrip .mjr>span{display:flex;flex-direction:column;gap:2px;align-items:center}
 .monstrip .mjr i{font-style:normal;font-size:11px;color:var(--muted)}
 .monstrip .g b{color:var(--work-t)}
 </style>
@@ -697,7 +697,7 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='169';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='170';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4661,7 +4661,7 @@ function monHtml(d,rf,ar,tot){
   var r0=role(); if(!MV&&r0!=='nach'&&r0!=='tech') return '<div class="monwrap"><p class="note">Мониторинг доступен начальнику участка и техникам. Войдите в приложение под своей учётной записью.</p></div>';
   monAt=Date.now();
   function n(v){ return v?String(v):'0'; }
-  var strip='<span class="ms g mjav"><small>Явка</small><span class="mjr"><span><i>РФ</i><b>'+n(rf.work)+'</b></span><span><i>АРЕ</i><b>'+n(ar.work)+'</b></span></span></span>'+[['list','В списке',''],['ab','Прогул','r'],['dob','Выходной по графику','y'],['sick','Больничный',''],['pl','Отпуск','v'],['ul','Отпуск без ЗП',''],['wo','Работа в выходной',''],['ot','Сверхурочная работа','']]
+  var strip='<span class="ms g mjav"><span class="mjr"><span><small>РФ</small><b>'+n(rf.work)+'</b></span><span><small>АРЕ</small><b>'+n(ar.work)+'</b></span></span></span>'+[['list','В списке',''],['ab','Прогул','r'],['dob','Выходной по графику','y'],['sick','Больничный',''],['pl','Отпуск','v'],['ul','Отпуск без ЗП',''],['wo','Работа в выходной',''],['ot','Сверхурочная работа','']]
     .map(function(c){ return '<span class="ms '+c[2]+'" title="РФ '+n(rf[c[0]])+' · АРЕ '+n(ar[c[0]])+'"><small>'+c[1]+'</small><b>'+n(tot[c[0]])+'</b></span>'; }).join('');
   strip=strip.replace(/^(<span class="ms g mjav">[\s\S]*?<\/span><\/span><\/span>)(<span class="ms " [^>]*>[\s\S]*?<\/span>)/,'$2$1');   // «В списке», затем «Явка»
   var items=bdItems(d), brigs=items.filter(function(x){ return x.kind==='brig'; }), tasks=items.filter(function(x){ return x.kind==='task'; });
