@@ -629,9 +629,9 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 .montt .pct{font-weight:800;font-variant-numeric:tabular-nums}.montt .pct.ok{color:#2fa84f}.montt .pct.mid{color:#d4a017}.montt .pct.lo{color:var(--ab-t,#e66)}
 .montt .dash{color:var(--muted)}
 
-.mvbox{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 14px;padding:10px 12px;border:1px dashed var(--line);border-radius:10px}
+.mvbox{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 14px}
 .mvbox .primary{min-height:40px;padding:0 14px}.mvbox .note{margin:0}
-#mvurl{flex:1 1 100%;min-width:0;font-size:13px;padding:8px;border:1px solid var(--line);border-radius:8px;background:transparent;color:inherit}
+#mvurl{flex:0 1 320px;width:320px;min-width:0;font-size:13px;padding:8px;border:1px solid var(--line);border-radius:8px;background:transparent;color:inherit}
 .mvmain{padding:16px max(16px,env(safe-area-inset-right,0px)) 32px max(16px,env(safe-area-inset-left,0px))}
 
 .monstrip{gap:8px 10px!important}
@@ -699,7 +699,7 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='173';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='174';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4711,7 +4711,7 @@ function bdRender(){
   var hn=$('hnav'); if(hn) hn.innerHTML=navDate('bdday',d);
   if(MON) return monHtml(d,rf,ar,tot);
   setTimeout(mvPushAtt,0); setTimeout(mvTokGet,0);
-  var h='<div class="mvbox"><button type="button" class="primary" data-a="mvcopy">🔗 Скопировать ссылку для просмотра</button><span class="note">Ссылка открывает явку и наряд-задания без входа в приложение и действует только сегодня, '+esc(dmyLong(today()))+'.</span>'+(mvLink&&mvLinkD===today()?'<input id="mvurl" readonly value="'+esc(mvLink)+'" aria-label="Ссылка для просмотра" onclick="this.select()">':'')+'</div>'+
+  var h='<div class="mvbox">'+(mvLink&&mvLinkD===today()?'<input id="mvurl" readonly value="'+esc(mvLink)+'" aria-label="Ссылка для просмотра на сегодня" title="Ссылка для просмотра — действует только сегодня" onclick="this.select()">':'')+'<button type="button" class="primary" data-a="mvcopy">🔗 Скопировать ссылку для просмотра</button></div>'+
     '<h3 class="tbth3">1. Явка</h3><div class="xtw"><table class="xt xtj"><thead><tr><th></th>'+cols.map(function(c){ return '<th>'+c[1]+'</th>'; }).join('')+'</tr></thead><tbody>'+
     [['РФ',rf],['АРЕ',ar],['Всего',tot]].map(function(r){ return '<tr'+(r[0]==='Всего'?' class="xtot"':'')+'><th>'+r[0]+'</th>'+cols.map(function(c){ var v=r[1][c[0]]; return '<td class="'+(c[0]==='ab'&&v?'xbad':c[0]==='work'?'xgood':'')+'">'+(v||'')+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></div>';
   /* 2. наряд-задания по бригадирам и поданная ими численность */
