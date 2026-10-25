@@ -645,7 +645,7 @@ body.vhdate #dateBtn{display:none}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='157';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='158';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4224,11 +4224,18 @@ function tkMergeByPermit(e,hint){
 /* табельный № бригадира */
 function leadNum(b,L){ if(b&&b.data&&b.data.lnum) return normNum(b.data.lnum); var p=brigLeadPerson(b,L); return p&&p.p.num?normNum(p.p.num):''; }
 /* кто из других бригадиров (с заданием или бригадой на этот день) попал в состав бригады b1 / её открытые наряды */
+/* № бригадира №2 в составе бригады №1 — это действительно он? (при одинаковых табельных № смотрим, кого выбрал бригадир, или ФИО в наряде) */
+function tkNumIsLead(b1,n2,L2,d){
+  if(anyPersons(n2).length<2) return true;
+  var k2=fioKey(L2), sur=k2.split(' ')[0], pk=((b1.data||{}).pk||{})[n2];
+  if(pk&&(b1.data.nums||[]).some(function(n){ return normNum(n)===n2; })){ var p=brigP(b1,n2); return !!(p&&fioKey(p.p.name)===k2); }
+  return ndBrigAll(b1,d||b1.d,b1.obj).some(function(e){ return (e.team||[]).some(function(t){ return normNum(t.num)===n2&&sur&&fioKey(t.name||'').indexOf(sur)>=0; }); });
+}
 function tkMergeCands(raw,b1,team){
   var live=raw.filter(function(x){ return !(x.data&&x.data.into); }), brigs=live.filter(function(x){ return x.kind==='brig'; }), tasks=live.filter(function(x){ return x.kind==='task'; });
   var L1=b1.data.lead, leads={};
   tasks.concat(brigs).forEach(function(x){ var L=x.kind==='brig'?x.data.lead:x.data.brig; if(L&&fioKey(L)!==fioKey(L1)) leads[fioKey(L)]=L; });
-  return Object.keys(leads).map(function(k){ var L2=leads[k], b2=brigs.filter(function(b){ return fioKey(b.data.lead)===k; })[0]||null, n2=leadNum(b2,L2); return n2&&team[n2]&&!tkNoMerge(live,k,L1)?k:null; }).filter(Boolean);
+  return Object.keys(leads).map(function(k){ var L2=leads[k], b2=brigs.filter(function(b){ return fioKey(b.data.lead)===k; })[0]||null, n2=leadNum(b2,L2); return n2&&team[n2]&&tkNumIsLead(b1,n2,L2)&&!tkNoMerge(live,k,L1)?k:null; }).filter(Boolean);
 }
 /* автоматически: бригадир №2 есть в поданном составе бригадира №1 или в его открытых нарядах -> объединяем (делает прораб / начальник / техник при открытии «Нарядов») */
 var tkAutoAt={}, tkAutoBusy=false;
@@ -4312,7 +4319,7 @@ function tkMergeCore(d,raw,b1,team){
     var leads={}; tasks.concat(brigs).forEach(function(x){ var L=x.kind==='brig'?x.data.lead:x.data.brig; if(L&&fioKey(L)!==fioKey(L1)) leads[fioKey(L)]=L; });
     var todo=Object.keys(leads).map(function(k){ var L2=leads[k], b2=brigs.filter(function(b){ return fioKey(b.data.lead)===k; })[0]||null, t2=tasks.filter(function(t){ return fioKey(t.data.brig)===k; })[0]||null;
       var n2=leadNum(b2,L2);
-      return n2&&team[n2]&&!tkNoMerge(live,fioKey(L2),L1)?{L2:L2,b2:b2,t2:t2,n2:n2}:null; }).filter(Boolean);
+      return n2&&team[n2]&&tkNumIsLead(b1,n2,L2,d)&&!tkNoMerge(live,fioKey(L2),L1)?{L2:L2,b2:b2,t2:t2,n2:n2}:null; }).filter(Boolean);
     if(!todo.length) return Promise.resolve();
     var puts=[], names=[], t1=tasks.filter(function(x){ return fioKey(x.data.brig)===fioKey(L1); })[0]||null, d1=t1?JSON.parse(JSON.stringify(t1.data||{})):null, base1=t1;
     var db=JSON.parse(JSON.stringify(b1.data||{})), bChanged=false;
