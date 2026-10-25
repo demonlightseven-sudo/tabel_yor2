@@ -676,7 +676,7 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='164';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='165';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4500,15 +4500,21 @@ document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classLis
 /* страница мониторинга (index.html?mon=1): явка + таблица работ по объектам */
 var monAt=0, mvLink='', mvAttKey='', mvAttT=0, mvAttAt=0;
 var MV=(location.search.match(/[?&]mv=([0-9a-f]{8,64})/)||[])[1]||'', MVD=(location.search.match(/[?&]d=(\d{4}-\d{2}-\d{2})/)||[])[1]||'';
+var mvLinkD='', mvTokBusy=false;
+function mvTokGet(){
+  var r0=role(); if(mvTokBusy||!syncOn()||(r0!=='nach'&&r0!=='tech')) return;
+  if(mvLink&&mvLinkD===today()) return;
+  mvTokBusy=true;
+  call({action:'mvtok'}).then(function(j){ mvTokBusy=false; if(j&&j.t){ mvLink=location.origin+location.pathname+'?mv='+j.t+'&d='+j.d; mvLinkD=j.d; if(ui.view==='board') renderX(); } },function(){ mvTokBusy=false; });
+}
 function mvCopy(){
-  if(!syncOn()){ toast('Нет связи с сервером'); return; }
-  call({action:'mvtok'}).then(function(j){
-    if(!j||!j.t){ toast('Не удалось получить ссылку'); return; }
-    mvLink=location.origin+location.pathname+'?mv='+j.t+'&d='+j.d;
-    function shown(){ renderX(); setTimeout(function(){ var i=$('mvurl'); if(i){ i.focus(); i.select(); } },50); }
-    if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(mvLink).then(function(){ toast('Ссылка скопирована — действует только сегодня'); shown(); },function(){ toast('Скопируйте ссылку из поля'); shown(); });
-    else { toast('Скопируйте ссылку из поля'); shown(); }
-  }).catch(function(e){ toast('Не удалось: '+((e&&e.message)||'нет связи')); });
+  var i=$('mvurl');
+  if(!mvLink||mvLinkD!==today()){ mvLink=''; mvTokGet(); toast('Готовлю ссылку — нажмите ещё раз через секунду'); return; }
+  function sel(){ if(i){ i.focus(); i.select(); } }
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(mvLink).then(function(){ toast('Ссылка скопирована — действует только сегодня'); },function(){ sel(); toast('Скопируйте ссылку из поля'); }); }
+    else { sel(); var ok=false; try{ ok=document.execCommand('copy'); }catch(e){} toast(ok?'Ссылка скопирована — действует только сегодня':'Скопируйте ссылку из поля'); }
+  }catch(e){ sel(); toast('Скопируйте ссылку из поля'); }
 }
 function mvPushAtt(){
   var r0=role(); if(MV||!syncOn()||(r0!=='nach'&&r0!=='tech'&&r0!=='prorab')) return;
@@ -4579,8 +4585,8 @@ function bdRender(){
   var rf=bookDay('rf',d), ar=bookDay('are',d), tot={}; cols.forEach(function(c){ tot[c[0]]=rf[c[0]]+ar[c[0]]; });
   var hn=$('hnav'); if(hn) hn.innerHTML=navDate('bdday',d);
   if(MON) return monHtml(d,rf,ar,tot);
-  setTimeout(mvPushAtt,0);
-  var h='<div class="mvbox"><button type="button" class="primary" data-a="mvcopy">🔗 Скопировать ссылку для просмотра</button><span class="note">Ссылка открывает явку и наряд-задания без входа в приложение и действует только сегодня, '+esc(dmyLong(today()))+'.</span>'+(mvLink?'<input id="mvurl" readonly value="'+esc(mvLink)+'" aria-label="Ссылка для просмотра" onclick="this.select()">':'')+'</div>'+
+  setTimeout(mvPushAtt,0); setTimeout(mvTokGet,0);
+  var h='<div class="mvbox"><button type="button" class="primary" data-a="mvcopy">🔗 Скопировать ссылку для просмотра</button><span class="note">Ссылка открывает явку и наряд-задания без входа в приложение и действует только сегодня, '+esc(dmyLong(today()))+'.</span>'+(mvLink&&mvLinkD===today()?'<input id="mvurl" readonly value="'+esc(mvLink)+'" aria-label="Ссылка для просмотра" onclick="this.select()">':'')+'</div>'+
     '<h3 class="tbth3">1. Явка</h3><div class="xtw"><table class="xt xtj"><thead><tr><th></th>'+cols.map(function(c){ return '<th>'+c[1]+'</th>'; }).join('')+'</tr></thead><tbody>'+
     [['РФ',rf],['АРЕ',ar],['Всего',tot]].map(function(r){ return '<tr'+(r[0]==='Всего'?' class="xtot"':'')+'><th>'+r[0]+'</th>'+cols.map(function(c){ var v=r[1][c[0]]; return '<td class="'+(c[0]==='ab'&&v?'xbad':c[0]==='work'?'xgood':'')+'">'+(v||'')+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></div>';
   /* 2. наряд-задания по бригадирам и поданная ими численность */
