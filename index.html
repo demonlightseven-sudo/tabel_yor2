@@ -654,6 +654,8 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 .monstrip .mjr{display:flex;justify-content:space-around;gap:18px;height:100%}.monstrip .mjr>span{display:flex;flex-direction:column;gap:2px;align-items:center}
 .monstrip .mjr i{font-style:normal;font-size:11px;color:var(--muted)}
 .monstrip .g b{color:var(--work-t)}
+
+.tksub{display:inline-block;font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-right:2px;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -697,7 +699,7 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='171';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='172';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -827,6 +829,10 @@ function person(id){ return bk().people.filter(function(p){ return p.id===id; })
 function dayRec(d){ return bk().records[d]||{}; }
 
 var MON=/[?&]mon\b/.test(location.search);
+document.addEventListener('input',function(e){ var t=e.target; if(!t||!t.dataset) return;
+  if(!(((t.dataset.tki!=null||t.dataset.tke!=null)&&t.dataset.tkk==='t')||/^ext_t_/.test(t.id||'')||(t.dataset.pfx&&/\|t$/.test(t.dataset.pfx)))) return;
+  var v=t.value, up=v.replace(/[a-z]+/g,function(m){ return m.toUpperCase(); }); if(up===v) return;
+  var a=t.selectionStart, b=t.selectionEnd; t.value=up; try{ t.setSelectionRange(a,b); }catch(er){} },true);
 var ui={date:today(),follow:true,filter:'all',q:'',open:{},undo:null,numMode:true,view:'day',month:today().slice(0,7)};
 
 /* ------------------------------------------------------------- синхронизация с Google Таблицей */
@@ -2600,7 +2606,8 @@ function ndFix(k,f,v){
 }
 function ndSel(st,k,f,label,opts){ var v=ndV(st,k,f); return '<div class="fld"><label for="nd_'+f+'">'+label+'</label><select id="nd_'+f+'" data-nd="'+f+'">'+opts.map(function(o){ return '<option'+(o===v?' selected':'')+'>'+esc(o)+'</option>'; }).join('')+'</select></div>'; }
 function ndFixed(label,v){ return '<div class="fld"><label>'+label+'</label><input type="text" value="'+esc(v)+'" disabled></div>'; }
-var ND_OBJS=['91UYE','91UYF','92UYF','11UZU','13UYE'];   // объекты: у каждого свой ППР и свои «последние» значения
+var ND_OBJS=['91UYE','91UYF','92UYF','11UZU','12UYF','13UYE'];
+var TK_OBJ_SUBS={'11UZU':['Уч. 1.2 ч.1','Уч. 1.1 ч.1','Уч. 1.1 ч.2','Уч. 1.1 ч.3','Уч. 1.4']};   // объекты: у каждого свой ППР и свои «последние» значения
 function ndGuessObj(code){ code=String(code||'').toUpperCase(); for(var i=0;i<ND_OBJS.length;i++) if(code.indexOf(ND_OBJS[i])>=0) return ND_OBJS[i]; return ''; }
 function ndObjOf(e){ return e&&ND_OBJS.indexOf(e.obj)>=0?e.obj:ndGuessObj(e&&e.code); }
 function ndSl(st,k){ return st.obj+'|'+k; }
@@ -3689,6 +3696,9 @@ function sheetXDate(k){ var d=xDateGet(k);
     '<div class="fld" style="margin-top:12px"><label for="xdpick">Выбрать дату</label><input type="date" id="xdpick" data-k="'+k+'" value="'+d+'"></div>'+
     '<p class="note">Если день не сегодняшний, дата подсвечена и помечена значком ⚠.</p>'); }
 function dmyLong(d){ var x=parseYmd(d); return WD[x.getDay()]+', '+x.getDate()+' '+MONTHS_G[x.getMonth()]; }
+function tkObjSelect(id,cur){ var opts=[]; ND_OBJS.forEach(function(o){ opts.push([o,o]); (TK_OBJ_SUBS[o]||[]).forEach(function(sb){ opts.push([o+'|'+sb,o+' ('+sb+')']); }); });
+  return '<select id="'+id+'">'+opts.map(function(x){ return '<option value="'+esc(x[0])+'"'+(x[0]===cur?' selected':'')+'>'+esc(x[1])+'</option>'; }).join('')+'</select>'; }
+function subTag(it){ return it&&it.s?'<small class="tksub">'+esc(it.s)+'</small> ':''; }
 function objSelect(id,cur){ return '<select id="'+id+'">'+ND_OBJS.map(function(o){ return '<option value="'+o+'"'+(o===cur?' selected':'')+'>'+o+'</option>'; }).join('')+'</select>'; }
 function parseNums(s){ var seen={}, out=[]; String(s||'').split(/[^0-9]+/).forEach(function(x){ x=x.trim(); if(x&&!seen[normNum(x)]){ seen[normNum(x)]=1; out.push(x); } }); return out; }
 function renderX(){
@@ -4029,7 +4039,7 @@ function pfOpen(id,d){
   if(role()!=='nach'){ toast('Корректировать может только начальник участка'); return; }
   var x=bdItems(d).filter(function(a){ return a.id===id; })[0]; if(!x) return;
   var dn=tkDone(x), fc=dn&&dn.data&&Array.isArray(dn.data.facts)?dn.data.facts:[];
-  pfEd={id:id,d:d,items:tkItemsFor(x.data||{}).map(function(it,i){ var f=fc[i]||null; return {t:it.t,v:it.v||'',u:it.u||'',fr:it.fr||'',f:f&&f.f!=null?tkFmt(f.f):'',on:!!(f&&f.p>=100)}; }),
+  pfEd={id:id,d:d,items:tkItemsFor(x.data||{}).map(function(it,i){ var f=fc[i]||null; return {t:it.t,s:it.s||'',v:it.v||'',u:it.u||'',fr:it.fr||'',f:f&&f.f!=null?tkFmt(f.f):'',on:!!(f&&f.p>=100)}; }),
     ext:extList(x).map(function(e){ return {t:e.t,f:e.f||'',u:e.u||'',by:e.by||'',at:e.at||0}; })};
   pfRender();
 }
@@ -4040,7 +4050,7 @@ function pfRender(){
     '<p class="note">'+esc(x.obj||'')+' · '+esc(dmyLong(pfEd.d))+'. Пустой факт — бригадир ещё не отчитался по пункту.</p>'+
     '<div class="pfgrid"><div class="pfh"><span>Работа</span><span>План</span><span>Ед.</span><span>Факт</span><span></span></div>'+
     pfEd.items.map(function(it,i){ var pl=tkNum(it.v);
-      return '<div class="pfr"><span class="pft">'+(i+1)+'. '+esc(it.t)+'</span><input data-pf="'+i+'|v" inputmode="decimal" maxlength="12" value="'+esc(it.v)+'" placeholder="—" aria-label="План">'+us(it.u,'data-pf="'+i+'|u"')+
+      return '<div class="pfr"><span class="pft">'+(i+1)+'. '+subTag(it)+esc(it.t)+'</span><input data-pf="'+i+'|v" inputmode="decimal" maxlength="12" value="'+esc(it.v)+'" placeholder="—" aria-label="План">'+us(it.u,'data-pf="'+i+'|u"')+
         (pl!=null?'<input data-pf="'+i+'|f" inputmode="decimal" maxlength="12" value="'+esc(it.f)+'" placeholder="—" aria-label="Факт">':'<label class="pfck"><input type="checkbox" data-pf="'+i+'|on"'+(it.on?' checked':'')+'> сделано</label>')+'<span></span></div>'; }).join('')+
     (pfEd.ext.length?'<div class="pfh pfh2"><span>Дополнительные работы</span><span></span><span>Ед.</span><span>Выполнено</span><span></span></div>'+
       pfEd.ext.map(function(e,i){ return '<div class="pfr"><input class="pft" data-pfx="'+i+'|t" maxlength="200" value="'+esc(e.t)+'" aria-label="Работа"><span></span>'+us(e.u,'data-pfx="'+i+'|u"')+
@@ -4061,7 +4071,7 @@ function pfSave(){
   for(var j=0;j<pfEd.ext.length;j++){ if(!String(pfEd.ext[j].t).trim()){ msg.textContent='Напишите название дополнительной работы '+(j+1)+' или удалите её.'; return; } if(String(pfEd.ext[j].f).trim()&&tkNum(pfEd.ext[j].f)==null){ msg.textContent='Объём доп. работы '+(j+1)+' — числом.'; return; } }
   if(!syncOn()){ msg.textContent='Нет связи с сервером.'; return; }
   var puts=[], dd=JSON.parse(JSON.stringify(x.data||{}));
-  var items=pfEd.items.map(function(it){ var o={t:it.t,v:String(it.v).trim(),u:String(it.v).trim()?it.u:''}; if(it.fr) o.fr=it.fr; return o; });
+  var items=pfEd.items.map(function(it){ var o={t:it.t,v:String(it.v).trim(),u:String(it.v).trim()?it.u:''}; if(it.fr) o.fr=it.fr; if(it.s) o.s=it.s; return o; });
   dd.items=items; dd.tasks=tkText(items,dd.note).slice(0,3000); dd.edited={by:sync.who||'',t:Date.now()};
   puts.push({kind:'task',d:pfEd.d,obj:x.obj,id:x.id,data:dd});
   var dn=tkDone(x), any=false, sum=0;
@@ -4081,7 +4091,7 @@ function tkBodyBd(x,noF){
   var dd=x.data||{}, dn=noF?null:tkDone(x), fc=dn&&dn.data&&Array.isArray(dn.data.facts)?dn.data.facts:null;
   return '<div class="tkil">'+dd.items.map(function(it,i){ var f=fc&&fc[i], pl=tkNum(it.v), u=it.u?' '+esc(it.u):'', fv;
       if(!f||(pl!=null&&f.f==null)) fv='—'; else if(pl!=null) fv=esc(tkFmt(f.f))+u+' <b class="'+(f.p>=100?'tkok':f.p>0?'tkpart':'xno')+'">'+f.p+'%</b>'; else fv=f.p>=100?'сделано':'<span class="xno">не сделано</span>';
-      return '<div class="tki"><b>'+(i+1)+'.</b> '+esc(it.t)+(it.fr?' <small class="tkfr">(из задания '+esc(whoBase(it.fr))+')</small>':'')+
+      return '<div class="tki"><b>'+(i+1)+'.</b> '+subTag(it)+esc(it.t)+(it.fr?' <small class="tkfr">(из задания '+esc(whoBase(it.fr))+')</small>':'')+
         '<div class="tkpf">'+(pl!=null?'<span><b class="tkpl">План</b> — <span class="tkbx">'+esc(it.v)+u+'</span></span>':'')+(noF?'':'<span><b class="tkfa">Факт</b> — <span class="tkbx">'+fv+'</span></span>')+'</div></div>'; }).join('')+
     (dd.note?'<div class="tkinote">'+esc(dd.note)+'</div>':'')+extBody(x)+'</div>';
 }
@@ -4278,7 +4288,7 @@ function tkRender(){
 }
 function tkFormHtml(d,tasks,obj){
   return '<div class="tbtf"><label for="tk_brig">Бригадир</label><select id="tk_brig"><option value="">— выберите бригадира —</option>'+BRIG_NAMES.map(function(n){ var has=tasks.some(function(x){ return fioKey(x.data.brig)===fioKey(n); }); return '<option value="'+esc(n)+'"'+(n===tkBrigDraft?' selected':'')+'>'+esc(n)+(has?' ✓':'')+'</option>'; }).join('')+'</select>'+
-    '<label for="tk_obj">Объект</label>'+objSelect('tk_obj',obj)+
+    '<label for="tk_obj">Объект</label>'+tkObjSelect('tk_obj',obj)+
     tkItemsForm()+
     '<button class="tbtdl" data-a="tksend">Выдать наряд-задание</button><p class="note" id="tk_msg"></p></div>';
 }
@@ -4501,7 +4511,7 @@ var tkEd=null;
 function tkEditOpen(id,d){
   var x=bdItems(d).filter(function(a){ return a.id===id; })[0]; if(!x){ toast('Задание не найдено'); return; }
   var dd=x.data||{};
-  tkEd={id:id,d:d,obj:x.obj,items:tkItemsFor(dd).map(function(it,i){ return {t:it.t,v:it.v||'',u:it.u||'',fr:it.fr||'',o:i}; }),note:Array.isArray(dd.items)&&dd.items.length?(dd.note||''):''};
+  tkEd={id:id,d:d,obj:x.obj,items:tkItemsFor(dd).map(function(it,i){ return {t:it.t,v:it.v||'',u:it.u||'',fr:it.fr||'',s:it.s||'',o:i}; }),note:Array.isArray(dd.items)&&dd.items.length?(dd.note||''):''};
   tkEditRender();
 }
 function tkEditRender(){
@@ -4522,13 +4532,13 @@ document.addEventListener('input',function(e){ var t=e.target; if(tkEd&&t&&t.dat
 document.addEventListener('change',function(e){ var t=e.target; if(tkEd&&t&&t.dataset&&t.dataset.tke!=null&&t.tagName==='SELECT'){ var it=tkEd.items[Number(t.dataset.tke)]; if(it) it.u=t.value; } },true);
 function tkEditSave(){
   if(!tkEd) return; if(role()!=='nach'){ toast('Изменять наряд-задание может только начальник участка'); return; }
-  var msg=$('tke_msg'), items=tkEd.items.map(function(it){ return {t:String(it.t||'').trim().slice(0,200),v:String(it.v||'').trim().slice(0,12),u:it.u||'',fr:it.fr||'',o:it.o}; }).filter(function(it){ return it.t; });
+  var msg=$('tke_msg'), items=tkEd.items.map(function(it){ return {t:String(it.t||'').trim().slice(0,200),v:String(it.v||'').trim().slice(0,12),u:it.u||'',fr:it.fr||'',s:it.s||'',o:it.o}; }).filter(function(it){ return it.t; });
   if(!items.length){ msg.textContent='Должен остаться хотя бы один пункт. Чтобы убрать задание целиком — кнопка ✕ в карточке.'; return; }
   for(var i=0;i<items.length;i++){ if(items[i].v&&tkNum(items[i].v)==null){ msg.textContent='Объём в пункте '+(i+1)+' — числом, например 12 или 4,5.'; return; } if(!items[i].v) items[i].u=''; }
   if(!syncOn()){ msg.textContent='Нет связи с сервером.'; return; }
   var x=bdItems(tkEd.d).filter(function(a){ return a.id===tkEd.id; })[0]; if(!x){ msg.textContent='Задание не найдено — обновите страницу.'; return; }
   var dd=JSON.parse(JSON.stringify(x.data||{})), note=String(tkEd.note||'').trim().slice(0,500);
-  dd.items=items.map(function(it){ var o={t:it.t,v:it.v,u:it.u}; if(it.fr) o.fr=it.fr; return o; }); dd.note=note; dd.tasks=tkText(dd.items,note); dd.edited={by:sync.who||'',t:Date.now()};
+  dd.items=items.map(function(it){ var o={t:it.t,v:it.v,u:it.u}; if(it.fr) o.fr=it.fr; if(it.s) o.s=it.s; return o; }); dd.note=note; dd.tasks=tkText(dd.items,note); dd.edited={by:sync.who||'',t:Date.now()};
   var dn=tkDone(x), puts=[{kind:'task',d:tkEd.d,obj:x.obj,id:x.id,data:dd}];
   if(dn&&dn.data&&Array.isArray(dn.data.facts)){   // отчёт уже есть: факты — по оставшимся пунктам
     var old=dn.data.facts, facts=items.map(function(it){ return it.o!=null&&old[it.o]?old[it.o]:{f:null,p:0}; }), sum=facts.reduce(function(a,f){ return a+(Number(f.p)||0); },0), pct=Math.round(sum/facts.length);
@@ -4543,11 +4553,11 @@ function tkEditSave(){
 }
 function tkSend(){
   var d=tkDate||tkDef(), o=brgSt(), msg=$('tk_msg');
-  var obj=$('tk_obj').value, brig=$('tk_brig').value.trim(), note=($('tk_text')?$('tk_text').value:tkNoteDraft).trim().slice(0,500);
-  var items=tkItems.map(function(x){ return {t:String(x.t||'').trim().slice(0,200),v:String(x.v||'').trim().slice(0,12),u:x.u||''}; }).filter(function(x){ return x.t; });
+  var ov=$('tk_obj').value, sub=ov.indexOf('|')>0?ov.split('|')[1]:'', obj=ov.split('|')[0], brig=$('tk_brig').value.trim(), note=($('tk_text')?$('tk_text').value:tkNoteDraft).trim().slice(0,500);
+  var items=tkItems.map(function(x){ var o={t:String(x.t||'').trim().replace(/[a-z]+/g,function(m){ return m.toUpperCase(); }).slice(0,200),v:String(x.v||'').trim().slice(0,12),u:x.u||''}; if(sub) o.s=sub; return o; }).filter(function(x){ return x.t; });
   for(var bi=0;bi<items.length;bi++){ if(items[bi].v&&tkNum(items[bi].v)==null){ msg.textContent='Объём в строке '+(bi+1)+' — числом, например 12 или 4,5.'; return; } if(!items[bi].v) items[bi].u=''; }
   var text=items.map(function(x,i){ return (i+1)+'. '+x.t+(x.v?' — '+x.v+(x.u?' '+x.u:''):''); }).join('\n')+(note?(items.length?'\n':'')+note:'');
-  o.tobj=obj; brgSave(o);
+  o.tobj=ov; brgSave(o);
   if(BRIG_NAMES.indexOf(brig)<0){ msg.textContent='Выберите бригадира из списка.'; return; } if(!text){ msg.textContent='Впишите задачи.'; return; }
   if(!syncOn()){ msg.textContent='Нет связи с сервером.'; return; }
   o.tbrigs=[brig].concat((o.tbrigs||[]).filter(function(n){ return n.toLowerCase()!==brig.toLowerCase(); })).slice(0,40); brgSave(o);
@@ -4682,7 +4692,7 @@ function monHtml(d,rf,ar,tot){
         var f=fc&&fc[i], pl=tkNum(it.v), u=it.u?' '+esc(it.u):'', pv=pl!=null?'<span class="bx p">'+esc(it.v)+u+'</span>':'<span class="dash">—</span>', fv, pc;
         if(f&&pl!=null&&f.f!=null) fv='<span class="bx f">'+esc(tkFmt(f.f))+u+'</span>'; else if(f&&pl==null) fv=f.p>=100?'<span class="bx f">сделано</span>':'<span class="bx f xno">не сделано</span>'; else fv='<span class="dash">—</span>';
         pc=f?'<span class="pct '+(f.p>=100?'ok':f.p>=50?'mid':'lo')+'">'+f.p+'%</span>':(dn?'<span class="pct lo">0%</span>':'<span class="dash">—</span>');
-        rows+='<tr><td class="mw">'+(i===0?who:'')+'</td><td>'+esc(it.t)+(it.fr?' <small class="tkfr">(из задания '+esc(whoBase(it.fr))+')</small>':'')+'</td><td class="r">'+pv+'</td><td class="r">'+fv+'</td><td class="r">'+pc+'</td></tr>';
+        rows+='<tr><td class="mw">'+(i===0?who:'')+'</td><td>'+subTag(it)+esc(it.t)+(it.fr?' <small class="tkfr">(из задания '+esc(whoBase(it.fr))+')</small>':'')+'</td><td class="r">'+pv+'</td><td class="r">'+fv+'</td><td class="r">'+pc+'</td></tr>';
       });
       extList(t).forEach(function(e){ var fu=e.u?' '+esc(e.u):''; rows+='<tr class="mex"><td class="mw"></td><td><span class="exl">доп.</span> '+esc(e.t)+'</td><td class="r"><span class="dash">—</span></td><td class="r">'+(tkNum(e.f)!=null?'<span class="bx f">'+esc(String(e.f))+fu+'</span>':'<span class="dash">—</span>')+'</td><td class="r"><span class="dash">—</span></td></tr>'; });
     });
