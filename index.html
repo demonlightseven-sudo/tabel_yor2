@@ -608,6 +608,26 @@ body.vhdate #dateBtn{display:none}
 .xtj thead th{height:44px;line-height:1.2;vertical-align:middle;word-break:break-word;hyphens:auto}
 .xtj tbody td{font-size:18px;font-weight:700;height:40px;padding:4px 2px}
 .xtj tbody th{font-size:15px}
+
+body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncbar,body.mon #menuBtn{display:none!important}
+.monlink{max-width:640px}.monlink p{color:var(--muted)}
+.monbtn{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:10px;text-decoration:none;font-weight:700}
+.monwrap{max-width:1280px;margin:0 auto}
+.montop{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px;margin:4px 0 12px}.montop h2{margin:0;font-size:20px}
+.monstrip{display:flex;flex-wrap:wrap;gap:8px 18px;margin-bottom:14px;font-size:14px;color:var(--muted)}
+.monstrip b{font-size:20px;margin-right:4px;color:var(--ink);font-variant-numeric:tabular-nums}
+.monstrip .g b{color:var(--work-t)}.monstrip .r b{color:var(--ab-t)}
+.montw{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+.montt{border-collapse:collapse;width:100%;min-width:720px;font-size:14px}
+.montt th,.montt td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.montt thead th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.montt .r{text-align:right;white-space:nowrap}
+.montt tr.og td{background:var(--line);font-weight:800;font-size:15px}.montt tr.og small{font-weight:500;color:var(--muted)}
+.montt td.mw{white-space:nowrap}.montt td.mw small{display:block;color:var(--muted);font-size:12px}
+.montt .bx{display:inline-block;padding:0 6px;border:1px solid var(--line);border-radius:5px;font-size:12px;line-height:18px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.montt .bx.p{border-color:#d4a017}.montt .bx.f{border-color:#2fa84f}
+.montt .pct{font-weight:800;font-variant-numeric:tabular-nums}.montt .pct.ok{color:#2fa84f}.montt .pct.mid{color:#d4a017}.montt .pct.lo{color:var(--ab-t,#e66)}
+.montt .dash{color:var(--muted)}
 </style>
 </head>
 <body>
@@ -651,7 +671,7 @@ body.vhdate #dateBtn{display:none}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='162';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='163';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -780,6 +800,7 @@ function activePeople(){ return bk().people.filter(function(p){ return !p.archiv
 function person(id){ return bk().people.filter(function(p){ return p.id===id; })[0]; }
 function dayRec(d){ return bk().records[d]||{}; }
 
+var MON=/[?&]mon\b/.test(location.search);
 var ui={date:today(),follow:true,filter:'all',q:'',open:{},undo:null,numMode:true,view:'day',month:today().slice(0,7)};
 
 /* ------------------------------------------------------------- синхронизация с Google Таблицей */
@@ -1350,7 +1371,7 @@ function renderList(){
   L.outerHTML='<ul id="list">'+html+'</ul>';
 }
 function render(){
-  applyRole();
+  applyRole(); if(MON){ ui.view='board'; document.body.classList.add('mon'); }
   document.body.classList.toggle('vmonth',ui.view==='month');
   document.body.classList.toggle('vdocs',ui.view==='docs');
   document.body.classList.toggle('vnd',ui.view==='nd');
@@ -4471,11 +4492,51 @@ function brigMembers(x,d){ var dd=x.data||{}, bad=0, no=0;
   var tx=(Array.isArray(dd.tech)&&dd.tech.length?'<div class="xbrgx"><b>Техника:</b> '+esc(dd.tech.join('; '))+'</div>':'')+(Array.isArray(dd.doc)&&dd.doc.length?'<div class="xbrgx"><b>ППР:</b> '+esc(dd.doc.join('; '))+'</div>':'');
   return tx+'<details class="xmem" data-bid="'+esc(x.id)+'"'+(bdMemOpen[x.id]?' open':'')+'><summary>Состав бригады: '+(dd.nums||[]).length+' чел.'+(bad?' · <span class="xbad">прогул: '+bad+'</span>':'')+(no?' · <span class="xno">нет в табеле: '+no+'</span>':'')+'</summary><div class="xlist">'+list+'</div></details>'; }   // какие списки бригад развёрнуты (сохраняется между обновлениями доски)
 document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classList&&(t.classList.contains('xmem')||t.classList.contains('xmore')||t.classList.contains('xobjd'))) bdMemOpen[t.dataset.bid]=t.open; },true);
+/* страница мониторинга (index.html?mon=1): явка + таблица работ по объектам */
+var monAt=0;
+function monHtml(d,rf,ar,tot){
+  var r0=role(); if(r0!=='nach'&&r0!=='tech') return '<div class="monwrap"><p class="note">Мониторинг доступен начальнику участка и техникам. Войдите в приложение под своей учётной записью.</p></div>';
+  monAt=Date.now();
+  function n(v){ return v?String(v):'0'; }
+  var strip=[['list','в списке',''],['work','пришли','g'],['ab','прогул','r'],['dob','выходной',''],['sick','больничный',''],['pl','отпуск',''],['ul','без ЗП',''],['wo','в выходной',''],['ot','сверхурочка','']]
+    .map(function(c){ return '<span class="'+c[2]+'" title="РФ '+n(rf[c[0]])+' · АРЕ '+n(ar[c[0]])+'"><b>'+n(tot[c[0]])+'</b>'+c[1]+'</span>'; }).join('');
+  var items=bdItems(d), brigs=items.filter(function(x){ return x.kind==='brig'; }), tasks=items.filter(function(x){ return x.kind==='task'; });
+  var objs=ND_OBJS.slice(); items.forEach(function(x){ if(x.obj&&objs.indexOf(x.obj)<0) objs.push(x.obj); });
+  var rows='';
+  objs.forEach(function(o){
+    var to=tasks.filter(function(x){ return x.obj===o; }), used={};
+    var bo=brigs.filter(function(x){ return x.obj===o; });
+    if(!to.length&&!bo.length) return;
+    var ppl=bo.reduce(function(sm,x){ return sm+(x.data.nums||[]).length; },0);
+    rows+='<tr class="og"><td colspan="5">'+esc(o)+' <small>· '+ppl+' чел.</small></td></tr>';
+    to.forEach(function(t){
+      var b=brigs.filter(function(x){ return fioKey(x.data.lead)===fioKey(t.data.brig); })[0]; if(b) used[b.id]=1;
+      var its=tkItemsFor(t.data||{}), dn=tkDone(t), fc=dn&&dn.data&&Array.isArray(dn.data.facts)?dn.data.facts:null;
+      var who='<b>'+esc(shortName(whoBase(t.data.brig)))+'</b><small>'+(b?(b.data.nums||[]).length+' чел.':'<span class="xno">численность не подана</span>')+'</small>';
+      if(!its.length) its=[{t:String(t.data.tasks||''),v:'',u:''}];
+      its.forEach(function(it,i){
+        var f=fc&&fc[i], pl=tkNum(it.v), u=it.u?' '+esc(it.u):'', pv=pl!=null?'<span class="bx p">'+esc(it.v)+u+'</span>':'<span class="dash">—</span>', fv, pc;
+        if(f&&pl!=null&&f.f!=null) fv='<span class="bx f">'+esc(tkFmt(f.f))+u+'</span>'; else if(f&&pl==null) fv=f.p>=100?'<span class="bx f">сделано</span>':'<span class="bx f xno">не сделано</span>'; else fv='<span class="dash">—</span>';
+        pc=f?'<span class="pct '+(f.p>=100?'ok':f.p>=50?'mid':'lo')+'">'+f.p+'%</span>':(dn?'<span class="pct lo">0%</span>':'<span class="dash">—</span>');
+        rows+='<tr><td class="mw">'+(i===0?who:'')+'</td><td>'+esc(it.t)+(it.fr?' <small class="tkfr">(из задания '+esc(whoBase(it.fr))+')</small>':'')+'</td><td class="r">'+pv+'</td><td class="r">'+fv+'</td><td class="r">'+pc+'</td></tr>';
+      });
+    });
+    bo.forEach(function(b){ if(used[b.id]) return; rows+='<tr><td class="mw"><b>'+esc(shortName(whoBase(b.data.lead)))+'</b><small>'+(b.data.nums||[]).length+' чел.</small></td><td colspan="4"><span class="xno">Наряд-задание не выдано</span></td></tr>'; });
+  });
+  if(!rows) rows='<tr><td colspan="5" class="note">На этот день наряд-заданий и бригад нет.</td></tr>';
+  return '<div class="monwrap"><div class="montop"><h2>Участок УОР №2 · мониторинг</h2><span class="note">'+esc(dmyLong(d))+' · обновлено '+hhmm(Date.now())+' · обновляется само каждые 2 минуты</span></div>'+
+    '<div class="monstrip">'+strip+'</div>'+
+    '<div class="montw"><table class="montt"><thead><tr><th>Бригадир</th><th>Работа</th><th class="r">План</th><th class="r">Факт</th><th class="r">%</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+}
+if(MON) setInterval(function(){ if(document.hidden) return; var d=bdDate||today(); bdFetch(d,true); bdPullDay(d); if(ui.view==='board') renderX(); },120000);
 function bdRender(){
   var d=bdDate||today(); bdFetch(d,false); bdFetch(addDays(d,-1),false); bdPullDay(d); setTimeout(function(){ tkDedup(d); },0);
   var cols=[['list','В списке'],['work','Пришли'],['ab','Прогул'],['dob','Выходной по графику'],['sick','Больничный'],['pl','Отпуск'],['ul','Отпуск без ЗП'],['unm','Без отметки'],['wo','Работают в выходной'],['ot','Сверхурочка']];
   var rf=bookDay('rf',d), ar=bookDay('are',d), tot={}; cols.forEach(function(c){ tot[c[0]]=rf[c[0]]+ar[c[0]]; });
   var hn=$('hnav'); if(hn) hn.innerHTML=navDate('bdday',d);
+  if(MON) return monHtml(d,rf,ar,tot);
+  return '<div class="monlink"><h3 class="tbth3">Доска руководителя</h3><p>Явка и наряд-задания по объектам — на отдельной странице мониторинга. Она обновляется сама каждые 2 минуты.</p>'+
+    '<a class="primary monbtn" href="./?mon=1" target="_blank" rel="noopener">Открыть мониторинг</a></div>';
   var h=
     '<h3 class="tbth3">1. Явка</h3><div class="xtw"><table class="xt xtj"><thead><tr><th></th>'+cols.map(function(c){ return '<th>'+c[1]+'</th>'; }).join('')+'</tr></thead><tbody>'+
     [['РФ',rf],['АРЕ',ar],['Всего',tot]].map(function(r){ return '<tr'+(r[0]==='Всего'?' class="xtot"':'')+'><th>'+r[0]+'</th>'+cols.map(function(c){ var v=r[1][c[0]]; return '<td class="'+(c[0]==='ab'&&v?'xbad':c[0]==='work'?'xgood':'')+'">'+(v||'')+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></div>';
