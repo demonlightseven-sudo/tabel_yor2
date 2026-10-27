@@ -709,7 +709,7 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='182';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='183';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2502,7 +2502,6 @@ function xlsxRows(buf){
 }
 var XC_ST={work:'',ab:'AB',off:'DO',sick:'SL',pl:'PL',ul:'UL'}, xcRes=null;
 function xcNorm(v){ v=String(v==null?'':v).trim().toUpperCase().replace(',','.'); if(v==='') return ''; var n=Number(v); return isFinite(n)?String(Math.round(n*100)/100):v; }
-function xcPick(){}
 function xcmpPick(){
   var i=document.createElement('input'); i.type='file'; i.accept='.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   i.onchange=function(){ var f=i.files&&i.files[0]; if(!f) return; toast('Читаю файл…');
@@ -3385,7 +3384,7 @@ document.addEventListener('click',function(e){
     case 'msort': mPopClose(); ui.mSort=(ui.mSort&&ui.mSort.d===el.dataset.d&&ui.mSort.s===el.dataset.s)?null:{d:el.dataset.d,s:el.dataset.s}; renderMonth(); break;
     case 'msortx': mPopClose(); ui.mSort=null; renderMonth(); break;
     case 'xcmp': xcmpPick(); break;
-    case 'xcmpout': xcmpExport(); break;
+    case 'xcmpout': xcExport(); break;
     case 'mcell': goDay(el.dataset.d,id); break;
     case 'mfile': mfSheet(el.dataset.d); mfFetch(root.cur,el.dataset.d.slice(0,7),true); break;
     case 'mfadd': { var fi=$('mfin'); fi.value=''; fi.click(); break; }
