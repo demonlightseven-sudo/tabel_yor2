@@ -701,7 +701,7 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='180';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='181';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3526,6 +3526,15 @@ function tbtDraft(o,obj){
 }
 function tbtDmy(iso){ var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso||'')); return m?m[3]+'.'+m[2]+'.'+m[1]:String(iso||''); }
 function tbtPerson(num){ var n=String(num||'').replace(/^0+/,''); var all=ndPeople(); for(var i=0;i<all.length;i++){ if(String(all[i].p.num||'').replace(/^0+/,'')===n) return all[i]; } return null; }
+/* человек из наряда: по табелю (РФ/АРЕ) и ФИО — при одинаковых табельных № берём именно того, кто в наряде */
+function tbtPersonT(t){
+  if(!t) return null; var n=normNum(t.num||''), k=fioKey(t.name||'');
+  var all=ndPeople().filter(function(y){ return n&&normNum(y.p.num||'')===n; });
+  var hit=all.filter(function(y){ return (!t.b||y.b===t.b)&&(!k||fioKey(y.p.name)===k); })[0]||all.filter(function(y){ return t.b&&y.b===t.b; })[0]||all.filter(function(y){ return k&&fioKey(y.p.name)===k; })[0];
+  if(hit) return hit;
+  if(!n&&k) return ndPeople().filter(function(y){ return fioKey(y.p.name)===k; })[0]||null;
+  return all.length===1?all[0]:null;
+}
 function tbtRowOf(x){ var pr=tbtProf(x.p.role,x.b); return {num:String(x.p.num||''),ru:String(x.p.name||''),lat:tbtLat(x.p.name),p1:pr.p1,p2:pr.p2}; }
 function tbtNdOf(no,obj){
   var n=String(no||'').replace(/^№\s*/,'').trim(); if(!n) return null;
@@ -3586,7 +3595,7 @@ function tbtAddFromQuery(){
 function tbtFromNd(){
   var obj=ndSt().obj, cur=tbtSt(), e=tbtNdOf(tbtDraft(cur,obj).no,obj); if(!e||!Array.isArray(e.team)) return;
   var n=0;
-  tbtUpd(function(d){ e.team.forEach(function(t){ if(t.num&&d.rows.some(function(r){ return String(r.num)===String(t.num); })) return; var x=t.num?tbtPerson(t.num):null; var row=x?tbtRowOf(x):(function(){ var pr=tbtProf(t.role,''); return {num:String(t.num||''),ru:String(t.name||''),lat:tbtLat(t.name),p1:pr.p1,p2:pr.p2}; })(); d.rows.push(row); n++; }); });
+  tbtUpd(function(d){ e.team.forEach(function(t){ var x=tbtPersonT(t), nm=fioKey(x?x.p.name:(t.name||'')); if(t.num&&d.rows.some(function(r){ return String(r.num)===String(t.num)&&fioKey(r.ru)===nm; })) return; var row=x?tbtRowOf(x):(function(){ var pr=tbtProf(t.role,''); return {num:String(t.num||''),ru:String(t.name||''),lat:tbtLat(t.name),p1:pr.p1,p2:pr.p2}; })(); d.rows.push(row); n++; }); });
   tbtMsg='Добавлено из наряда № '+e.no+': '+n; renderNd();
 }
 function tbtClick(a,el){
@@ -4793,7 +4802,7 @@ function ndKinds4(obj,d,b,lead,noTbt){
 }
 /* все открытые на бригаду наряды (любого вида) и люди из них без повторов */
 function ndBrigAll(b,d,obj){ var out=[]; ND_K4.forEach(function(x){ out=out.concat(ndBrigOpen(b,d,obj,x[0])); }); return out; }
-function ndTeamUnion(nds){ var seen={}, out=[]; nds.forEach(function(e){ (e.team||[]).forEach(function(t){ var k=t.num?'n'+normNum(t.num):'f'+String(t.name||'').toLowerCase(); if(seen[k]) return; seen[k]=1; out.push(t); }); }); return out; }
+function ndTeamUnion(nds){ var seen={}, out=[]; nds.forEach(function(e){ (e.team||[]).forEach(function(t){ var k=t.num?'n'+(t.b||'')+normNum(t.num)+'|'+fioKey(t.name||''):'f'+String(t.name||'').toLowerCase(); if(seen[k]) return; seen[k]=1; out.push(t); }); }); return out; }
 function ndTbtBtn(obj,d,b,lead){
   var nds=ndBrigAll(b,d,obj), ppl=ndTeamUnion(nds), done=bdItems(d).filter(function(x){ return x.kind==='tbt'&&x.obj===obj; }), g=tbtGate(obj,d,b);
   if(!g.ok) return '<button class="ndtbtb tbtoff" disabled aria-disabled="true"><b>Инструктаж перед началом работ (TBT)</b><small class="tbtwhy">'+esc(g.why)+'</small>'+
@@ -4808,7 +4817,7 @@ function ndTbtFromBrig(obj,d,bid,lead){
   var o=tbtSt(), t=tbtDraft(o,obj);
   t.date=d<today()?today():d; t.place=tbtPlace(obj);
   t.no=nds.map(function(e){ return String(e.no); }).join(', ');
-  t.rows=ppl.map(function(x){ var y=x.num?tbtPerson(x.num):null; if(y) return tbtRowOf(y); var pr=tbtProf(x.role,x.b||''); return {num:String(x.num||''),ru:String(x.name||''),lat:tbtLat(x.name),p1:pr.p1,p2:pr.p2}; });
+  t.rows=ppl.map(function(x){ var y=tbtPersonT(x); if(y) return tbtRowOf(y); var pr=tbtProf(x.role,x.b||''); return {num:String(x.num||''),ru:String(x.name||''),lat:tbtLat(x.name),p1:pr.p1,p2:pr.p2}; });
   var ins=nds.map(function(e){ var v=String(e['in']||''); return ND_FM.indexOf(v)>=0?v:ND_FMS.indexOf(v)>=0?'Site Foreman '+v:''; }).filter(Boolean)[0];
   t.resp=ins||(ND_FM.indexOf(t.resp)>=0?t.resp:ND_FM[0]);
   tbtSave(o);
