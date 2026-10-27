@@ -658,6 +658,14 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 .monstrip .g b{color:var(--work-t)}
 
 .tksub{display:inline-block;font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-right:2px;white-space:nowrap}
+
+.mcmpb{margin-left:auto;min-height:34px;padding:0 12px;border:1px solid var(--line);border-radius:8px;font-weight:700}
+.xcsum{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.xcsum span{display:flex;flex-direction:column;align-items:center;min-width:90px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;font-size:12px;color:var(--muted)}
+.xcsum b{font-size:20px;color:var(--ink)}.xcsum .ok b{color:var(--work-t)}.xcsum .bad b{color:var(--ab-t)}
+.xcw{font-size:13px;margin:6px 0}
+.xclist{display:grid;gap:6px;margin-top:10px;max-height:50vh;overflow:auto}
+.xcp{border:1px solid var(--line);border-radius:8px;padding:6px 10px}.xcph{font-size:14px}.xcph small{color:var(--ab-t);font-weight:700;margin-left:4px}
+.xcd{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px;font-size:12px}.xcd i{font-style:normal;font-weight:700;margin-right:4px}.xcd b{color:var(--ab-t)}
 </style>
 </head>
 <body>
@@ -701,7 +709,7 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='181';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='182';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1470,7 +1478,7 @@ function renderMonth(){
   var srt=ui.mSort&&ui.mSort.d&&ui.mSort.d.slice(0,7)===m?ui.mSort:null;
   var tools='<div class="mtools"><label for="msched">График:</label><select id="msched" aria-label="Показать людей по графику"><option value="">Все в табеле ('+ppl.length+')</option>'+
     SCHEDS.filter(function(g){ return schIds[g.id]; }).map(function(g){ var v=g.id||'-', k=ppl.filter(function(p){ return (p.sched||'')===g.id; }).length; return '<option value="'+v+'"'+(ui.mSched===v?' selected':'')+'>'+esc(g.id?g.short:'Без графика')+' ('+k+')</option>'; }).join('')+'</select>'+
-    (srt?'<span class="msrt">Показаны: <b>'+MSORT_N[srt.s]+'</b> за '+Number(srt.d.slice(8))+' число <button data-a="msortx" aria-label="Показать всех">✕ всех</button></span>':'<span class="mhint">Нажмите на число месяца, чтобы показать только явку, AB, UL, PL, SL или DO</span>')+'</div>';
+    (srt?'<span class="msrt">Показаны: <b>'+MSORT_N[srt.s]+'</b> за '+Number(srt.d.slice(8))+' число <button data-a="msortx" aria-label="Показать всех">✕ всех</button></span>':'<span class="mhint">Нажмите на число месяца, чтобы показать только явку, AB, UL, PL, SL или DO</span>')+(canPeople(false)?'<button class="mcmpb" data-a="xcmp">📄 Сверить с файлом</button>':'')+'</div>';
   if(ui.mSched) ppl=ppl.filter(function(p){ return (p.sched||'')===(ui.mSched==='-'?'':ui.mSched); });
   if(srt){ var sdr=recs[srt.d]||{}; ppl=ppl.filter(function(p){ return mStat(p,srt.d,sdr[p.id])===srt.s; }); }
   var head='<tr><th class="c0">ФИО</th><th class="c1">График</th>';
@@ -2456,6 +2464,124 @@ function memoTemplate(t){
 function xesc(s){ return String(s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 var CRC_T=(function(){ var t=[],c,n,k; for(n=0;n<256;n++){ c=n; for(k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0; } return t; })();
 function crc32(b){ var c=0xFFFFFFFF; for(var i=0;i<b.length;i++) c=CRC_T[(c^b[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+/* ---------------------------------------------- сверка табеля с Excel-файлом (формат «УОР 2 Филиал»: Serial · Name · Code · дни 1–31) */
+function zipRead(buf){
+  var u=new Uint8Array(buf), dv=new DataView(buf), e=-1;
+  for(var i=u.length-22;i>=Math.max(0,u.length-70000);i--){ if(dv.getUint32(i,true)===0x06054b50){ e=i; break; } }
+  if(e<0) return Promise.reject(new Error('Это не файл Excel (.xlsx)'));
+  var n=dv.getUint16(e+10,true), off=dv.getUint32(e+16,true), files={}, dec=new TextDecoder();
+  for(var k=0;k<n;k++){
+    var m=dv.getUint16(off+10,true), cs=dv.getUint32(off+20,true), nl=dv.getUint16(off+28,true), xl=dv.getUint16(off+30,true), cl=dv.getUint16(off+32,true), lo=dv.getUint32(off+42,true);
+    var name=dec.decode(u.subarray(off+46,off+46+nl)); files[name]={m:m,cs:cs,lo:lo}; off+=46+nl+xl+cl;
+  }
+  function get(name){ var f=files[name]; if(!f) return Promise.resolve(null);
+    var lo=f.lo, st=lo+30+dv.getUint16(lo+26,true)+dv.getUint16(lo+28,true), data=u.subarray(st,st+f.cs);
+    if(f.m===0) return Promise.resolve(dec.decode(data));
+    if(typeof DecompressionStream==='undefined') return Promise.reject(new Error('Браузер не умеет читать Excel — обновите его'));
+    return new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text(); }
+  return Promise.resolve({names:Object.keys(files),get:get});
+}
+function xlsxRows(buf){
+  return zipRead(buf).then(function(z){
+    var sh=z.names.filter(function(n){ return /^xl\/worksheets\/sheet\d+\.xml$/.test(n); }).sort(function(a,b){ return Number(a.replace(/\D/g,''))-Number(b.replace(/\D/g,'')); })[0];
+    if(!sh) throw new Error('В файле нет листа с таблицей');
+    return Promise.all([z.get('xl/sharedStrings.xml'),z.get(sh)]);
+  }).then(function(a){
+    var P=new DOMParser(), ss=[];
+    if(a[0]){ var sd=P.parseFromString(a[0],'application/xml'); Array.prototype.forEach.call(sd.getElementsByTagName('si'),function(si){ ss.push(Array.prototype.map.call(si.getElementsByTagName('t'),function(t){ return t.textContent; }).join('')); }); }
+    var d=P.parseFromString(a[1],'application/xml'), rows=[];
+    Array.prototype.forEach.call(d.getElementsByTagName('row'),function(rw){ var ri=Number(rw.getAttribute('r'))-1, row=[];
+      Array.prototype.forEach.call(rw.getElementsByTagName('c'),function(c){ var ref=c.getAttribute('r')||'', col=0, L=(/^[A-Z]+/.exec(ref)||[''])[0];
+        for(var i=0;i<L.length;i++) col=col*26+(L.charCodeAt(i)-64); col--;
+        var t=c.getAttribute('t'), v=c.getElementsByTagName('v')[0], val='';
+        if(t==='s'&&v) val=ss[Number(v.textContent)]||''; else if(t==='inlineStr'){ val=Array.prototype.map.call(c.getElementsByTagName('t'),function(x){ return x.textContent; }).join(''); } else if(v) val=v.textContent;
+        row[col]=String(val).trim(); });
+      rows[ri]=row; });
+    return rows;
+  });
+}
+var XC_ST={work:'',ab:'AB',off:'DO',sick:'SL',pl:'PL',ul:'UL'}, xcRes=null;
+function xcNorm(v){ v=String(v==null?'':v).trim().toUpperCase().replace(',','.'); if(v==='') return ''; var n=Number(v); return isFinite(n)?String(Math.round(n*100)/100):v; }
+function xcPick(){}
+function xcmpPick(){
+  var i=document.createElement('input'); i.type='file'; i.accept='.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  i.onchange=function(){ var f=i.files&&i.files[0]; if(!f) return; toast('Читаю файл…');
+    f.arrayBuffer().then(xlsxRows).then(function(rows){ xcRes=xcCompare(rows,f.name); xcShow(); }).catch(function(e){ toast('Не удалось прочитать: '+((e&&e.message)||'')); }); };
+  i.click();
+}
+function xcCompare(rows,fname){
+  var hr=-1, cCode=-1, cName=-1, cSer=-1;
+  for(var r=0;r<Math.min(rows.length,30);r++){ var rw=rows[r]||[]; for(var c=0;c<rw.length;c++){ var t=String(rw[c]||'').toLowerCase(); if(/code|таб/.test(t)) cCode=c; if(/name|ф\.?\s*и\.?\s*о|фио/.test(t)&&cName<0) cName=c; if(/serial|№ п/.test(t)) cSer=c; } if(cCode>=0){ hr=r; break; } }
+  if(hr<0) throw new Error('Не найден столбец с табельным номером (Employee\'s Code)');
+  var days={}, dr=rows[hr+1]||[];
+  for(var c2=0;c2<dr.length;c2++){ var dn=Number(dr[c2]); if(dn>=1&&dn<=31&&String(dr[c2]).trim()===String(dn)) days[c2]=dn; }
+  if(!Object.keys(days).length) throw new Error('Не найдены столбцы с числами месяца 1–31');
+  var m=ui.month, a=m.split('-').map(Number), nd=new Date(a[0],a[1],0).getDate(), t=today(), last=m===t.slice(0,7)?Number(t.slice(8)):(m<t.slice(0,7)?nd:0);
+  var B=bk(), recs=B.records||{}, byNum={};
+  B.people.forEach(function(p){ if(p.num) (byNum[normNum(p.num)]=byNum[normNum(p.num)]||[]).push(p); });
+  var res={file:fname,month:m,book:root.cur,last:last,rows:[],cmp:0,eq:0,diffs:[],onlyF:[],onlyA:[]}, seen={};
+  for(var r2=hr+2;r2<rows.length;r2++){ var rw2=rows[r2]; if(!rw2) continue; var code=String(rw2[cCode]||'').trim(); if(!/^\d+$/.test(code)) continue;
+    var ps=byNum[normNum(code)]||[], p=ps[0]||null; if(ps.length>1){ var fn=String(rw2[cName]||'').toLowerCase(); p=ps.filter(function(x){ return tbtLat(x.name).toLowerCase().split(' ')[0]===fn.split(' ')[0]; })[0]||ps[0]; }
+    var row={code:code,ser:cSer>=0?rw2[cSer]:'',fname:cName>=0?rw2[cName]:'',p:p,vals:{},bad:{}};
+    Object.keys(days).forEach(function(c3){ row.vals[days[c3]]=rw2[c3]==null?'':rw2[c3]; });
+    res.rows.push(row);
+    if(!p){ res.onlyF.push(row); continue; } seen[p.id]=1;
+    for(var d=1;d<=Math.min(last,nd);d++){ var ds=m+'-'+pad(d), rec=(recs[ds]||{})[p.id], fv=xcNorm(row.vals[d]), av;
+      if(rec) av=rec.s==='work'?xcNorm(rec.h):(XC_ST[rec.s]||String(rec.s).toUpperCase()); else av=firedOn(p,ds)?'':(planOff(p,ds)===true?'DO':'');
+      if(fv===''&&av==='') continue; res.cmp++;
+      if(fv===av){ res.eq++; continue; }
+      row.bad[d]=av||'—'; res.diffs.push({row:row,d:d,f:fv||'—',a:av||'—'}); } }
+  B.people.forEach(function(p){ if(seen[p.id]||!p.num||firedGone(p,m+'-01')) return; for(var d=1;d<=Math.min(last,nd);d++){ var x=(recs[m+'-'+pad(d)]||{})[p.id]; if(x&&x.s==='work'){ res.onlyA.push(p); return; } } });
+  return res;
+}
+function xcShow(){
+  var R=xcRes; if(!R) return; var a=R.month.split('-'), by={};
+  R.diffs.forEach(function(x){ var k=x.row.code; (by[k]=by[k]||{row:x.row,l:[]}).l.push(x); });
+  var ks=Object.keys(by);
+  openSheet('Сверка с файлом',
+    '<p class="note">'+esc(R.file)+' · табель '+BOOKS[R.book]+' · '+MON_N[Number(a[1])-1]+' '+a[0]+(R.last?' · дни 1–'+R.last:' · будущий месяц — сравнивать нечего')+'</p>'+
+    '<div class="xcsum"><span><b>'+R.cmp+'</b>сравнено отметок</span><span class="ok"><b>'+R.eq+'</b>совпадают</span><span class="bad"><b>'+R.diffs.length+'</b>расхождений</span><span><b>'+ks.length+'</b>человек с расхождениями</span></div>'+
+    (R.onlyF.length?'<p class="xcw"><b>Есть в файле, нет в табеле приложения ('+R.onlyF.length+'):</b> '+R.onlyF.map(function(x){ return esc(x.code)+' '+esc(x.fname); }).join('; ')+'</p>':'')+
+    (R.onlyA.length?'<p class="xcw"><b>Работали по приложению, нет в файле ('+R.onlyA.length+'):</b> '+R.onlyA.map(function(p){ return esc(p.num)+' '+esc(p.name); }).join('; ')+'</p>':'')+
+    '<div class="acts"><button class="primary" data-a="xcmpout"'+(R.rows.length?'':' disabled')+'>Отметить разницу и выгрузить</button><button data-a="close">Закрыть</button></div>'+
+    (ks.length?'<div class="xclist">'+ks.map(function(k){ var g=by[k]; return '<div class="xcp"><div class="xcph"><b>'+esc(k)+'</b> '+esc(g.row.p?g.row.p.name:g.row.fname)+' <small>'+g.l.length+'</small></div><div class="xcd">'+g.l.map(function(x){ return '<span><i>'+x.d+'</i>файл <b>'+esc(x.f)+'</b> · прил. <b>'+esc(x.a)+'</b></span>'; }).join('')+'</div></div>'; }).join('')+'</div>':'<p class="note">Расхождений нет.</p>'));
+}
+function xmlE(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function xcCol(i){ var s=''; i++; while(i>0){ var m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=Math.floor((i-1)/26); } return s; }
+function xcSheet(rows,widths){
+  var x='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane xSplit="4" ySplit="1" topLeftCell="E2" activePane="bottomRight" state="frozen"/></sheetView></sheetViews><cols>'+
+    widths.map(function(w,i){ return '<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>'; }).join('')+'</cols><sheetData>';
+  rows.forEach(function(r,ri){ x+='<row r="'+(ri+1)+'">'+r.map(function(c,ci){ if(c==null) return ''; var v=typeof c==='object'?c.v:c, st=typeof c==='object'?c.s:0, ref=xcCol(ci)+(ri+1);
+    if(v===''||v==null) return st?'<c r="'+ref+'" s="'+st+'"/>':'';
+    if(typeof v==='number') return '<c r="'+ref+'" s="'+st+'"><v>'+v+'</v></c>';
+    return '<c r="'+ref+'" s="'+st+'" t="inlineStr"><is><t>'+xmlE(v)+'</t></is></c>'; }).join('')+'</row>'; });
+  return x+'</sheetData></worksheet>';
+}
+function xcExport(){
+  var R=xcRes; if(!R) return; var a=R.month.split('-'), nd=new Date(Number(a[0]),Number(a[1]),0).getDate();
+  var h1=['№','Name (файл)','Code','ФИО в приложении']; for(var d=1;d<=nd;d++) h1.push(d); h1.push('Расхождений');
+  var rows1=[h1.map(function(v){ return {v:v,s:2}; })];
+  R.rows.forEach(function(r){ var line=[r.ser===''?'':(isFinite(Number(r.ser))?Number(r.ser):r.ser),r.fname,r.code,r.p?r.p.name:'нет в табеле приложения'], n=0;
+    for(var d=1;d<=nd;d++){ var v=r.vals[d]==null?'':r.vals[d]; if(r.bad[d]!=null){ n++; line.push({v:(v===''?'—':v)+' (прил.: '+r.bad[d]+')',s:1}); } else line.push({v:isFinite(Number(v))&&v!==''?Number(v):v,s:0}); }
+    line.push(n?{v:n,s:1}:0); if(!r.p) line[3]={v:line[3],s:1}; rows1.push(line); });
+  var rows2=[['Таб. №','ФИО','Дата','В файле','В приложении'].map(function(v){ return {v:v,s:2}; })].concat(R.diffs.map(function(x){ return [x.row.code,x.row.p?x.row.p.name:x.row.fname,pad(x.d)+'.'+a[1]+'.'+a[0],x.f,x.a]; }));
+  var w1=[5,34,8,34]; for(var d2=1;d2<=nd;d2++) w1.push(7); w1.push(12);
+  var styles='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="10"/><name val="Arial"/></font></fonts>'+
+    '<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFC7CE"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE7E6E6"/><bgColor indexed="64"/></patternFill></fill></fills>'+
+    '<borders count="2"><border/><border><left style="thin"><color rgb="FFBFBFBF"/></left><right style="thin"><color rgb="FFBFBFBF"/></right><top style="thin"><color rgb="FFBFBFBF"/></top><bottom style="thin"><color rgb="FFBFBFBF"/></bottom></border></borders>'+
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment wrapText="1" vertical="center"/></xf><xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment wrapText="1" horizontal="center" vertical="center"/></xf></cellXfs></styleSheet>';
+  var files={
+    '[Content_Types].xml':'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>',
+    '_rels/.rels':'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>',
+    'xl/workbook.xml':'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Табель с отметками" sheetId="1" r:id="rId1"/><sheet name="Расхождения" sheetId="2" r:id="rId2"/></sheets></workbook>',
+    'xl/_rels/workbook.xml.rels':'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>',
+    'xl/styles.xml':styles,
+    'xl/worksheets/sheet1.xml':xcSheet(rows1,w1),
+    'xl/worksheets/sheet2.xml':xcSheet(rows2,[9,40,12,12,14])
+  };
+  var z=zipStore(files), blob=new Blob([z],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), name='Сверка_табеля_'+(R.book==='are'?'АРЕ':'РФ')+'_'+a[1]+'_'+a[0]+'.xlsx';
+  saveFile(name,blob.type,blob).then(function(r){ if(r!=='cancel') toast('Готово: '+name+' — расхождения выделены красным'); });
+}
 function zipStore(files){
   var enc=new TextEncoder(), parts=[], central=[], off=0, now=new Date();
   var dt=((now.getHours()<<11)|(now.getMinutes()<<5)|(now.getSeconds()>>1))&0xFFFF, dd=(((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate())&0xFFFF;
@@ -3258,6 +3384,8 @@ document.addEventListener('click',function(e){
     case 'mdayopen': mPopClose(); goDay(el.dataset.d,null); break;
     case 'msort': mPopClose(); ui.mSort=(ui.mSort&&ui.mSort.d===el.dataset.d&&ui.mSort.s===el.dataset.s)?null:{d:el.dataset.d,s:el.dataset.s}; renderMonth(); break;
     case 'msortx': mPopClose(); ui.mSort=null; renderMonth(); break;
+    case 'xcmp': xcmpPick(); break;
+    case 'xcmpout': xcmpExport(); break;
     case 'mcell': goDay(el.dataset.d,id); break;
     case 'mfile': mfSheet(el.dataset.d); mfFetch(root.cur,el.dataset.d.slice(0,7),true); break;
     case 'mfadd': { var fi=$('mfin'); fi.value=''; fi.click(); break; }
