@@ -478,6 +478,8 @@ body.vtask .tktop .tbtf{max-width:none}@media (min-width:1000px){.tktop{grid-tem
 .xack{margin-top:8px;padding:8px 10px;border-radius:8px;font-weight:700}.xack.ok{background:var(--work-bg);color:var(--work-t)}.xack.no{background:var(--ul-bg);color:var(--ul-t)}.xackbtn{margin-top:8px;width:100%}
 
 /* 6 вкладок (начальник участка, техник-помощник): на телефоне 2 низких ряда по 3, вплотную к низу экрана; на компьютере — один ряд */
+.dshort{display:none}
+@media (max-width:700px){.dlong{display:none}.dshort{display:inline}}
 @media (max-width:700px){
 body.r-nach #tabbar,body.r-tech #tabbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;background:var(--surface);padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left)}
 body.r-nach #tabbar button,body.r-tech #tabbar button{min-height:44px;padding:3px 4px;font-size:clamp(12px,3.8vw,15px);line-height:1.1;letter-spacing:-.01em;overflow-wrap:anywhere;background:var(--surface);white-space:normal;text-align:center;border-top-width:2px;box-shadow:inset 1px 0 0 var(--line),inset 0 -1px 0 var(--line)}
@@ -709,7 +711,7 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='184';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='185';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1376,7 +1378,7 @@ function renderTop(){
   Array.prototype.forEach.call(document.querySelectorAll('.books button'),function(b){ b.setAttribute('aria-selected',String(b.dataset.b===root.cur)); });
   var d=parseYmd(ui.date), t=today();
   var btn=$('dateBtn');
-  btn.textContent=WD[d.getDay()]+', '+d.getDate()+' '+MONTHS_G[d.getMonth()]+(ui.date===t?'':' ⚠');
+  btn.innerHTML=dLbl(ui.date)+(ui.date===t?'':' ⚠');
   btn.className=ui.date===t?'':'past';
   if(ui.view==='day'||ui.view==='docs'){ var hnd=$('hnav'); if(hnd) hnd.innerHTML=navDate('dayday',ui.date); }
   btn.setAttribute('aria-label','День: '+d.getDate()+' '+MONTHS_G[d.getMonth()]+(ui.date===t?', сегодня':', не сегодня')+'. Выбрать другой день');
@@ -3824,9 +3826,9 @@ function bdPut(item){ return call({action:'bput',kind:item.kind,d:item.d,obj:ite
 function dmS(d){ var x=parseYmd(d); return '<span class="wd">'+WD[x.getDay()]+' </span>'+('0'+x.getDate()).slice(-2)+'.'+('0'+(x.getMonth()+1)).slice(-2); }
 function navDate(a,d){ var t=today();
   return '<div class="xnav"><button class="xarr" data-a="'+a+'" data-d="-1" aria-label="Предыдущий день">◀ '+dmS(addDays(d,-1))+'</button>'+
-    '<button class="hdate'+(d===t?'':' past')+'" data-a="xdpick" data-k="'+a+'" aria-label="Выбрать день">'+esc(dmyLong(d))+(d===t?'':' ⚠')+'</button>'+
+    '<button class="hdate'+(d===t?'':' past')+'" data-a="xdpick" data-k="'+a+'" aria-label="Выбрать день">'+dLbl(d)+(d===t?'':' ⚠')+'</button>'+
     '<button class="xarr" data-a="'+a+'" data-d="1" aria-label="Следующий день">'+dmS(addDays(d,1))+' ▶</button></div>'; }
-function hdateStatic(d){ return '<div class="xnav"><span class="hdate hstatic">'+esc(dmyLong(d))+'</span></div>'; }
+function hdateStatic(d){ return '<div class="xnav"><span class="hdate hstatic">'+dLbl(d)+'</span></div>'; }
 /* окно выбора дня для доски и наряд-задания */
 function xDateGet(k){ if(k==='dayday') return ui.date; return k==='bdday'?(bdDate||today()):k==='tmday'?(tmDate||today()):(tkDate||tkDef()); }
 function xDateSet(k,d){ if(k==='dayday'){ ui.date=d; ui.follow=d===today(); ui.open={}; clearMsg(); render(); pull(); return; } if(k==='bdday') bdDate=d; else if(k==='tmday') tmDate=d; else tkDate=d; if(ui.view==='nd'){ ndBack=null; setView('task'); } else renderX(); }
@@ -3834,6 +3836,8 @@ function sheetXDate(k){ var d=xDateGet(k);
   openSheet('День','<div class="acts" style="margin-top:0"><button data-a="xdshift" data-k="'+k+'" data-d="-1">◀ '+dmS(addDays(d,-1))+'</button><button data-a="xdtoday" data-k="'+k+'" class="primary">'+dmS(today())+'</button><button data-a="xdshift" data-k="'+k+'" data-d="1">'+dmS(addDays(d,1))+' ▶</button></div>'+
     '<div class="fld" style="margin-top:12px"><label for="xdpick">Выбрать дату</label><input type="date" id="xdpick" data-k="'+k+'" value="'+d+'"></div>'+
     '<p class="note">Если день не сегодняшний, дата подсвечена и помечена значком ⚠.</p>'); }
+/* кнопка дня: на компьютере «ср, 28 октября», на телефоне «28.10» */
+function dLbl(d){ var x=parseYmd(d); return '<span class="dlong">'+esc(dmyLong(d))+'</span><span class="dshort">'+('0'+x.getDate()).slice(-2)+'.'+('0'+(x.getMonth()+1)).slice(-2)+'</span>'; }
 function dmyLong(d){ var x=parseYmd(d); return WD[x.getDay()]+', '+x.getDate()+' '+MONTHS_G[x.getMonth()]; }
 function tkObjSelect(id,cur){ var opts=[]; ND_OBJS.forEach(function(o){ opts.push([o,o]); (TK_OBJ_SUBS[o]||[]).forEach(function(sb){ opts.push([o+'|'+sb,o+' ('+sb+')']); }); });
   return '<select id="'+id+'">'+opts.map(function(x){ return '<option value="'+esc(x[0])+'"'+(x[0]===cur?' selected':'')+'>'+esc(x[1])+'</option>'; }).join('')+'</select>'; }
