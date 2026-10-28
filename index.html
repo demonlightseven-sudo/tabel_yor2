@@ -661,7 +661,9 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 
 .tksub{display:inline-block;font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-right:2px;white-space:nowrap}
 
-.mcmpb{margin-left:auto;min-height:34px;padding:0 12px;border:1px solid var(--line);border-radius:8px;font-weight:700}
+.mcmpb{margin-left:auto;min-height:34px;padding:0 12px;border:1px solid var(--line);border-radius:8px;font-weight:700;white-space:nowrap}
+/* телефон: «Сверить с файлом» в одной строке с «Все в табеле», справа */
+@media (max-width:700px){.mtools label{display:none}.mtools select{flex:0 1 auto;min-width:0}.mcmpb{flex:none;padding:0 10px}.mtools .msrt{order:3;flex:0 0 auto}}
 .xcsum{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.xcsum span{display:flex;flex-direction:column;align-items:center;min-width:90px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;font-size:12px;color:var(--muted)}
 .xcsum b{font-size:20px;color:var(--ink)}.xcsum .ok b{color:var(--work-t)}.xcsum .bad b{color:var(--ab-t)}
 .xcw{font-size:13px;margin:6px 0}
@@ -711,7 +713,7 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='186';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='187';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1474,7 +1476,7 @@ function renderMonth(){
     '<button class="xarr" data-a="mnav" data-d="1" aria-label="Следующий месяц">'+mS(nm)+' ▶</button>'+
     '<button class="xarr" data-a="mexp" aria-label="Сохранить файл для Excel" title="Файл для Excel">⬇</button><button class="xarr mfull" data-a="mfull" aria-label="Во весь экран" title="Во весь экран (F11)">⛶</button></div>';
   var nav='';
-  var leg='<p class="mleg">'+(true?'UL — Отпуск без сохранения зар. платы · PL — Оплачиваемый отпуск · SL — Больничный · AB — Прогул · <span class="dob">DO</span> — Выходной по графику · УВ — Уволен':'Число — часы · В — выходной · Б — больничный · ОТ — отпуск · БС — отпуск без ЗП · ПР — прогул')+(true?'':' · оранжевая штриховка — выходной по графику, красная — праздничный день')+'. Нажмите на клетку, чтобы открыть этот день.</p>';
+  var leg='<p class="mleg">'+(true?'UL — Отпуск без сохранения зар. платы · PL — Оплачиваемый отпуск · SL — Больничный · AB — Прогул · <span class="dob">DO</span> — Выходной по графику · УВ — Уволен':'Число — часы · В — выходной · Б — больничный · ОТ — отпуск · БС — отпуск без ЗП · ПР — прогул')+(true?'':' · оранжевая штриховка — выходной по графику, красная — праздничный день')+'.</p>';
   var old=monthOld&&syncOn()?'<p class="moldhint">Чтобы здесь были отметки с других телефонов, обновите скрипт в таблице (файл Code.gs, «Новая версия» в «Управление развертываниями»).</p>':'';
   if(!ppl.length){
     $('month').innerHTML=nav+'<div class="empty"><p>В табеле '+BOOKS[root.cur]+' пока нет людей.</p><button class="primary" data-a="people">Добавить людей</button></div>'; return;
@@ -1485,7 +1487,7 @@ function renderMonth(){
   var srt=ui.mSort&&ui.mSort.d&&ui.mSort.d.slice(0,7)===m?ui.mSort:null;
   var tools='<div class="mtools"><label for="msched">График:</label><select id="msched" aria-label="Показать людей по графику"><option value="">Все в табеле ('+ppl.length+')</option>'+
     SCHEDS.filter(function(g){ return schIds[g.id]; }).map(function(g){ var v=g.id||'-', k=ppl.filter(function(p){ return (p.sched||'')===g.id; }).length; return '<option value="'+v+'"'+(ui.mSched===v?' selected':'')+'>'+esc(g.id?g.short:'Без графика')+' ('+k+')</option>'; }).join('')+'</select>'+
-    (srt?'<span class="msrt">Показаны: <b>'+MSORT_N[srt.s]+'</b> за '+Number(srt.d.slice(8))+' число <button data-a="msortx" aria-label="Показать всех">✕ всех</button></span>':'<span class="mhint">Нажмите на число месяца, чтобы показать только явку, AB, UL, PL, SL или DO</span>')+(canPeople(false)?'<button class="mcmpb" data-a="xcmp">📄 Сверить с файлом</button>':'')+'</div>';
+    (srt?'<span class="msrt">Показаны: <b>'+MSORT_N[srt.s]+'</b> за '+Number(srt.d.slice(8))+' число <button data-a="msortx" aria-label="Показать всех">✕ всех</button></span>':'')+(canPeople(false)?'<button class="mcmpb" data-a="xcmp">📄 Сверить с файлом</button>':'')+'</div>';
   if(ui.mSched) ppl=ppl.filter(function(p){ return (p.sched||'')===(ui.mSched==='-'?'':ui.mSched); });
   if(srt){ var sdr=recs[srt.d]||{}; ppl=ppl.filter(function(p){ return mStat(p,srt.d,sdr[p.id])===srt.s; }); }
   var head='<tr><th class="c0">ФИО</th><th class="c1">График</th>';
