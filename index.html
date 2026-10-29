@@ -672,6 +672,26 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 .xcd{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px;font-size:12px}.xcd i{font-style:normal;font-weight:700;margin-right:4px}.xcd b{color:var(--ab-t)}
 
 body.r-brigu #tabbar [data-v=docs]{display:none}
+
+#tabbar [data-v=dtask]{display:none}
+body.r-tech #tabbar [data-v=dtask],body.r-prorab #tabbar [data-v=dtask],body.r-brigu #tabbar [data-v=dtask]{display:block}
+.bdgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,420px);gap:18px;align-items:start}
+@media (max-width:1100px){.bdgrid{grid-template-columns:1fr}}
+.bdside{position:sticky;top:calc(var(--toph,64px) + 8px)}
+.bdmain .xtj{min-width:560px}.bdmain .xtj thead th{font-size:11px;height:36px;padding:3px 2px}.bdmain .xtj tbody td{font-size:16px;height:32px;padding:2px}.bdmain .xtj th:first-child{width:52px}
+.dtbox{border:1px solid var(--line);border-radius:12px;padding:12px}.dtbox .tbth3{margin-top:0}
+.dtform{display:grid;gap:8px;margin-bottom:10px}.dtform textarea{width:100%}
+.dtto{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px}.dtto label{display:flex;gap:4px;align-items:center}
+.dti{border-top:1px solid var(--line);padding:8px 0}.dti.done .dtt{opacity:.75}
+.dtih{display:flex;gap:6px;align-items:flex-start}.dtt{flex:1;min-width:0;white-space:pre-wrap}
+.dtx{min-height:28px;padding:0 8px;border:1px solid var(--line);border-radius:6px;background:transparent;color:inherit}
+.dtwho{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.dtwait{font-size:12px;color:var(--off-t);margin-top:4px}
+.dtok{margin-top:6px;padding:6px 8px;border-radius:8px;background:var(--work-bg);color:var(--work-t);font-size:13px}.dtok small{opacity:.8}
+.dtnote{color:var(--ink);margin-top:2px;white-space:pre-wrap}.dtfs{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.dtfile{min-height:30px;padding:0 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface,transparent);color:var(--ink);font-size:12px}
+.dtc .dtokb{margin-top:8px;width:100%}.dtc.done{opacity:.95}
+.dtimg{display:block;max-width:100%;max-height:70vh;margin:0 auto;border-radius:8px}
 </style>
 </head>
 <body>
@@ -704,7 +724,7 @@ body.r-brigu #tabbar [data-v=docs]{display:none}
   <aside id="nwl" aria-label="Бригады"></aside><div id="wshead"></div><div id="nd"></div>
   <div id="xv"></div>
 </main>
-<nav id="tabbar" aria-label="Разделы"><button data-a="view" data-v="day">Явка</button><button data-a="view" data-v="brig">Бригада</button><button data-a="view" data-v="month">Табель</button><button data-a="view" data-v="teams">Бригады</button><button data-a="view" data-v="docs">Служебные записки</button><button data-a="view" data-v="nar">Наряды</button><button data-a="view" data-v="board">Доска руководителя</button></nav>
+<nav id="tabbar" aria-label="Разделы"><button data-a="view" data-v="day">Явка</button><button data-a="view" data-v="brig">Бригада</button><button data-a="view" data-v="month">Табель</button><button data-a="view" data-v="teams">Бригады</button><button data-a="view" data-v="docs">Служебные записки</button><button data-a="view" data-v="nar">Наряды</button><button data-a="view" data-v="dtask">Задачи на день</button><button data-a="view" data-v="board">Доска руководителя</button></nav>
 <div id="sheetWrap" hidden><div class="backdrop" data-a="close"></div><div id="sheet" role="dialog" aria-modal="true" aria-label="Окно"></div></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <input type="file" id="file" accept=".json,application/json" hidden>
@@ -715,7 +735,7 @@ body.r-brigu #tabbar [data-v=docs]{display:none}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='188';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='189';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -902,7 +922,7 @@ function canPeople(show){ var r=role(); if(r==='nach'||r==='tech'||isPro(r)) ret
 var DAY_A={set:1,hstep:1,hset:1,undo:1,go:1,scan:1,fill:1,fillok:1};
 var PEOPLE_A={padd:1,pbulk:1,pbulkok:1,pdel:1,pdelarch:1,pdelall:1,pdelok:1,pedit:1,psave:1,parch:1,imp:1,'import':1,pwgo:1,pwsheet:1,defh:1};
 var ADMIN_A={ssave:1,slink:1,lshare:1,lcopy:1,spl:1,splok:1,smonth:1,soff:1,soffok:1};
-var MONT_A={extadd:1,brgpk:1,tmday:1,ktusave:1,tkrep:1,tkall:1,xdpick:1,xdshift:1,xdtoday:1,tkack:1,brgsend:1,brgpick:1,brgpickadd:1,tkdone:1,tkdoneedit:1,tkday:1,book:1,view:1,mnav:1,mday:1,msort:1,msortx:1,mfile:1,mfget:1,mfshare:1,mfull:1,mexp:1,mexport:1,close:1,menu:1,snow:1,install:1,doinstall:1,month:1,mshift:1};
+var MONT_A={dtday:1,extadd:1,brgpk:1,tmday:1,ktusave:1,tkrep:1,tkall:1,xdpick:1,xdshift:1,xdtoday:1,tkack:1,brgsend:1,brgpick:1,brgpickadd:1,tkdone:1,tkdoneedit:1,tkday:1,book:1,view:1,mnav:1,mday:1,msort:1,msortx:1,mfile:1,mfget:1,mfshare:1,mfull:1,mexp:1,mexport:1,close:1,menu:1,snow:1,install:1,doinstall:1,month:1,mshift:1};
 function roleClick(a,el){
   var r=role(); if(!r) return false;
   if(r==='mont'&&(!MONT_A[a]||(a==='view'&&['month','brig','task','nar','teams'].indexOf(el.dataset.v)<0)||(a==='book'&&el.dataset.b==='are'))){ if(a!=='mcell'&&a!=='mdayopen') toast(a==='book'?'Бригадиру доступен только табель РФ':'Недоступно для бригадира'); return false; }
@@ -916,7 +936,7 @@ function roleClick(a,el){
 function applyRole(){
   var r=role(), c=document.body.classList;
   if(r){
-    var okv=r==='mont'?{brig:1,month:1,task:1,teams:1}:r==='brigu'?{day:1,month:1,nd:1,teams:1,task:1}:{day:1,month:1,docs:1,nd:1,teams:1,task:(r==='prorab'||r==='nach'||r==='tech')?1:0,board:(r==='nach'||r==='tech')?1:0};
+    var okv=r==='mont'?{brig:1,month:1,task:1,teams:1}:r==='brigu'?{day:1,month:1,nd:1,teams:1,task:1,dtask:1}:{day:1,month:1,docs:1,nd:1,teams:1,task:(r==='prorab'||r==='nach'||r==='tech')?1:0,board:(r==='nach'||r==='tech')?1:0,dtask:(r==='prorab'||r==='tech')?1:0};
     if(!okv[ui.view]){ ui.view=r==='mont'?'brig':'day'; ui.month=ui.date.slice(0,7); }
     if(r==='mont'&&root.cur!=='rf'){ root.cur='rf'; }
   }
@@ -1237,8 +1257,85 @@ function mergePull(b,d0,items){
   if(changed) save();
   return changed;
 }
-function isXv(){ return ui.view==='brig'||ui.view==='task'||ui.view==='board'||ui.view==='teams'; }
-function pull(){ if(ui.view==='month') pullMonth(); else if(isXv()) bdFetch(ui.view==='task'?(tkDate||tkDef()):ui.view==='board'?(bdDate||today()):ui.view==='teams'?(tmDate||today()):today(),true); else pullDay(); }
+/* ---------------------------------------------- задачи на день: пишет начальник участка, видят техник, прорабы, бригадиры участка */
+var dtDate='', DT_TO=[['tech','Техник (помощник)'],['prorab','Прораб'],['brigu','Бригадир участка']], dtTo={tech:1,prorab:1,brigu:1}, dtDraft='', dtCur=null;
+function dtItems(d){ return bdItems(d).filter(function(x){ return x.kind==='dt'; }).sort(function(a,b){ return (a.t||0)-(b.t||0); }); }
+function dtOks(d,id){ return bdItems(d).filter(function(x){ return x.kind==='dtok'&&x.data&&x.data.tid===id; }); }
+function dtToTxt(to){ return (to||[]).map(function(k){ var x=DT_TO.filter(function(y){ return y[0]===k; })[0]; return x?x[1]:k; }).join(', '); }
+function dtFilesHtml(fs){ return (fs||[]).map(function(f){ return '<button type="button" class="dtfile" data-a="dtview" data-f="'+esc(f.fid)+'" data-n="'+esc(f.name)+'" data-m="'+esc(f.mime)+'" data-p="'+(f.parts||1)+'">'+(/^image\//.test(f.mime)?'📷 фото':'📎 '+esc(f.name||'файл'))+'</button>'; }).join(''); }
+function dtOkHtml(o){ var x=o.data||{}; return '<div class="dtok"><b>✓ '+esc(shortName(whoBase(x.fio||o.who)))+'</b> <small>'+fmtDT(o.t)+'</small>'+(x.note?'<div class="dtnote">'+esc(x.note)+'</div>':'')+(x.files&&x.files.length?'<div class="dtfs">'+dtFilesHtml(x.files)+'</div>':'')+'</div>'; }
+function dtBoardHtml(d){
+  var L=dtItems(d), nach=role()==='nach';
+  return '<div class="dtbox"><h3 class="tbth3">Задачи на день</h3>'+
+    (nach?'<div class="dtform"><textarea id="dt_text" rows="2" maxlength="500" placeholder="Новая задача на '+esc(dmyLong(d))+'">'+esc(dtDraft)+'</textarea>'+
+      '<div class="dtto">'+DT_TO.map(function(x){ return '<label><input type="checkbox" data-dtto="'+x[0]+'"'+(dtTo[x[0]]?' checked':'')+'> '+x[1]+'</label>'; }).join('')+'</div>'+
+      '<button type="button" class="primary" data-a="dtadd" data-d="'+esc(d)+'">Добавить задачу</button></div>':'')+
+    (L.length?L.map(function(t,i){ var ok=dtOks(d,t.id);
+      return '<div class="dti'+(ok.length?' done':'')+'"><div class="dtih"><b>'+(i+1)+'.</b> <span class="dtt">'+esc(t.data.text||'')+'</span>'+(nach?'<button type="button" class="dtx" data-a="dtdel" data-id="'+esc(t.id)+'" data-d="'+esc(d)+'" aria-label="Удалить задачу">✕</button>':'')+'</div>'+
+        '<small class="dtwho">Кому: '+esc(dtToTxt(t.data.to))+' · '+fmtDT(t.t)+'</small>'+(ok.length?ok.map(dtOkHtml).join(''):'<div class="dtwait">ещё не выполнено</div>')+'</div>'; }).join('')
+      :'<p class="note">На '+esc(dmyLong(d))+' задач нет.</p>')+'</div>';
+}
+document.addEventListener('input',function(e){ var t=e.target; if(t&&t.id==='dt_text') dtDraft=t.value; },true);
+document.addEventListener('change',function(e){ var t=e.target; if(t&&t.dataset&&t.dataset.dtto){ if(t.checked) dtTo[t.dataset.dtto]=1; else delete dtTo[t.dataset.dtto]; } },true);
+function dtAdd(){
+  if(role()!=='nach'){ toast('Задачи пишет начальник участка'); return; }
+  var d=bdDate||today(), text=String(dtDraft||'').trim().slice(0,500), to=DT_TO.map(function(x){ return x[0]; }).filter(function(k){ return dtTo[k]; });
+  if(!text){ toast('Напишите задачу'); var ta=$('dt_text'); if(ta) ta.focus(); return; }
+  if(!to.length){ toast('Отметьте, кому задача'); return; }
+  if(!syncOn()){ toast('Нет связи с сервером'); return; }
+  bdPut({kind:'dt',d:d,obj:'',id:('dt|'+d+'|'+Date.now().toString(36)),data:{text:text,to:to,by:whoBase(sync.who)}}).then(function(){ dtDraft=''; toast('Задача добавлена'); bdFetch(d,true); })
+    .catch(function(e){ toast('Не сохранено: '+((e&&e.message)||'нет связи')); });
+}
+function dtDel(id,d){ if(role()!=='nach') return; if(!confirm('Удалить задачу?')) return; call({action:'bdel',id:id}).then(function(){ toast('Задача удалена'); bdFetch(d,true); }).catch(function(e){ toast('Не удалено: '+((e&&e.message)||'')); }); }
+function dtRender(){
+  var d=dtDate||today(), r0=role(); bdFetch(d,false); document.body.classList.add('vhdate'); var hn=$('hnav'); if(hn) hn.innerHTML=navDate('dtday',d);
+  var L=dtItems(d).filter(function(t){ return (t.data.to||[]).indexOf(r0)>=0||r0==='nach'; }), me=fioKey(whoBase(sync.who));
+  return '<h2 class="dh2">Задачи на день</h2>'+(L.length?L.map(function(t,i){ var ok=dtOks(d,t.id), mine=ok.filter(function(o){ return fioKey(whoBase((o.data||{}).fio||o.who))===me; })[0];
+      return '<div class="xcard dtc'+(mine?' done':'')+'"><div class="dtih"><b>'+(i+1)+'.</b> <span class="dtt">'+esc(t.data.text||'')+'</span></div><small class="dtwho">От: '+esc(t.data.by||'начальник участка')+' · '+fmtDT(t.t)+' · кому: '+esc(dtToTxt(t.data.to))+'</small>'+
+        ok.map(dtOkHtml).join('')+(mine?'':'<button type="button" class="primary dtokb" data-a="dtok" data-id="'+esc(t.id)+'" data-d="'+esc(d)+'">✓ Выполнено</button>')+'</div>'; }).join('')
+    :'<p class="note">На '+esc(dmyLong(d))+' задач от начальника участка нет.</p>');
+}
+function dtOkOpen(id,d){
+  var t=bdItems(d).filter(function(x){ return x.id===id; })[0]; if(!t) return; dtCur={id:id,d:d,files:[]};
+  openSheet('Задача выполнена',
+    '<p class="dtt">'+esc(t.data.text||'')+'</p>'+
+    '<label for="dtok_note">Комментарий (необязательно)</label><textarea id="dtok_note" rows="2" maxlength="500"></textarea>'+
+    '<label for="dtok_file">Фото или скан документа (можно несколько)</label><input id="dtok_file" type="file" accept="image/*,application/pdf" multiple>'+
+    '<p class="note" id="dtok_msg">Служебную записку прикрепите сканом (PDF или фото).</p>'+
+    '<div class="acts"><button class="primary" data-a="dtsend">Отправить</button><button data-a="close">Отмена</button></div>');
+}
+function dtImg(file){ return new Promise(function(ok){ var u=URL.createObjectURL(file), im=new Image(); im.onload=function(){ var k=Math.min(1,1600/Math.max(im.width,im.height)), c=document.createElement('canvas'); c.width=Math.round(im.width*k); c.height=Math.round(im.height*k); c.getContext('2d').drawImage(im,0,0,c.width,c.height); URL.revokeObjectURL(u); c.toBlob(function(b){ ok(b||file); },'image/jpeg',0.8); }; im.onerror=function(){ URL.revokeObjectURL(u); ok(file); }; im.src=u; }); }
+function dtB64(blob){ return blob.arrayBuffer().then(function(buf){ var u=new Uint8Array(buf), s='', CH=0x8000; for(var i=0;i<u.length;i+=CH) s+=String.fromCharCode.apply(null,u.subarray(i,i+CH)); return btoa(s); }); }
+function dtUpload(file,msg){
+  var isImg=/^image\//.test(file.type)&&!/gif/.test(file.type);
+  return (isImg?dtImg(file):Promise.resolve(file)).then(function(blob){
+    if(blob.size>12*1024*1024) throw new Error('файл больше 12 МБ: '+file.name);
+    return dtB64(blob).then(function(b64){ var CH=900000, parts=Math.ceil(b64.length/CH)||1, fid='f'+Date.now().toString(36)+Math.random().toString(36).slice(2,8), mime=isImg?'image/jpeg':(file.type||'application/octet-stream'), name=isImg?String(file.name||'фото').replace(/\.[^.]+$/,'')+'.jpg':String(file.name||'файл');
+      var ch=Promise.resolve(); for(var i=0;i<parts;i++)(function(i){ ch=ch.then(function(){ if(msg) msg.textContent='Загружаю '+name+(parts>1?' ('+(i+1)+'/'+parts+')':'')+'…'; return call({action:'fput',fid:fid,part:i,parts:parts,name:name,mime:mime,data:b64.slice(i*CH,(i+1)*CH)},60000); }); })(i);
+      return ch.then(function(){ return {fid:fid,name:name,mime:mime,parts:parts,size:blob.size}; }); });
+  });
+}
+function dtSend(el){
+  if(!dtCur) return; var msg=$('dtok_msg'), note=(($('dtok_note')||{}).value||'').trim().slice(0,500), inp=$('dtok_file'), fl=inp&&inp.files?Array.prototype.slice.call(inp.files,0,6):[];
+  if(!syncOn()){ msg.textContent='Нет связи с сервером.'; return; }
+  el.disabled=true; var c=dtCur, files=[], ch=Promise.resolve();
+  fl.forEach(function(f){ ch=ch.then(function(){ return dtUpload(f,msg).then(function(x){ files.push(x); }); }); });
+  ch.then(function(){ msg.textContent='Отправляю отметку…'; var me=whoBase(sync.who);
+    return bdPut({kind:'dtok',d:c.d,obj:'',id:('dtok|'+c.id.slice(3)+'|'+fioKey(me)).slice(0,60),data:{tid:c.id,fio:me,note:note,files:files}}); })
+    .then(function(){ dtCur=null; closeSheet(); toast('Отмечено: задача выполнена'); bdFetch(c.d,true); })
+    .catch(function(e){ el.disabled=false; msg.textContent='Не отправлено: '+((e&&e.message)||'нет связи'); });
+}
+function dtView(fid,name,mime,parts){
+  toast('Открываю…'); var out=[], ch=Promise.resolve();
+  for(var i=0;i<parts;i++)(function(i){ ch=ch.then(function(){ return call({action:'fget',fid:fid,part:i},60000).then(function(j){ out[i]=j.data||''; }); }); })(i);
+  ch.then(function(){ var s=atob(out.join('')), u=new Uint8Array(s.length); for(var k=0;k<s.length;k++) u[k]=s.charCodeAt(k);
+    var blob=new Blob([u],{type:mime||'application/octet-stream'}), url=URL.createObjectURL(blob);
+    if(/^image\//.test(mime)) openSheet(name||'Фото','<img class="dtimg" src="'+url+'" alt="Фото к задаче"><div class="acts"><button data-a="close">Закрыть</button></div>');
+    else saveFile(name||'файл.pdf',mime,blob);
+  }).catch(function(e){ toast('Не удалось открыть: '+((e&&e.message)||'')); });
+}
+function isXv(){ return ui.view==='brig'||ui.view==='task'||ui.view==='board'||ui.view==='teams'||ui.view==='dtask'; }
+function pull(){ if(ui.view==='month') pullMonth(); else if(isXv()) bdFetch(ui.view==='task'?(tkDate||tkDef()):ui.view==='board'?(bdDate||today()):ui.view==='dtask'?(dtDate||today()):ui.view==='teams'?(tmDate||today()):today(),true); else pullDay(); }
 function pullDay(){
   if(!syncOn()||pulling||navigator.onLine===false) return;
   var b=root.cur, d=ui.date; pulling=true;
@@ -3385,7 +3482,7 @@ document.addEventListener('click',function(e){
   if(a.indexOf('tbt')===0){ tbtClick(a,el); return; }
   if(a==='ndapply'||a==='ndmanual'){ ndApplyComp(el.dataset.id,el.dataset.d,a==='ndmanual'?'manual':'file'); return; }
   if(a==='ndrenew'){ ndRenew(el.dataset.id,el.dataset.d); return; }
-  if(a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'||a==='tmday'||a==='ktusave'||a==='ndfrom'||a==='ndtbt'||a==='tkdone'||a==='tkdoneedit'||a==='tkrep'||a==='tkall'||a==='tkirow'||a==='tkidel'||a==='tkwadd'||a==='tkwdel'||a==='brgpick'||a==='brgpk'||a==='brgpickadd'||a==='xdpick'||a==='xdshift'||a==='xdtoday'||a==='mvcopy'){ xClick(a,el); return; }
+  if(a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'||a==='tmday'||a==='ktusave'||a==='ndfrom'||a==='ndtbt'||a==='tkdone'||a==='tkdoneedit'||a==='tkrep'||a==='tkall'||a==='tkirow'||a==='tkidel'||a==='tkwadd'||a==='tkwdel'||a==='brgpick'||a==='brgpk'||a==='brgpickadd'||a==='xdpick'||a==='xdshift'||a==='xdtoday'||a==='mvcopy'||/^dt/.test(a)){ xClick(a,el); return; }
   switch(a){
     case 'book': if(root.cur!==el.dataset.b){ root.cur=el.dataset.b; save(); ui.q=''; $('q').value=''; ui.open={}; clearMsg(); render(); window.scrollTo(0,0); pull(); } break;
     case 'date': sheetDate(); break;
@@ -3841,8 +3938,8 @@ function navDate(a,d){ var t=today();
     '<button class="xarr" data-a="'+a+'" data-d="1" aria-label="Следующий день">'+dmS(addDays(d,1))+' ▶</button></div>'; }
 function hdateStatic(d){ return '<div class="xnav"><span class="hdate hstatic">'+dLbl(d)+'</span></div>'; }
 /* окно выбора дня для доски и наряд-задания */
-function xDateGet(k){ if(k==='dayday') return ui.date; return k==='bdday'?(bdDate||today()):k==='tmday'?(tmDate||today()):(tkDate||tkDef()); }
-function xDateSet(k,d){ if(k==='dayday'){ ui.date=d; ui.follow=d===today(); ui.open={}; clearMsg(); render(); pull(); return; } if(k==='bdday') bdDate=d; else if(k==='tmday') tmDate=d; else tkDate=d; if(ui.view==='nd'){ ndBack=null; setView('task'); } else renderX(); }
+function xDateGet(k){ if(k==='dayday') return ui.date; if(k==='dtday') return dtDate||today(); return k==='bdday'?(bdDate||today()):k==='tmday'?(tmDate||today()):(tkDate||tkDef()); }
+function xDateSet(k,d){ if(k==='dtday'){ dtDate=d; renderX(); return; } if(k==='dayday'){ ui.date=d; ui.follow=d===today(); ui.open={}; clearMsg(); render(); pull(); return; } if(k==='bdday') bdDate=d; else if(k==='tmday') tmDate=d; else tkDate=d; if(ui.view==='nd'){ ndBack=null; setView('task'); } else renderX(); }
 function sheetXDate(k){ var d=xDateGet(k);
   openSheet('День','<div class="acts" style="margin-top:0"><button data-a="xdshift" data-k="'+k+'" data-d="-1">◀ '+dmS(addDays(d,-1))+'</button><button data-a="xdtoday" data-k="'+k+'" class="primary">'+dmS(today())+'</button><button data-a="xdshift" data-k="'+k+'" data-d="1">'+dmS(addDays(d,1))+' ▶</button></div>'+
     '<div class="fld" style="margin-top:12px"><label for="xdpick">Выбрать дату</label><input type="date" id="xdpick" data-k="'+k+'" value="'+d+'"></div>'+
@@ -3857,7 +3954,7 @@ function objSelect(id,cur){ return '<select id="'+id+'">'+ND_OBJS.map(function(o
 function parseNums(s){ var seen={}, out=[]; String(s||'').split(/[^0-9]+/).forEach(function(x){ x=x.trim(); if(x&&!seen[normNum(x)]){ seen[normNum(x)]=1; out.push(x); } }); return out; }
 function renderX(){
   var el=$('xv'); if(!el) return;
-  if(ui.view==='brig') el.innerHTML=brgRender(); else if(ui.view==='task') el.innerHTML=tkRender(); else if(ui.view==='board') el.innerHTML=bdRender(); else if(ui.view==='teams') el.innerHTML=tmRender();
+  if(ui.view==='brig') el.innerHTML=brgRender(); else if(ui.view==='task') el.innerHTML=tkRender(); else if(ui.view==='board') el.innerHTML=bdRender(); else if(ui.view==='teams') el.innerHTML=tmRender(); else if(ui.view==='dtask') el.innerHTML=dtRender();
   if(ui.view==='task'&&document.body.classList.contains('nws')) wsLeft();
 }
 /* --- бригада (бригадир) --- */
@@ -4916,7 +5013,7 @@ function bdRender(){
   });
   var LV={bad:0,warn:1,ok:2}; fl.sort(function(a,b){ return LV[a.lvl]-LV[b.lvl]||a.i-b.i; }); frames=fl.map(function(x){ return x.html; }).join('');
   h+=frames?'<div class="xobjs">'+frames+'</div>':'<p class="note">На этот день наряд-задания не выданы и численность не подана.</p>';
-  return h;
+  return '<div class="bdgrid"><div class="bdmain">'+h+'</div><aside class="bdside">'+dtBoardHtml(d)+'</aside></div>';
 }
 /* четыре рамки нарядов под бригадой: нажатие — новый наряд с людьми бригады и следующим номером */
 var ND_K4=[['hz','Опасные работы'],['fire','Огневые работы'],['lift','Подъёмные механизмы'],['conc','Бетонные работы']];
@@ -5027,6 +5124,12 @@ function xClick(a,el){
   if(a==='tkdel'){ if(!confirm('Удалить это наряд-задание?')) return; var d=tkDate||tkDef(); call({action:'bdel',id:el.dataset.id}).then(function(){ bdFetch(d,true); }).catch(function(e){ toast('Не удалено: '+((e&&e.message)||'')); }); return; }
   if(a==='tkday'){ tkDate=addDays(tkDate||tkDef(),Number(el.dataset.d)); if(ui.view==='nd'){ ndBack=null; setView('task'); } else renderX(); return; }
   if(a==='bdday'){ bdDate=addDays(bdDate||today(),Number(el.dataset.d)); renderX(); return; }
+  if(a==='dtday'){ dtDate=addDays(dtDate||today(),Number(el.dataset.d)); renderX(); return; }
+  if(a==='dtadd'){ dtAdd(); return; }
+  if(a==='dtdel'){ dtDel(el.dataset.id,el.dataset.d); return; }
+  if(a==='dtok'){ dtOkOpen(el.dataset.id,el.dataset.d); return; }
+  if(a==='dtsend'){ dtSend(el); return; }
+  if(a==='dtview'){ dtView(el.dataset.f,el.dataset.n,el.dataset.m,Number(el.dataset.p)||1); return; }
   if(a==='tmday'){ tmDate=addDays(tmDate||today(),Number(el.dataset.d)); renderX(); return; }
   if(a==='ktusave'){ ktuSave(el); return; }
 }
