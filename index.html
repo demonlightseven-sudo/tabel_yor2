@@ -670,6 +670,8 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 .xclist{display:grid;gap:6px;margin-top:10px;max-height:50vh;overflow:auto}
 .xcp{border:1px solid var(--line);border-radius:8px;padding:6px 10px}.xcph{font-size:14px}.xcph small{color:var(--ab-t);font-weight:700;margin-left:4px}
 .xcd{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px;font-size:12px}.xcd i{font-style:normal;font-weight:700;margin-right:4px}.xcd b{color:var(--ab-t)}
+
+body.r-brigu #tabbar [data-v=docs]{display:none}
 </style>
 </head>
 <body>
@@ -713,7 +715,7 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='187';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='188';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -875,6 +877,7 @@ var ROLES=[
   {id:'nach',name:'Начальник участка',d:'Может изменять всё'},
   {id:'tech',name:'Техник (помощник)',d:'Может изменять всё'},
   {id:'prorab',name:'Прораб',d:'Отметки только за сегодня, с 05:00 до 22:00'},
+  {id:'brigu',name:'Бригадир участка',d:'Явка — только просмотр; наряд-задания, наряды-допуски, TBT'},
   {id:'techu',name:'Техник участка',d:'«День» и «Месяц» — только просмотр'},
   {id:'mont',name:'Бригадир',d:''},
   {id:'perev',name:'Переводчик',d:''}
@@ -890,11 +893,12 @@ if(!auth&&sync.code){ sync.code=''; saveSync(); }
 if(auth&&auth.role==='mont'&&!auth.locked){ auth=null; try{ localStorage.removeItem(AUTH_KEY); }catch(e){} sync.code=''; saveSync(); }   /* бригадиры входят заново: по ФИО из списка */   /* вход сброшен: старый общий код больше не используется */
 function saveAuth(){ try{ if(auth) localStorage.setItem(AUTH_KEY,JSON.stringify(auth)); else localStorage.removeItem(AUTH_KEY); }catch(e){} }
 function role(){ return auth?auth.role:''; }
+function isPro(r){ r=r==null?role():r; return r==='prorab'||r==='brigu'; }
 function isAdmin(){ var r=role(); return r==='nach'||r==='tech'; }
 function dayEditOk(d){ var r=role(); if(r==='nach'||r==='tech') return true; if(r!=='prorab') return false; var h=new Date().getHours(); return (d||ui.date)===today()&&h>=5&&h<22; }
-function dayDenyText(){ if(role()==='prorab') return ui.date!==today()?'Прораб может отмечать только сегодняшний день':'Отмечать можно с 05:00 до 22:00'; return 'Только просмотр: изменять отметки нельзя'; }
+function dayDenyText(){ if(role()==='brigu') return 'Бригадир участка может только просматривать явку'; if(role()==='prorab') return ui.date!==today()?'Прораб может отмечать только сегодняшний день':'Отмечать можно с 05:00 до 22:00'; return 'Только просмотр: изменять отметки нельзя'; }
 function canDay(show){ if(dayEditOk()) return true; if(show) toast(dayDenyText()); return false; }
-function canPeople(show){ var r=role(); if(r==='nach'||r==='tech'||r==='prorab') return true; if(show) toast('Изменять список людей нельзя'); return false; }
+function canPeople(show){ var r=role(); if(r==='nach'||r==='tech'||isPro(r)) return true; if(show) toast('Изменять список людей нельзя'); return false; }
 var DAY_A={set:1,hstep:1,hset:1,undo:1,go:1,scan:1,fill:1,fillok:1};
 var PEOPLE_A={padd:1,pbulk:1,pbulkok:1,pdel:1,pdelarch:1,pdelall:1,pdelok:1,pedit:1,psave:1,parch:1,imp:1,'import':1,pwgo:1,pwsheet:1,defh:1};
 var ADMIN_A={ssave:1,slink:1,lshare:1,lcopy:1,spl:1,splok:1,smonth:1,soff:1,soffok:1};
@@ -902,7 +906,7 @@ var MONT_A={extadd:1,brgpk:1,tmday:1,ktusave:1,tkrep:1,tkall:1,xdpick:1,xdshift:
 function roleClick(a,el){
   var r=role(); if(!r) return false;
   if(r==='mont'&&(!MONT_A[a]||(a==='view'&&['month','brig','task','nar','teams'].indexOf(el.dataset.v)<0)||(a==='book'&&el.dataset.b==='are'))){ if(a!=='mcell'&&a!=='mdayopen') toast(a==='book'?'Бригадиру доступен только табель РФ':'Недоступно для бригадира'); return false; }
-  if((a==='tksend'||a==='tkdel')&&!(r==='prorab'||isAdmin())){ toast('Наряд-задания выдаёт прораб'); return false; }
+  if((a==='tksend'||a==='tkdel')&&!(isPro(r)||isAdmin())){ toast('Наряд-задания выдаёт прораб'); return false; }
   if(DAY_A[a]&&!canDay(true)) return false;
   if(PEOPLE_A[a]&&!canPeople(true)) return false;
   if(ADMIN_A[a]&&!isAdmin()){ toast('Доступно только начальнику участка и технику (помощнику)'); return false; }
@@ -912,13 +916,13 @@ function roleClick(a,el){
 function applyRole(){
   var r=role(), c=document.body.classList;
   if(r){
-    var okv=r==='mont'?{brig:1,month:1,task:1,teams:1}:{day:1,month:1,docs:1,nd:1,teams:1,task:(r==='prorab'||r==='nach'||r==='tech')?1:0,board:(r==='nach'||r==='tech')?1:0};
+    var okv=r==='mont'?{brig:1,month:1,task:1,teams:1}:r==='brigu'?{day:1,month:1,nd:1,teams:1,task:1}:{day:1,month:1,docs:1,nd:1,teams:1,task:(r==='prorab'||r==='nach'||r==='tech')?1:0,board:(r==='nach'||r==='tech')?1:0};
     if(!okv[ui.view]){ ui.view=r==='mont'?'brig':'day'; ui.month=ui.date.slice(0,7); }
     if(r==='mont'&&root.cur!=='rf'){ root.cur='rf'; }
   }
-  ['nach','tech','prorab','techu','mont'].forEach(function(x){ c.toggle('r-'+x,r===x); });
+  ['nach','tech','prorab','techu','mont','brigu'].forEach(function(x){ c.toggle('r-'+x,r===x); });
   c.toggle('ro-day',!!r&&!dayEditOk());
-  c.toggle('ro-month',r==='techu'||r==='mont');
+  c.toggle('ro-month',r==='techu'||r==='mont'||r==='brigu');
   c.toggle('no-people',!canPeople());
   c.toggle('no-admin',!isAdmin());
   c.toggle('only-month',r==='mont');
@@ -1404,7 +1408,7 @@ function renderList(){
   var off=ui.q?[]:items.filter(function(p){ return planHidden(p,day); });
   if(off.length) items=items.filter(function(p){ return off.indexOf(p)<0; });
   /* прорабу не показываем тех, кому заранее проставлены отпуск / отпуск без ЗП / больничный — им отмечать не нужно */
-  var lv=role()==='prorab'&&!ui.q?items.filter(function(p){ var r0=day[p.id]; return r0&&(r0.s==='pl'||r0.s==='ul'||r0.s==='sick'); }):[];
+  var lv=isPro()&&!ui.q?items.filter(function(p){ var r0=day[p.id]; return r0&&(r0.s==='pl'||r0.s==='ul'||r0.s==='sick'); }):[];
   if(lv.length) items=items.filter(function(p){ return lv.indexOf(p)<0; });
   var html=items.map(rowHtml).join('');
   if(!html&&!fired.length) html='<li class="empty"><p>'+(ui.q||fltOn?'Никого не найдено.':'Все отмечены.')+'</p></li>';
@@ -1630,7 +1634,7 @@ function restoreViewScroll(){
 var narSub='', ndBack=null;
 (function(){ function th(){ var t=document.getElementById('top'); if(t) document.documentElement.style.setProperty('--toph',Math.round(t.getBoundingClientRect().height)+'px'); }
   th(); window.addEventListener('resize',th); try{ var t0=document.getElementById('top'); if(t0&&window.ResizeObserver) new ResizeObserver(th).observe(t0); }catch(e){} setTimeout(th,500); })();
-function taskOk(){ var r=role(); return r==='mont'||r==='prorab'||r==='nach'||r==='tech'; }
+function taskOk(){ var r=role(); return r==='mont'||isPro(r)||r==='nach'||r==='tech'; }
 function narDef(){ var r=role(); if(r==='mont') return 'task'; if(!taskOk()) return 'nd'; return narSub||'task'; }
 function narSwHtml(cur){
   if(role()==='mont') return '';
@@ -2873,7 +2877,7 @@ var ND_MEM_HIDE=['rebar reinforcement, installation and dismantling of formwork,
 var ndMemSrv=null, ndMemAt=0;
 function ndMemFetch(force){ if(!syncOn()) return; if(!force&&Date.now()-ndMemAt<60000) return; ndMemAt=Date.now();
   call({action:'nmem'}).then(function(j){ ndMemSrv=(j&&j.mem)||{}; if(ui.view==='nd') renderNd(); else if(ui.view==='brig'||ui.view==='task') renderX(); }).catch(function(){}); }
-function ndMemCan(){ var r=role(); return r==='nach'||r==='tech'||r==='prorab'; }
+function ndMemCan(){ var r=role(); return r==='nach'||r==='tech'||isPro(r); }
 /* память на сервере (общая для всех телефонов); пока её не правили — собирается из журнала нарядов */
 function ndMemList(st,f){ if(ndMemSrv&&Array.isArray(ndMemSrv[f])) return ndMemSrv[f].slice(); return ndMemDerived(st,f); }
 function ndMemOp(op,f,v){
@@ -3944,7 +3948,7 @@ function brgSend(){
 /* подтверждение «Наряд-задание получил» */
 function tkDone(x){ return bdItems(x.d).filter(function(a){ return a.kind==='done'&&a.data&&a.data.tid===x.id; })[0]||null; }
 var DONE_ST={ok:'Выполнено',part:'Частично',no:'Не выполнено'}, tkDoneEdit={}, tkNotes={};
-function doneCan(x){ var r=role(); return r==='nach'||r==='tech'||r==='prorab'||(r==='mont'&&fioKey((x.data||{}).brig)===fioKey(sync.who)); }
+function doneCan(x){ var r=role(); return r==='nach'||r==='tech'||isPro(r)||(r==='mont'&&fioKey((x.data||{}).brig)===fioKey(sync.who)); }
 function doneHtml(x,lite){
   var dn=tkDone(x), cur=(dn&&dn.data)||{}, can=doneCan(x);
   var head=lite?(dn&&cur.note?'<div class="xdnote"><b>Комментарий к выполнению:</b> '+esc(cur.note)+' <small>'+esc(whoBase(cur.fio||dn.who))+' · '+fmtDT(dn.t)+'</small></div>':''):dn?'<div class="xdone '+esc(cur.st||'')+'">'+(cur.st==='ok'?'✔':cur.st==='part'?'◐':'✘')+' <b>'+esc(DONE_ST[cur.st]||'')+'</b>'+(cur.note?': '+esc(cur.note):'')+' <small>'+esc(whoBase(cur.fio||dn.who))+' · '+fmtDT(dn.t)+'</small></div>'
@@ -4557,7 +4561,7 @@ function tkJoinPuts(d,base,addList,who){
 /* уже выданные дубли одному бригадиру за день — сводим в первое задание */
 var tkDupAt={}, tkDupBusy=false;
 function tkDedup(d){
-  if(!syncOn()||tkDupBusy||Date.now()-(tkDupAt[d]||0)<20000) return; var r0=role(); if(r0!=='nach'&&r0!=='tech'&&r0!=='prorab'&&r0!=='techu') return;
+  if(!syncOn()||tkDupBusy||Date.now()-(tkDupAt[d]||0)<20000) return; var r0=role(); if(r0!=='nach'&&r0!=='tech'&&!isPro(r0)&&r0!=='techu') return;
   var ts=bdItems(d).filter(function(x){ return x.kind==='task'; }), g={}; if(!ts.length) return; tkDupAt[d]=Date.now();
   ts.slice().sort(function(a,b){ return (a.t||0)-(b.t||0); }).forEach(function(x){ var k=fioKey(x.data.brig); (g[k]=g[k]||[]).push(x); });
   var k=Object.keys(g).filter(function(k){ return g[k].length>1; })[0]; if(!k) return;
@@ -4788,7 +4792,7 @@ function mvCopy(){
   }catch(e){ sel(); toast('Скопируйте ссылку из поля'); }
 }
 function mvPushAtt(){
-  var r0=role(); if(MV||!syncOn()||(r0!=='nach'&&r0!=='tech'&&r0!=='prorab')) return;
+  var r0=role(); if(MV||!syncOn()||(r0!=='nach'&&r0!=='tech'&&!isPro(r0))) return;
   if(!root.books.rf.people.length&&!root.books.are.people.length) return;
   var d=today(); if(!bdCache[d]){ bdFetch(d,false); return; }
   var rfm={}; bdItems(d).forEach(function(x){ if(x.kind==='brig'){ var L=monRfList(x,x.data.lead); if(L.length) rfm[fioKey(x.data.lead)]=L; } });
@@ -4917,7 +4921,7 @@ function bdRender(){
 /* четыре рамки нарядов под бригадой: нажатие — новый наряд с людьми бригады и следующим номером */
 var ND_K4=[['hz','Опасные работы'],['fire','Огневые работы'],['lift','Подъёмные механизмы'],['conc','Бетонные работы']];
 function ndBrigOpen(b,d,obj,k){ if(!b) return []; return ndOpenOn(d,obj).filter(function(e){ if(e.kind!==k) return false; var x=ndBrigOf(e,d); return x&&x.id===b.id; }); }
-function ndOk(){ return isAdmin()||role()==='prorab'; }
+function ndOk(){ return isAdmin()||isPro(); }
 /* сверка состава бригады с её открытыми нарядами и кнопки переноса изменений */
 function ndCompBlock(b,d,obj){
   if(!b||!ndOk()) return '';
