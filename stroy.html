@@ -1,29 +1,28 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Строительство</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+
 <style>
 /* Layout: шапка-«штамп» с выбором роли, вкладки, рабочая область; проект → ЗнВП → позиция открываются в боковой панели с возвратом назад */
 :root{
-  --bg:#eceff2; --surface:#ffffff; --sunk:#e3e7eb; --ink:#18212b; --muted:#5b6673; --line:#d3d9df;
+  --bg:#F1EFEA; --surface:#FBFAF7; --sunk:#E7E3DA; --ink:#1B2630; --muted:#5C6872; --line:#D8D4CA;
   --accent:#d9520b; --accent-soft:#fbe6d9;
   --ok:#23804a; --ok-soft:#dcf0e3; --warn:#a86b00; --warn-soft:#f8ecd2; --bad:#c2332a; --bad-soft:#f8dedb;
   --todo:#c5ccd3;
   --c-proj:#5b5bd6; --c-pto:#0d8a8a; --c-site:#d9520b; --c-buy:#b0369c; --c-store:#6b7a2a; --c-qc:#2f6fb5;
-  --f-display:"Unbounded","Golos Text",system-ui,sans-serif;
-  --f-body:"Golos Text",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-display:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --f-body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#11161c; --surface:#19212a; --sunk:#141a21; --ink:#e4e9ee; --muted:#97a3b0; --line:#2b3540;
+  --bg:#161B20; --surface:#1F262C; --sunk:#1A2026; --ink:#E8E6E1; --muted:#9AA5AE; --line:#36404A;
   --accent:#ff7f3a; --accent-soft:#3a2416;
   --ok:#55c283; --ok-soft:#163223; --warn:#e3a93a; --warn-soft:#352a12; --bad:#ff6b60; --bad-soft:#3b1a18;
   --todo:#38434f;
   --c-proj:#8f8fff; --c-pto:#3cc4c4; --c-site:#ff8a4a; --c-buy:#e070cf; --c-store:#a9bb55; --c-qc:#6aa8ee;
   color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#11161c; --surface:#19212a; --sunk:#141a21; --ink:#e4e9ee; --muted:#97a3b0; --line:#2b3540;
+  --bg:#161B20; --surface:#1F262C; --sunk:#1A2026; --ink:#E8E6E1; --muted:#9AA5AE; --line:#36404A;
   --accent:#ff7f3a; --accent-soft:#3a2416;
   --ok:#55c283; --ok-soft:#163223; --warn:#e3a93a; --warn-soft:#352a12; --bad:#ff6b60; --bad-soft:#3b1a18;
   --todo:#38434f;
@@ -31,8 +30,10 @@
   color-scheme:dark}
 
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45}
-.wrap{max-width:1320px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+html,body{overflow:hidden;background:transparent}
+body{background:transparent;color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+h2{font-weight:700!important}
+.wrap{max-width:none;margin:0 auto;padding:4px 0 24px}
 button,select,input,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .num{font-variant-numeric:tabular-nums}
@@ -51,7 +52,7 @@ header.top{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-con
 .stamp select{border:0;background:transparent;font-weight:600;padding:0;width:100%;cursor:pointer}
 .conn.ok{color:var(--ok)} .conn.bad{color:var(--bad)}
 
-nav.tabs{display:flex;gap:4px;margin:16px 0 20px;overflow-x:auto}
+nav.tabs{display:flex;gap:4px;margin:8px 0 16px;overflow-x:auto}
 nav.tabs button{background:none;border:0;padding:9px 14px;border-radius:6px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
 nav.tabs button:hover{background:var(--sunk);color:var(--ink)}
 nav.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
@@ -252,21 +253,10 @@ footer{margin-top:40px;color:var(--muted);font-size:12px;border-top:1px solid va
 </style>
 
 <div class="wrap">
-  <header class="top">
-    <div class="brand">
-      <h1>Строительство</h1>
-      <p>Проект → ЛЗК → ЗнВП → склад → входной контроль → участок → списание</p>
-    </div>
-    <div class="stamp">
-      <div>Я —</div><div><select id="role" aria-label="Моя роль"></select></div>
-      <div>Сегодня</div><div><b id="today"></b></div>
-      <div>База</div><div><span id="conn" class="conn">подключаемся…</span></div>
-    </div>
-  </header>
+  <div hidden><select id="role" aria-hidden="true"></select><b id="today"></b><span id="conn" class="conn"></span></div>
 
   <nav class="tabs" role="tablist">
     <button role="tab" data-tab="sum" aria-selected="true">Сводка</button>
-    <button role="tab" data-tab="mine" aria-selected="false" id="tabMine">Мой раздел</button>
     <button role="tab" data-tab="projects" aria-selected="false">Проекты</button>
     <button role="tab" data-tab="znvp" aria-selected="false">ЗнВП</button>
     <button role="tab" data-tab="feed" aria-selected="false">Лента изменений</button>
@@ -344,7 +334,7 @@ footer{margin-top:40px;color:var(--muted);font-size:12px;border-top:1px solid va
     <div class="cards" id="deptsList"></div>
   </section>
 
-  <footer>Каждый отдел и участок выбирает себя в поле «Я —» и отмечает только свои этапы. Дни на этапах считаются автоматически по датам отметок. Документы прикладываются в PDF или как фото/скан.</footer>
+  <footer>Каждый отдел и участок отмечает только свои этапы. Дни на этапах считаются автоматически по датам отметок. Документы прикладываются в PDF или как фото/скан.</footer>
 </div>
 
 <div class="scrim" id="scrim" hidden></div>
@@ -409,6 +399,15 @@ footer{margin-top:40px;color:var(--muted);font-size:12px;border-top:1px solid va
     get(0).then(function(){ var bin=atob(parts.join('')), u=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i);
       var url=URL.createObjectURL(new Blob([u],{type:mime})); if(w) w.location.href=url; else location.href=url; },function(){ if(w) w.close(); alert('Не удалось открыть документ'); });
   });
+  window.stroyTop=function(){ try{ if(P&&P.__stroyTop) P.__stroyTop(); }catch(e){} };
+  function H(){ try{ if(P&&P.__stroyH) P.__stroyH(Math.ceil(document.documentElement.scrollHeight)); }catch(e){} }
+  window.addEventListener('load',H);
+  document.addEventListener('DOMContentLoaded',function(){
+    try{ new ResizeObserver(H).observe(document.body); }catch(e){ setInterval(H,1000); }
+    var dr=document.getElementById('drawer');
+    if(dr) new MutationObserver(function(){ try{ if(P&&P.__stroyOverlay) P.__stroyOverlay(!dr.hidden); }catch(e){} }).observe(dr,{attributes:true,attributeFilter:['hidden']});
+    H();
+  });
 })();
 </script>
 <script>
@@ -445,7 +444,7 @@ const nowIso=()=>new Date().toISOString();
 /* ---------- состояние ---------- */
 let db=null,user=null,assets=null,myId=null,canWrite=true,canAdmin=false;
 let projects=[],loaded=false,names={};
-let role=(()=>{try{const r=localStorage.getItem('stroy-role');return !r||r==='owner'?'rp':r}catch(e){return 'rp'}})();
+let role=(()=>{try{const a=parent.__tabelAuth&&parent.__tabelAuth();return a&&a.role==='rukp'?'rp':'rp'}catch(e){return 'rp'}})();
 let tab='sum',stack=[],sel=new Set(),editK=null,confirmDel=false;
 const isBoss=()=>role==='rp'||role==='admin';
 
@@ -519,7 +518,7 @@ let pending=false;
 function render(force){
   const u=snapUI();
   $('today').textContent=fd(TODAY);
-  renderBanner();renderSum();renderMine();renderProjects();renderZnvp();renderFeed();renderSites();renderDepts();
+  renderBanner();renderSum();renderProjects();renderZnvp();renderFeed();renderSites();renderDepts();
   if(stack.length){if(force||!drawerBusy()){renderDrawer();pending=false}else pending=true}
   restoreUI(u);
 }
@@ -924,7 +923,7 @@ document.addEventListener('click',async e=>{
     if(k==='cycle'){$('pipe').scrollIntoView({behavior:'smooth',block:'center'});return}
     const s=$('sSite').value,o=$('sObj').value;$('pText').value='';
     siteSelect('pSite','Все участки');$('pSite').value=s;objSelect('pObj',s);$('pObj').value=o;$('pStatus').value=k;
-    showTab('projects');renderProjects();window.scrollTo(0,0);return}
+    showTab('projects');renderProjects();stroyTop();return}
   const cr=e.target.closest('[data-crumb]');if(cr){stack=stack.slice(0,+cr.dataset.crumb+1);editK=null;sel.clear();renderDrawer();return}
   const inDrawer=!!e.target.closest('#drawer');
   const z=e.target.closest('[data-znvp]');if(z){e.stopPropagation();const [pid,...rest]=z.dataset.znvp.split('|');openView({t:'znvp',pid,no:rest.join('|')},!inDrawer);return}
@@ -938,8 +937,8 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&e.target.matches('tr.row'))e.target.click();
 });
 document.addEventListener('focusout',()=>{setTimeout(()=>{if(pending&&!drawerBusy())render()},50)});
-const TABS=['sum','mine','projects','znvp','feed','sites','depts'];
-function showTab(t){tab=t;document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));TABS.forEach(k=>$('v-'+k).hidden=k!==t);try{history.replaceState(null,'','#'+t)}catch(e){try{location.hash=t}catch(e2){}}window.scrollTo(0,0)}
+const TABS=['sum','projects','znvp','feed','sites','depts'];
+function showTab(t){tab=t;document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));TABS.forEach(k=>$('v-'+k).hidden=k!==t);try{history.replaceState(null,'','#'+t)}catch(e){try{location.hash=t}catch(e2){}}stroyTop()}
 document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 ['pText','pObj','pStatus'].forEach(id=>$(id).addEventListener('input',renderProjects));
 $('pSite').addEventListener('change',()=>{$('pObj').value='';renderProjects()});
@@ -949,7 +948,7 @@ $('sSite').addEventListener('change',()=>{$('sObj').value='';render()});
 $('sObj').addEventListener('change',render);
 function fillRole(){const rs=roles();if(!rs.some(r=>r[0]===role))role='rp';$('role').innerHTML=rs.map(([k,n])=>`<option value="${k}" ${k===role?'selected':''}>${esc(n)}</option>`).join('')}
 fillRole();
-$('role').onchange=()=>{role=$('role').value;try{localStorage.setItem('stroy-role',role)}catch(e){}render(true);showTab(role==='rp'?'sum':'mine')};
+$('role').onchange=()=>{role=$('role').value;try{localStorage.setItem('stroy-role',role)}catch(e){}render(true);showTab('sum')};
 window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(TABS.includes(h)&&h!==tab)showTab(h)});
 {const h=location.hash.slice(1);if(TABS.includes(h))showTab(h)}
 render();connect();

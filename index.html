@@ -708,9 +708,12 @@ body.r-rukp #tabbar [data-v=board],body.r-rukp #tabbar [data-v=stroy]{display:bl
 body.site-off #month,body.site-off #xv,body.site-off #stats,body.site-off #list,body.site-off #tabs{display:none!important}
 #stroyv{display:none}
 body.vstroy #stroyv{display:block}
-body.vstroy main>*:not(#stroyv),body.vstroy header .row2,body.vstroy header .books,body.vstroy #dateBtn,body.vstroy #hnav{display:none!important}
+body.vstroy main>*:not(#stroyv),body.vstroy header .row2,body.vstroy header .books,body.vstroy #dateBtn{display:none!important}
+body.vstroy #hnav{display:flex}
+.hsec{flex:1;text-align:center;font-weight:700;font-size:17px;padding:10px 0}
 body.vstroy main{max-width:1400px}
-#stroyv iframe{display:block;width:100%;border:0;background:#eceff2;border-radius:10px}
+#stroyv iframe{display:block;width:100%;border:0;background:transparent;min-height:60vh;color-scheme:normal}
+#stroyv iframe.ov{position:fixed;left:0;width:100%;z-index:30000}
 </style>
 </head>
 <body>
@@ -756,7 +759,7 @@ body.vstroy main{max-width:1400px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='192';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='193';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1797,11 +1800,17 @@ function renderSiteBar(){
 function stroyShow(){
   var el=$('stroyv'); if(!el) return;
   var f=$('stroyf'); if(!f){ el.innerHTML='<iframe id="stroyf" title="Строительство" src="stroy.html?v='+APP_VER+'"></iframe>'; f=$('stroyf'); }
-  stroyFit();
+  var hn=$('hnav'); if(hn) hn.innerHTML='<div class="hsec">Строительство</div>';
 }
-function stroyFit(){ var f=$('stroyf'); if(!f||ui.view!=='stroy') return; var hd=document.querySelector('header'), tb=$('tabbar'), top=hd?hd.getBoundingClientRect().bottom:0, bot=tb?tb.getBoundingClientRect().height:0;
-  f.style.height=Math.max(320,window.innerHeight-top-bot-16)+'px'; }
-window.addEventListener('resize',stroyFit);
+/* раздел «Строительство» встроен без рамки: высота по содержимому, прокрутка — общая со всем приложением */
+var stroyOv=null;
+window.__stroyH=function(h){ var f=$('stroyf'); if(f&&!stroyOv) f.style.height=Math.max(200,h)+'px'; };
+window.__stroyTop=function(){ var f=$('stroyf'); if(!f||stroyOv) return; var hd=document.querySelector('header'), top=f.getBoundingClientRect().top-(hd?hd.getBoundingClientRect().height:0)-8; if(top<0) window.scrollBy(0,top); };
+window.__stroyOverlay=function(on){
+  var f=$('stroyf'); if(!f) return;
+  if(on&&!stroyOv){ var top=f.getBoundingClientRect().top; stroyOv={y:window.scrollY,h:f.style.height}; var t0=Math.max(0,top), rc=f.getBoundingClientRect(); try{ var bd=f.contentDocument.body; bd.style.paddingLeft=rc.left+'px'; bd.style.paddingRight=Math.max(0,window.innerWidth-rc.right)+'px'; }catch(e){} f.classList.add('ov'); f.style.top=t0+'px'; f.style.height=(window.innerHeight-t0)+'px'; document.documentElement.style.overflow='hidden'; try{ f.contentWindow.scrollTo(0,Math.max(0,-top)); }catch(e){} }
+  else if(!on&&stroyOv){ var y=stroyOv.y; stroyOv=null; f.classList.remove('ov'); f.style.top=''; document.documentElement.style.overflow=''; try{ var bd=f.contentDocument.body; bd.style.paddingLeft=''; bd.style.paddingRight=''; f.contentWindow.scrollTo(0,0); f.style.height=Math.ceil(f.contentDocument.documentElement.scrollHeight)+'px'; }catch(e){} window.scrollTo(0,y); }
+};
 function setView(v){
   if(v==='nar') v=narDef();
   if(v==='task'||v==='nd') narSub=v;
