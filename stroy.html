@@ -1,0 +1,958 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Строительство</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: шапка-«штамп» с выбором роли, вкладки, рабочая область; проект → ЗнВП → позиция открываются в боковой панели с возвратом назад */
+:root{
+  --bg:#eceff2; --surface:#ffffff; --sunk:#e3e7eb; --ink:#18212b; --muted:#5b6673; --line:#d3d9df;
+  --accent:#d9520b; --accent-soft:#fbe6d9;
+  --ok:#23804a; --ok-soft:#dcf0e3; --warn:#a86b00; --warn-soft:#f8ecd2; --bad:#c2332a; --bad-soft:#f8dedb;
+  --todo:#c5ccd3;
+  --c-proj:#5b5bd6; --c-pto:#0d8a8a; --c-site:#d9520b; --c-buy:#b0369c; --c-store:#6b7a2a; --c-qc:#2f6fb5;
+  --f-display:"Unbounded","Golos Text",system-ui,sans-serif;
+  --f-body:"Golos Text",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#11161c; --surface:#19212a; --sunk:#141a21; --ink:#e4e9ee; --muted:#97a3b0; --line:#2b3540;
+  --accent:#ff7f3a; --accent-soft:#3a2416;
+  --ok:#55c283; --ok-soft:#163223; --warn:#e3a93a; --warn-soft:#352a12; --bad:#ff6b60; --bad-soft:#3b1a18;
+  --todo:#38434f;
+  --c-proj:#8f8fff; --c-pto:#3cc4c4; --c-site:#ff8a4a; --c-buy:#e070cf; --c-store:#a9bb55; --c-qc:#6aa8ee;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161c; --surface:#19212a; --sunk:#141a21; --ink:#e4e9ee; --muted:#97a3b0; --line:#2b3540;
+  --accent:#ff7f3a; --accent-soft:#3a2416;
+  --ok:#55c283; --ok-soft:#163223; --warn:#e3a93a; --warn-soft:#352a12; --bad:#ff6b60; --bad-soft:#3b1a18;
+  --todo:#38434f;
+  --c-proj:#8f8fff; --c-pto:#3cc4c4; --c-site:#ff8a4a; --c-buy:#e070cf; --c-store:#a9bb55; --c-qc:#6aa8ee;
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45}
+.wrap{max-width:1320px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--f-mono);font-size:12px}
+.muted{color:var(--muted)}
+a{color:var(--accent)}
+
+header.top{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;border-bottom:2px solid var(--ink);padding-bottom:14px}
+.brand h1{font-family:var(--f-display);font-weight:700;font-size:clamp(24px,4vw,34px);letter-spacing:-.01em;margin:0;line-height:1}
+.brand p{margin:6px 0 0;color:var(--muted)}
+.stamp{display:grid;grid-template-columns:auto minmax(0,1fr);border:1px solid var(--ink);font-size:12px;min-width:min(330px,100%)}
+.stamp>div{padding:5px 10px;border-right:1px solid var(--ink);border-bottom:1px solid var(--ink);display:flex;align-items:center}
+.stamp>div:nth-child(2n){border-right:0}
+.stamp>div:nth-last-child(-n+2){border-bottom:0}
+.stamp b{font-weight:600}
+.stamp select{border:0;background:transparent;font-weight:600;padding:0;width:100%;cursor:pointer}
+.conn.ok{color:var(--ok)} .conn.bad{color:var(--bad)}
+
+nav.tabs{display:flex;gap:4px;margin:16px 0 20px;overflow-x:auto}
+nav.tabs button{background:none;border:0;padding:9px 14px;border-radius:6px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
+nav.tabs button:hover{background:var(--sunk);color:var(--ink)}
+nav.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+nav.tabs .badge{display:inline-block;min-width:18px;padding:0 5px;margin-left:6px;border-radius:9px;background:var(--accent);color:#fff;font-size:11px;line-height:18px;text-align:center}
+
+h2{font-family:var(--f-display);font-weight:500;font-size:16px;margin:0 0 12px;text-wrap:balance}
+h3{font-size:15px;margin:0 0 8px}
+.section{margin-top:28px}
+.hint{color:var(--muted);font-size:13px;margin:-6px 0 12px;max-width:85ch}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:8px;padding:24px 20px;text-align:center;color:var(--muted)}
+.banner{background:var(--warn-soft);border:1px solid var(--warn);border-radius:6px;padding:10px 14px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.scopebar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.scopebar select,.filters select,.filters input{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 10px}
+.scopebar select{font-weight:600}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center}
+.filters label{display:flex;gap:6px;align-items:center;font-size:13px}
+
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.kpi{background:var(--surface);padding:14px 16px}
+.kpi .l{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.kpi .v{font-family:var(--f-display);font-size:26px;font-weight:500;margin-top:6px}
+.kpi .s{font-size:12px;color:var(--muted);margin-top:2px}
+.kpi.key{background:var(--accent-soft)}
+button.kpi{border:0;text-align:left;cursor:pointer;font:inherit;color:inherit;display:block;width:100%;position:relative}
+button.kpi:hover{background:var(--sunk)}
+button.kpi.key:hover{filter:brightness(.97)}
+button.kpi::after{content:"→";position:absolute;top:12px;right:14px;color:var(--muted);font-size:14px}
+button.kpi:hover::after{color:var(--accent)}
+.kpi.alert .v{color:var(--bad)}
+@media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi:first-child{grid-column:1/-1}}
+
+.pipe-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.pipe{display:grid;grid-template-columns:repeat(10,minmax(108px,1fr));min-width:1120px}
+.stage{padding:12px 10px 14px;border-right:1px dashed var(--line);display:flex;flex-direction:column;gap:5px;border-top:3px solid transparent}
+.stage:last-child{border-right:0}
+.stage .no{font-family:var(--f-mono);font-size:11px;font-weight:600}
+.stage .nm{font-weight:600;font-size:13px;line-height:1.25;min-height:2.5em}
+.stage .dp{font-size:11px;color:var(--muted)}
+.stage .cnt{font-family:var(--f-display);font-size:22px;font-weight:500}
+.stage .lbl{font-size:11px;color:var(--muted);margin-top:-4px}
+.stage .lt{font-size:12px;color:var(--bad);font-weight:600}
+
+.heat-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.heat{min-width:1160px}
+.heat th,.heat td{padding:8px 10px;text-align:center}
+.heat th:first-child,.heat td:first-child{text-align:left}
+.heat td.c{font-family:var(--f-mono);font-size:12px;font-weight:600}
+.heat td.c0{background:var(--ok-soft);color:var(--ok)}
+.heat td.c1{background:var(--warn-soft);color:var(--warn)}
+.heat td.c2{background:var(--bad-soft);color:var(--bad)}
+.heat td.cn{color:var(--muted);font-weight:400}
+.heat th small{display:block;text-transform:none;letter-spacing:0;font-weight:400}
+.heat tbody tr[data-site]{cursor:pointer}
+.heat tbody tr[data-site]:hover td:first-child{text-decoration:underline}
+
+.avg{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px}
+.arow{display:grid;grid-template-columns:minmax(150px,220px) minmax(0,1fr) 92px;gap:12px;align-items:center;padding:5px 0}
+.arow .an{font-size:13px}
+.arow .an small{display:block;color:var(--muted);font-size:11px}
+.track{position:relative;height:14px;background:var(--sunk);border-radius:3px}
+.track .fill{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
+.track .norm{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
+.arow .av{font-size:13px;text-align:right}
+.arow .av.over{color:var(--bad);font-weight:600}
+.legend-norm{font-size:12px;color:var(--muted);margin-top:8px;display:flex;align-items:center;gap:6px}
+.legend-norm i{display:inline-block;width:2px;height:12px;background:var(--ink)}
+@media (max-width:600px){.arow{grid-template-columns:1fr 70px}.arow .track{grid-column:1/-1;grid-row:2}}
+
+.attn{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.acard{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:6px;padding:12px 14px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:5px}
+.acard.problem{border-left-color:var(--bad)}
+.acard:hover{border-color:var(--ink)}
+.acard .t{font-weight:600}
+.acard .m{font-size:12px;color:var(--muted)}
+
+.tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%}
+.tbl-scroll>table{min-width:960px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);background:var(--sunk)}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tr.row{cursor:pointer}
+tr.row:hover td{background:var(--sunk)}
+.wt{font-weight:600}
+.wo{font-size:12px;color:var(--muted)}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.pill.ok,.pill.dev{background:var(--sunk);color:var(--ink)}
+.pill.issued{background:var(--accent-soft);color:var(--accent)}
+.pill.late{background:var(--warn-soft);color:var(--warn)}
+.pill.problem,.pill.no{background:var(--bad-soft);color:var(--bad)}
+.pill.done,.pill.yes{background:var(--ok-soft);color:var(--ok)}
+.pill.wait{background:var(--sunk);color:var(--muted)}
+.tag{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:0 4px;margin-left:6px;vertical-align:1px}
+.frac{font-family:var(--f-mono);font-size:12px}
+.frac.full{color:var(--ok);font-weight:600}
+.frac.zero{color:var(--bad)}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent);cursor:pointer;font-size:inherit;font-weight:600;text-align:left}
+
+.form{padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+.form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.form input,.form select,.form textarea{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;color:var(--ink);font-size:14px;min-width:0}
+.form input[type=file]{padding:6px}
+.form textarea{min-height:52px;resize:vertical}
+.form .wide{grid-column:1/-1}
+.form .actions{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:9px 14px;font-weight:600;cursor:pointer}
+.btn.ghost{background:none;color:var(--ink);border:1px solid var(--line)}
+.btn.danger{background:var(--bad)}
+.btn:disabled{opacity:.5;cursor:default}
+.msg{font-size:13px}
+.msg.err{color:var(--bad)} .msg.okm{color:var(--ok)}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.box>h3{padding:12px 16px 0;margin:0}
+.newp{background:var(--surface);border:1px solid var(--ink);border-radius:8px;margin-bottom:18px}
+.newp>summary{padding:12px 16px;cursor:pointer;font-weight:600}
+
+.tasks{display:flex;flex-direction:column;gap:8px}
+.taskrow{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:6px;padding:10px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;align-items:center;cursor:pointer;text-align:left;width:100%}
+.taskrow:hover{border-color:var(--ink)}
+.taskrow.late{border-left-color:var(--warn)}
+.taskrow.problem{border-left-color:var(--bad)}
+.taskrow .go{font-weight:600;color:var(--accent);white-space:nowrap;font-size:13px}
+.group{margin-top:22px}
+.group h3{display:flex;gap:8px;align-items:center}
+.group h3 i{width:10px;height:10px;border-radius:2px;display:inline-block}
+
+.feed{background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.day{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:10px 16px 6px;background:var(--sunk);border-bottom:1px solid var(--line)}
+.ev{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);cursor:pointer}
+.ev:hover{background:var(--sunk)}
+.ev .dep{font-size:11px;font-weight:600}
+.ev .tx{min-width:0}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.dcard{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--line);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.dcard h3{margin:0}
+.dcard .who{font-size:12px;color:var(--muted)}
+.dstats{display:flex;gap:18px;flex-wrap:wrap}
+.dstats div{display:flex;flex-direction:column}
+.dstats b{font-family:var(--f-display);font-size:20px;font-weight:500}
+.dstats span{font-size:11px;color:var(--muted)}
+.dstats .bad b{color:var(--bad)}
+.objs{display:flex;flex-wrap:wrap;gap:6px}
+.obj{font-family:var(--f-mono);font-size:12px;padding:3px 8px;border:1px solid var(--line);border-radius:4px;background:var(--sunk);display:inline-flex;gap:6px;align-items:center}
+.obj button{background:none;border:0;padding:0;color:var(--muted);cursor:pointer;font-size:14px;line-height:1}
+.addobj{display:flex;gap:6px}
+.addobj input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+
+/* боковая панель */
+.scrim{position:fixed;inset:0;background:rgba(10,14,18,.45);z-index:20}
+aside.drawer{position:fixed;top:0;right:0;bottom:0;width:min(820px,100%);background:var(--bg);z-index:21;overflow-y:auto;border-left:1px solid var(--line);
+  padding-top:calc(16px + env(safe-area-inset-top,0px));padding-bottom:calc(32px + env(safe-area-inset-bottom,0px));
+  padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+.dnav{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}
+.crumbs{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.crumbs button{background:none;border:0;padding:0;color:var(--accent);cursor:pointer;font-size:12px;font-weight:600}
+.close{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;cursor:pointer;flex:none}
+.dh h2{font-size:20px;margin:2px 0 6px}
+.kind{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden;margin:14px 0 20px}
+.meta div{background:var(--surface);padding:8px 12px;min-width:0}
+.meta span{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.dsec{margin-top:22px}
+.mt-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.mt-scroll table{min-width:640px}
+.mt-scroll td,.mt-scroll th{padding:9px 10px}
+.mt-scroll td.cb,.mt-scroll th.cb{width:34px;padding-right:0}
+.subrow td{background:var(--sunk);padding:0}
+.subrow .form{padding:10px 12px}
+.st-cell{display:flex;flex-direction:column;gap:2px}
+
+.tl{list-style:none;margin:0;padding:0}
+.tl>li{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:10px;position:relative;padding-bottom:16px}
+.tl>li::before{content:"";position:absolute;left:11px;top:22px;bottom:0;width:2px;background:var(--line)}
+.tl>li:last-child::before{display:none}
+.dot{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-family:var(--f-mono);font-size:11px;font-weight:600;background:var(--sunk);border:2px solid var(--todo);color:var(--muted);position:relative;z-index:1}
+.tl li.d .dot{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.tl li.c .dot{background:var(--accent);border-color:var(--accent);color:#fff}
+.tl li.c.late .dot{background:var(--warn);border-color:var(--warn)}
+.tl li.c.problem .dot{background:var(--bad);border-color:var(--bad)}
+.tl .sn{font-weight:600}
+.tl .sd{font-size:12px;color:var(--muted)}
+.tl .st{font-size:13px;margin-top:2px}
+.tl li.f .sn{color:var(--muted);font-weight:500}
+.tl .dur{font-family:var(--f-mono);font-size:12px;text-align:right;white-space:nowrap;padding-top:2px}
+.tl .dur.over{color:var(--bad);font-weight:600}
+.tl .inner{grid-column:2/-1;background:var(--surface);border:1px solid var(--line);border-radius:6px;margin-top:6px}
+.doc{display:inline-flex;align-items:center;gap:6px;font-size:13px;margin-top:4px;padding:3px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);text-decoration:none;color:var(--ink)}
+.doc::before{content:"";width:10px;height:12px;border:1.5px solid currentColor;border-radius:1px;opacity:.7}
+a.doc:hover{border-color:var(--accent);color:var(--accent)}
+.doc.none{color:var(--muted);border-style:dashed}
+.note{margin-top:6px;padding:8px 10px;border-radius:6px;font-size:13px;background:var(--bad-soft)}
+.confirm{margin-top:20px;padding:12px;border:1px dashed var(--line);border-radius:6px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+
+footer{margin-top:40px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:12px}
+@media (max-width:640px){.ev{grid-template-columns:1fr;gap:2px}.meta{grid-template-columns:1fr 1fr}.taskrow{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:no-preference){aside.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.6}}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Строительство</h1>
+      <p>Проект → ЛЗК → ЗнВП → склад → входной контроль → участок → списание</p>
+    </div>
+    <div class="stamp">
+      <div>Я —</div><div><select id="role" aria-label="Моя роль"></select></div>
+      <div>Сегодня</div><div><b id="today"></b></div>
+      <div>База</div><div><span id="conn" class="conn">подключаемся…</span></div>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="sum" aria-selected="true">Сводка</button>
+    <button role="tab" data-tab="mine" aria-selected="false" id="tabMine">Мой раздел</button>
+    <button role="tab" data-tab="projects" aria-selected="false">Проекты</button>
+    <button role="tab" data-tab="znvp" aria-selected="false">ЗнВП</button>
+    <button role="tab" data-tab="feed" aria-selected="false">Лента изменений</button>
+    <button role="tab" data-tab="sites" aria-selected="false">Участки</button>
+    <button role="tab" data-tab="depts" aria-selected="false">Отделы</button>
+  </nav>
+
+  <div id="demoBanner" hidden></div>
+
+  <section id="v-sum">
+    <div class="scopebar"><select id="sSite" aria-label="Участок"></select><select id="sObj" aria-label="Объект"></select></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="section">
+      <h2>Где теряется время: участки × этапы</h2>
+      <p class="hint">Среднее число дней на этап по каждому участку. Зелёный — в нормативе, жёлтый — до полутора нормативов, красный — больше. Нажмите на участок, чтобы смотреть сводку только по нему.</p>
+      <div class="heat-scroll" id="heat"></div>
+    </div>
+    <div class="section">
+      <h2>Где сейчас проекты и материалы</h2>
+      <p class="hint">Первые три колонки — проекты, остальные — позиции материала, которые ждут отметки этого этапа.</p>
+      <div class="pipe-scroll"><div class="pipe" id="pipe"></div></div>
+    </div>
+    <div class="section">
+      <h2>Сколько времени уходит на каждый этап</h2>
+      <p class="hint">Среднее число дней между соседними отметками. Чёрная черта — норматив.</p>
+      <div class="avg" id="avg"></div>
+    </div>
+    <div class="section">
+      <h2>Требует внимания</h2>
+      <div class="attn" id="attn"></div>
+    </div>
+  </section>
+
+  <section id="v-mine" hidden></section>
+
+  <section id="v-projects" hidden>
+    <div class="filters">
+      <input id="pText" type="search" placeholder="Поиск: шифр, название" aria-label="Поиск проекта">
+      <select id="pSite" aria-label="Участок"></select>
+      <select id="pObj" aria-label="Объект"></select>
+      <select id="pStatus" aria-label="Статус проекта"><option value="">Все проекты</option><option value="dev">В разработке</option><option value="issued">Выданы в работу</option><option value="attn">Есть задержки</option></select>
+    </div>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>Шифр РД</th><th>Проект</th><th>Статус</th><th>ППР</th><th>Материалов</th><th>В ЛЗК</th><th>В ЗнВП</th><th>Взято закупками</th><th>На складе</th><th>Использовано</th><th>Ждёт дольше всех</th></tr></thead>
+      <tbody id="pBody"></tbody>
+    </table></div>
+  </section>
+
+  <section id="v-znvp" hidden>
+    <div class="filters">
+      <select id="zSite" aria-label="Участок"></select>
+      <label><input type="checkbox" id="zOpen"> только с позициями, не взятыми в работу</label>
+    </div>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>№ ЗнВП</th><th>Проект</th><th>Создан</th><th>Позиций</th><th>Взято в работу</th><th>Поступило на склад</th><th>Ближайший срок поставки</th></tr></thead>
+      <tbody id="zBody"></tbody>
+    </table></div>
+  </section>
+
+  <section id="v-feed" hidden>
+    <div class="filters">
+      <select id="feDept" aria-label="Отдел"></select>
+      <select id="feSite" aria-label="Участок"></select>
+    </div>
+    <div class="feed" id="feedList"></div>
+  </section>
+
+  <section id="v-sites" hidden>
+    <p class="hint" style="margin-top:0">Участки под руководством и закреплённые за ними объекты. Руководитель проектов добавляет и убирает объекты здесь.</p>
+    <div class="cards" id="sitesList"></div>
+  </section>
+
+  <section id="v-depts" hidden>
+    <p class="hint" style="margin-top:0">Сколько проектов и позиций сейчас ждут каждый отдел и сколько он в среднем тратит на свои этапы.</p>
+    <div class="cards" id="deptsList"></div>
+  </section>
+
+  <footer>Каждый отдел и участок выбирает себя в поле «Я —» и отмечает только свои этапы. Дни на этапах считаются автоматически по датам отметок. Документы прикладываются в PDF или как фото/скан.</footer>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden aria-modal="true" role="dialog"></aside>
+
+<script>
+/* мост к серверу «Табеля»: заменяет claude.use('db' | 'user' | 'assets') — данные раздела «Строительство» хранятся на сервере табеля */
+(function(){
+  var P=null; try{ P=window.parent!==window&&window.parent.__tabelCall?window.parent:null; }catch(e){ P=null; }
+  function call(o,ms){ if(!P) return Promise.reject({code:'нет входа'}); return P.__tabelCall(o,ms).catch(function(e){ throw {code:String(e&&e.message||e)}; }); }
+  var cache={}, sig={}, subs=[], busy={};
+  function clone(x){ return x==null?x:JSON.parse(JSON.stringify(x)); }
+  function docSnap(c,id){ var d=(cache[c]||[]).filter(function(x){ return x.id===id; })[0]; return {id:id,exists:!!d,data:function(){ return d?clone(d.data)||{}:undefined; }}; }
+  function colSnap(c){ var l=(cache[c]||[]).map(function(x){ return docSnap(c,x.id); }); return {docs:l,size:l.length,empty:!l.length}; }
+  function fire(c){ subs.forEach(function(s){ if(s.c!==c) return; try{ s.cb(s.id?docSnap(c,s.id):colSnap(c)); }catch(e){ console.error(e); } }); }
+  function load(c,force){
+    if(busy[c]) return busy[c];
+    busy[c]=call({action:'slist',col:c}).then(function(j){ busy[c]=null; var s=JSON.stringify(j.docs||[]); if(force||s!==sig[c]){ sig[c]=s; cache[c]=j.docs||[]; fire(c); } },
+      function(e){ busy[c]=null; subs.forEach(function(s){ if(s.c===c&&s.err) try{ s.err(e); }catch(x){} }); });
+    return busy[c];
+  }
+  setInterval(function(){ if(document.hidden) return; Object.keys(cache).forEach(function(c){ load(c,false); }); },15000);
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden) Object.keys(cache).forEach(function(c){ load(c,false); }); });
+  function sub(c,id,cb,err){ var s={c:c,id:id,cb:cb,err:err}; subs.push(s); if(cache[c]) setTimeout(function(){ fire(c); },0); else { cache[c]=cache[c]||null; load(c,true); } return function(){ subs=subs.filter(function(x){ return x!==s; }); }; }
+  function done(c){ return function(j){ return load(c,true).then(function(){ return j; }); }; }
+  function docRef(c,id){ return {id:id,
+    get:function(){ return (cache[c]?Promise.resolve():load(c,true)).then(function(){ return docSnap(c,id); }); },
+    onSnapshot:function(cb,err){ return sub(c,id,cb,err); },
+    set:function(d){ return call({action:'sput',col:c,id:id,data:d}).then(done(c)); },
+    update:function(p){ return call({action:'spatch',col:c,id:id,patch:p}).then(done(c)); },
+    'delete':function(){ return call({action:'sdel',col:c,id:id}).then(done(c)); } }; }
+  function colRef(c){ return {
+    doc:function(id){ return docRef(c,id); },
+    add:function(d){ return call({action:'sput',col:c,data:d}).then(done(c)).then(function(j){ return docRef(c,j.id); }); },
+    get:function(){ return (cache[c]?Promise.resolve():load(c,true)).then(function(){ return colSnap(c); }); },
+    onSnapshot:function(cb,err){ return sub(c,null,cb,err); } }; }
+  var db={ collection:colRef, doc:function(path){ var a=String(path).split('/'); return docRef(a[0],a[1]); } };
+  function me(){ try{ return P&&P.__tabelAuth?P.__tabelAuth():null; }catch(e){ return null; } }
+  var names=null;
+  var user={
+    id:function(){ var a=me(); return Promise.resolve(a&&a.uid?String(a.uid):'u-'+String(a&&a.fio||'')); },
+    canEdit:function(){ var a=me(); return Promise.resolve(!!a&&a.role==='rukp'); },
+    can:function(){ return Promise.resolve(true); },
+    profiles:function(ids){
+      var pr=names?Promise.resolve():call({action:'ulist'}).then(function(j){ names={}; (j.users||[]).forEach(function(u){ names[String(u.id)]=u.fio; }); },function(){ names={}; });
+      return pr.then(function(){ var o={}; (ids||[]).forEach(function(id){ if(names[id]) o[id]={name:names[id]}; }); return o; });
+    }
+  };
+  function b64(file){ return new Promise(function(res,rej){ var r=new FileReader(); r.onload=function(){ res(String(r.result).split(',')[1]||''); }; r.onerror=rej; r.readAsDataURL(file); }); }
+  var assets={ upload:function(file,opt){
+    var fid='s'+Date.now().toString(36)+Math.random().toString(36).slice(2,8), CH=900000, mime=(opt&&opt.type)||file.type||'application/octet-stream';
+    return b64(file).then(function(s){ var parts=Math.max(1,Math.ceil(s.length/CH)); if(parts>40) throw {code:'файл слишком большой'}; var ch=Promise.resolve();
+      for(var i=0;i<parts;i++)(function(i){ ch=ch.then(function(){ return call({action:'fput',fid:fid,part:i,parts:parts,name:file.name||'файл',mime:mime,data:s.slice(i*CH,(i+1)*CH)},60000); }); })(i);
+      return ch.then(function(){ return {id:fid,name:file.name}; }); });
+  } };
+  window.claude={ use:function(n){ if(!P) return Promise.reject({code:'нет входа'}); return Promise.resolve(n==='db'?db:n==='user'?user:n==='assets'?assets:null); } };
+  /* открыть приложенный документ: собираем части с сервера */
+  document.addEventListener('click',function(e){
+    var a=e.target.closest&&e.target.closest('a[data-blob]'); if(!a) return; e.preventDefault();
+    var w=window.open('','_blank'); var fid=a.getAttribute('data-blob'), parts=[], mime='application/octet-stream';
+    function get(i,n){ return call({action:'fget',fid:fid,part:i},60000).then(function(j){ parts.push(j.data||''); mime=j.mime||mime; var t=j.parts||1; return i+1<t?get(i+1,t):null; }); }
+    get(0).then(function(){ var bin=atob(parts.join('')), u=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i);
+      var url=URL.createObjectURL(new Blob([u],{type:mime})); if(w) w.location.href=url; else location.href=url; },function(){ if(w) w.close(); alert('Не удалось открыть документ'); });
+  });
+})();
+</script>
+<script>
+/* ---------- справочники ---------- */
+const DEPTS={proj:{n:'Проектный отдел'},pto:{n:'ПТО'},site:{n:'Строительный участок'},buy:{n:'Отдел закупок'},store:{n:'Склад'},qc:{n:'Входной контроль'}};
+const DEFAULT_SITES=[{name:'УОР №1',objects:['91UXC','92UXC']},{name:'УОР №2',objects:['91UYE','91UYF','92UYF']},{name:'УЭР',objects:[]},{name:'УСФЗ',objects:[]}];
+let SITES=DEFAULT_SITES;
+const MS=[
+ {k:'lzk',  n:'Внесено в ЛЗК',      f:'Материал внесён в лимитно-заборную карту', d:'pto',  norm:5,  fields:[['no','№ ЛЗК','text',1]]},
+ {k:'znvp', n:'ЗнВП создан',        f:'Создан заказ на внутреннее потребление',   d:'site', norm:3,  fields:[['no','№ ЗнВП','text',1]]},
+ {k:'take', n:'Взято в работу',     f:'Позиция взята в работу менеджером закупок',d:'buy',  norm:3,  fields:[]},
+ {k:'store',n:'Поступило на склад', f:'Материал поступил на склад',               d:'store',norm:'plan', file:'Накладная', fields:[['no','№ накладной','text',1],['qty','Принято, кол-во','number',1]]},
+ {k:'qc',   n:'Входной контроль',   f:'Входной контроль проведён',                d:'qc',   norm:3,  file:'Акт входного контроля', fields:[['no','№ акта ВК','text',1],['result','Результат','select',1,['Соответствует','Частично, есть брак','Не соответствует']]]},
+ {k:'issue',n:'Выдано на участок',  f:'Материал получен участком со склада',      d:'site', norm:3,  file:'Накладная на перемещение', fields:[['no','№ накладной на перемещение','text',1],['qty','Получено, кол-во','number',1]]},
+ {k:'wo',   n:'Использовано',       f:'Материал использован в строительстве',     d:'site', norm:30, file:'Акт на списание', fields:[['no','№ акта на списание','text',1],['qty','Списано, кол-во','number',1]]}
+];
+const P_RDSITE_NORM=2, P_PPR_NORM=10;
+const STATUS={ok:'В срок',late:'Задержка',problem:'Проблема',done:'Использовано',wait:'Проект в разработке'};
+function roles(){return [['rp','Руководитель проектов (просмотр)'],['proj','Проектный отдел'],['pto','ПТО'],...SITES.map(s=>['site:'+s.name,'Участок '+s.name]),['buy','Отдел закупок'],['store','Склад'],['qc','Входной контроль'],['admin','Администратор (все разделы)']]}
+
+/* ---------- утилиты ---------- */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const TODAY=(()=>{const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`})();
+const dd=(a,b)=>Math.round((Date.parse(b)-Date.parse(a))/864e5);
+const fd=s=>s?s.slice(8,10)+'.'+s.slice(5,7)+'.'+s.slice(0,4):'—';
+const fday=s=>new Date(s+'T12:00:00').toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+const nf=n=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(n);
+const days=n=>{const a=Math.abs(n)%100,b=a%10;return n+' '+(a>10&&a<20?'дн.':b===1?'день':b>1&&b<5?'дня':'дн.')};
+const dc=d=>`var(--c-${d})`;
+const nowIso=()=>new Date().toISOString();
+
+/* ---------- состояние ---------- */
+let db=null,user=null,assets=null,myId=null,canWrite=true,canAdmin=false;
+let projects=[],loaded=false,names={};
+let role=(()=>{try{const r=localStorage.getItem('stroy-role');return !r||r==='owner'?'rp':r}catch(e){return 'rp'}})();
+let tab='sum',stack=[],sel=new Set(),editK=null,confirmDel=false;
+const isBoss=()=>role==='rp'||role==='admin';
+
+/* ---------- модель ---------- */
+const mats=p=>Object.entries(p.materials||{}).map(([id,m])=>({...m,id})).sort((a,b)=>(a.n||0)-(b.n||0));
+function mNext(m){for(let i=0;i<MS.length;i++)if(!m[MS[i].k])return i;return MS.length}
+function prevDate(p,m,i){return i===0?p.issued?.date:m[MS[i-1].k]?.date}
+function mDur(p,m,i){const a=prevDate(p,m,i),b=m[MS[i].k]?.date;return a&&b?dd(a,b):null}
+function isOver(p,m,i,spent){
+  const s=MS[i];
+  if(s.norm==='plan'){const pl=m.take?.plan;if(pl)return (m.store?.date||TODAY)>pl;return spent>14}
+  return spent>s.norm;
+}
+function mInfo(p,m){
+  const i=mNext(m);
+  if(i>=MS.length)return {i,status:'done',wait:0};
+  if(!p.issued)return {i,status:'wait',wait:0};
+  const from=prevDate(p,m,i),wait=dd(from,TODAY);
+  let status='ok';
+  if(m.problem?.text)status='problem';else if(isOver(p,m,i,wait))status='late';
+  return {i,status,wait};
+}
+function waitText(p,m,x){
+  if(x.status==='done')return 'использовано '+fd(m.wo.date);
+  if(x.status==='wait')return 'проект ещё в разработке';
+  const s=MS[x.i];
+  if(s.norm==='plan'){const pl=m.take?.plan;if(pl)return TODAY>pl?`поставка просрочена на ${days(dd(pl,TODAY))} (срок ${fd(pl)})`:`срок поставки ${fd(pl)}`;return `ждёт ${days(x.wait)}, срок поставки не указан`}
+  return `ждёт ${days(x.wait)}, норматив ${s.norm}`;
+}
+function pStatus(p){return p.issued?'issued':'dev'}
+function allMats(list){const out=[];(list||projects).forEach(p=>mats(p).forEach(m=>out.push([p,m,mInfo(p,m)])));return out}
+function znvpList(){const map=new Map();projects.forEach(p=>mats(p).forEach(m=>{if(!m.znvp)return;const key=p.id+'|'+m.znvp.no;if(!map.has(key))map.set(key,{p,no:m.znvp.no,date:m.znvp.date,ms:[]});const z=map.get(key);z.ms.push(m);if(m.znvp.date<z.date)z.date=m.znvp.date}));return [...map.values()].sort((a,b)=>b.date.localeCompare(a.date))}
+
+/* ---------- права ---------- */
+function canMark(d,p){if(!canWrite||!db)return false;if(role==='admin')return true;if(d==='site')return role==='site:'+p.site;return role===d}
+
+/* ---------- подключение ---------- */
+async function connect(){
+  try{
+    if(!window.claude||!claude.use){setConn(false);return}
+    db=await claude.use('db');user=await claude.use('user');
+    if(user){myId=await user.id();canAdmin=await user.canEdit();const w=await user.can('data.write');canWrite=w!==false}
+    if(!db){setConn(false);return}
+    setConn(true);
+    claude.use('assets').then(a=>{assets=a;render()}).catch(()=>{});
+    db.doc('settings/sites').onSnapshot(d=>{const v=d.exists&&d.data().sites;if(Array.isArray(v)&&v.length){SITES=v;fillRole();render()}},()=>{});
+    db.collection('projects').onSnapshot(snap=>{projects=snap.docs.map(d=>({id:d.id,...d.data()}));loaded=true;render();resolveNames()},err=>setConn(false,err.code));
+  }catch(e){setConn(false)}
+}
+function setConn(ok,code){const c=$('conn');c.className='conn '+(ok?'ok':'bad');c.textContent=ok?'общая, онлайн':'нет связи'+(code?' ('+code+')':'');if(!ok){loaded=true;render()}}
+async function resolveNames(){
+  if(!user)return;const ids=new Set();
+  projects.forEach(p=>{['dev','issued','rdsite','ppr'].forEach(k=>p[k]?.by&&ids.add(p[k].by));mats(p).forEach(m=>{MS.forEach(s=>m[s.k]?.by&&ids.add(m[s.k].by));m.problem?.by&&ids.add(m.problem.by)})});
+  const need=[...ids].filter(id=>!(id in names));if(!need.length)return;
+  const ps=await user.profiles(need);need.forEach(id=>names[id]=ps[id]?.name||'');render();
+}
+const byName=m=>m?.by?(names[m.by]||'сотрудник'):(m?'пример':'');
+
+/* ---------- общие элементы ---------- */
+function emptyState(t){return `<div class="empty">${t}</div>`}
+function siteSelect(id,all){const el=$(id),v=el.value;el.innerHTML=`<option value="">${all}</option>`+SITES.map(s=>`<option ${s.name===v?'selected':''}>${esc(s.name)}</option>`).join('')}
+function objSelect(id,site){const el=$(id),v=el.value;const objs=site?(SITES.find(s=>s.name===site)?.objects||[]):[...new Set([...SITES.flatMap(s=>s.objects),...projects.map(p=>p.obj)])];el.innerHTML='<option value="">Все объекты</option>'+objs.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}
+function docLink(f,label){return f?.id?`<a class="doc" href="#" data-blob="${esc(f.id)}">${esc(f.name||label)}</a>`:`<span class="doc none">${label}: не приложен${/^(Акт|ППР)/.test(label)?'':'а'}</span>`}
+function frac(a,n){return `<span class="frac ${n&&a===n?'full':a===0&&n?'zero':''}">${a}/${n}</span>`}
+
+/* ---------- отрисовка ---------- */
+function snapUI(){const st={};document.querySelectorAll('input[id],select[id],textarea[id]').forEach(e=>{if(e.id==='role'||e.type==='file')return;st[e.id]=e.type==='checkbox'?e.checked:e.value});const open=[...document.querySelectorAll('details[id][open]')].map(d=>d.id);return {st,open,f:document.activeElement?.id,sy:$('drawer').scrollTop}}
+function restoreUI(u){Object.entries(u.st).forEach(([k,v])=>{const e=$(k);if(!e)return;if(e.type==='checkbox')e.checked=v;else if(e.value!==v)e.value=v});u.open.forEach(id=>{const d=$(id);if(d)d.open=true});if(u.f&&$(u.f))$(u.f).focus();$('drawer').scrollTop=u.sy}
+function drawerBusy(){const d=$('drawer');if(d.hidden)return false;if([...d.querySelectorAll('input[type=file]')].some(i=>i.files&&i.files.length))return true;const a=document.activeElement;return d.contains(a)&&a.matches('input:not([type=checkbox]),select,textarea')}
+let pending=false;
+function render(force){
+  const u=snapUI();
+  $('today').textContent=fd(TODAY);
+  renderBanner();renderSum();renderMine();renderProjects();renderZnvp();renderFeed();renderSites();renderDepts();
+  if(stack.length){if(force||!drawerBusy()){renderDrawer();pending=false}else pending=true}
+  restoreUI(u);
+}
+function renderBanner(){
+  const b=$('demoBanner');const demo=projects.filter(p=>p.demo).length;
+  if(demo&&isBoss()&&canAdmin){b.hidden=false;b.innerHTML=`<div class="banner"><span>В базе ${demo} примерных проектов, чтобы было видно, как работает цикл. Когда начнёте вносить настоящие, примеры можно удалить.</span><span id="demoAct"><button class="btn ghost" data-act="askDemo">Удалить примеры</button></span></div>`}
+  else b.hidden=true;
+}
+
+/* сводка */
+function scoped(){const s=$('sSite').value,o=$('sObj').value;return projects.filter(p=>(!s||p.site===s)&&(!o||p.obj===o))}
+function avgOf(v){return v.length?v.reduce((a,b)=>a+b,0)/v.length:null}
+const r1=v=>nf(Math.round(v*10)/10);
+function colStats(list){
+  const cols=[];
+  cols.push({n:'Разработка РД',d:'proj',norm:null,v:avgOf(list.filter(p=>p.issued&&p.dev).map(p=>dd(p.dev.date,p.issued.date)))});
+  cols.push({n:'РД на участок',d:'pto',norm:P_RDSITE_NORM,v:avgOf(list.filter(p=>p.issued&&p.rdsite).map(p=>dd(p.issued.date,p.rdsite.date)))});
+  cols.push({n:'ППР на участок',d:'pto',norm:P_PPR_NORM,v:avgOf(list.filter(p=>p.issued&&p.ppr).map(p=>dd(p.issued.date,p.ppr.date)))});
+  MS.forEach((s,i)=>{const v=[];list.forEach(p=>mats(p).forEach(m=>{const x=mDur(p,m,i);if(x!=null)v.push(x)}));cols.push({n:s.n,d:s.d,norm:s.norm,v:avgOf(v)})});
+  return cols;
+}
+function heatCls(v,norm){if(v==null)return 'cn';if(typeof norm!=='number')return 'c';return v<=norm?'c0':v<=norm*1.5?'c1':'c2'}
+function renderSum(){
+  siteSelect('sSite','Все участки');objSelect('sObj',$('sSite').value);
+  if(!loaded){$('kpis').innerHTML='';$('heat').innerHTML='';$('pipe').innerHTML='';$('avg').innerHTML=emptyState('Загружаем…');$('attn').innerHTML='';return}
+  const list=scoped(),am=allMats(list);
+  const dev=list.filter(p=>!p.issued).length,iss=list.length-dev;
+  const inCycle=am.filter(([,,x])=>x.status!=='done'&&x.status!=='wait');
+  const attn=am.filter(([,,x])=>x.status==='late'||x.status==='problem');
+  $('kpis').innerHTML=`
+   <button class="kpi" data-kpi="" title="Открыть все проекты"><div class="l">Проектов всего</div><div class="v num">${list.length}</div><div class="s">${new Set(list.map(p=>p.obj)).size} объектов</div></button>
+   <button class="kpi key" data-kpi="dev" title="Открыть проекты в разработке"><div class="l">В разработке</div><div class="v num">${dev}</div><div class="s">у проектного отдела</div></button>
+   <button class="kpi key" data-kpi="issued" title="Открыть проекты, выданные в работу"><div class="l">Выдано в работу</div><div class="v num">${iss}</div><div class="s">без РД на участке: ${list.filter(p=>p.issued&&!p.rdsite).length} · без ППР: ${list.filter(p=>p.issued&&!p.ppr).length}</div></button>
+   <button class="kpi" data-kpi="cycle" title="Показать, на каких этапах позиции"><div class="l">Позиций материала в цикле</div><div class="v num">${inCycle.length}</div><div class="s">${am.filter(([,,x])=>x.status==='done').length} уже использовано</div></button>
+   <button class="kpi alert" data-kpi="attn" title="Открыть проекты с задержками"><div class="l">Требуют внимания</div><div class="v num">${attn.length}</div><div class="s">задержки и проблемы</div></button>`;
+  const all=colStats(projects);
+  const row=(label,sub,l,attr)=>{const c=colStats(l);return `<tr ${attr||''}><td><b>${label}</b>${sub?`<div class="wo">${sub}</div>`:''}</td>${c.map(x=>`<td class="c ${heatCls(x.v,x.norm)}">${x.v==null?'—':r1(x.v)}</td>`).join('')}</tr>`};
+  $('heat').innerHTML=`<table class="heat"><thead><tr><th>Участок</th>${all.map(c=>`<th>${c.n}<small>${typeof c.norm==='number'?'норма '+c.norm+' дн.':c.norm==='plan'?'срок по договору':'без норматива'}</small></th>`).join('')}</tr></thead><tbody>${
+    SITES.map(s=>{const l=projects.filter(p=>p.site===s.name);const bad=allMats(l).filter(([,,x])=>x.status==='late'||x.status==='problem').length;return row(esc(s.name),`${l.length} проектов${bad?`, <span style="color:var(--bad)">${bad} поз. с задержкой</span>`:''}`,l,`data-site="${esc(s.name)}"`)}).join('')
+  }${row('Все участки','',projects)}</tbody></table>`;
+  const pc=[{n:'В разработке',d:'proj',list:list.filter(p=>!p.issued),late:0},{n:'РД на участок',d:'pto',list:list.filter(p=>p.issued&&!p.rdsite),late:list.filter(p=>p.issued&&!p.rdsite&&dd(p.issued.date,TODAY)>P_RDSITE_NORM).length},{n:'ППР на участок',d:'pto',list:list.filter(p=>p.issued&&!p.ppr),late:list.filter(p=>p.issued&&!p.ppr&&dd(p.issued.date,TODAY)>P_PPR_NORM).length}];
+  $('pipe').innerHTML=pc.map((c,k)=>`<div class="stage" style="border-top-color:${dc(c.d)}"><span class="no" style="color:${dc(c.d)}">П${k+1}</span><span class="nm">${c.n}</span><span class="dp">${DEPTS[c.d].n}</span><span class="cnt num">${c.list.length}</span><span class="lbl">проектов</span>${c.late?`<span class="lt">${c.late} дольше нормы</span>`:''}</div>`).join('')+
+    MS.map((s,i)=>{const w=am.filter(([,,x])=>x.i===i&&x.status!=='wait');const late=w.filter(([,,x])=>x.status!=='ok').length;
+      return `<div class="stage" style="border-top-color:${dc(s.d)}"><span class="no" style="color:${dc(s.d)}">${pad(i+1)}</span><span class="nm">${s.n}</span><span class="dp">${DEPTS[s.d].n}</span><span class="cnt num">${w.length}</span><span class="lbl">позиций ждут</span>${late?`<span class="lt">${late} с задержкой</span>`:''}</div>`}).join('');
+  const cs=colStats(list);const max=Math.max(10,...cs.map(c=>c.v||0),...cs.map(c=>typeof c.norm==='number'?c.norm:0));
+  $('avg').innerHTML=list.length?cs.map(c=>{const nrm=typeof c.norm==='number'?c.norm:null,over=c.v!=null&&nrm!=null&&c.v>nrm;
+    return `<div class="arow"><div class="an">${c.n}<small>${DEPTS[c.d].n}</small></div><div class="track">${c.v!=null?`<div class="fill" style="width:${c.v/max*100}%;background:${over?'var(--bad)':dc(c.d)}"></div>`:''}${nrm!=null?`<div class="norm" style="left:${nrm/max*100}%"></div>`:''}</div><div class="av num ${over?'over':''}">${c.v!=null?r1(c.v)+' дн.':'нет данных'}</div></div>`}).join('')+'<div class="legend-norm"><i></i> норматив этапа; поступление на склад сравнивается со сроком поставки из закупок</div>'
+    :emptyState('Пока нет проектов.');
+  const al=attn.sort((a,b)=>b[2].wait-a[2].wait);
+  $('attn').innerHTML=al.length?al.map(([p,m,x])=>`<button class="acard ${x.status}" data-pos="${p.id}|${m.id}">
+    <span class="m"><span class="mono">${esc(p.code)}</span> · ${esc(p.site)} · ${esc(p.obj)}${m.znvp?' · ЗнВП '+esc(m.znvp.no):''}</span>
+    <span class="t">${esc(m.name)}, ${nf(m.qty)} ${esc(m.unit)}</span>
+    <span><span class="pill ${x.status}">${STATUS[x.status]}</span> <span class="m">ждёт этапа «${MS[x.i].n}» · ${DEPTS[MS[x.i].d].n}</span></span>
+    <span class="m">${esc(waitText(p,m,x))}</span>${m.mgr&&x.i>=2&&x.i<=3?`<span class="m">Менеджер: ${esc(m.mgr)}</span>`:''}
+    ${m.problem?.text?`<span class="note">${esc(m.problem.text)}</span>`:''}</button>`).join(''):emptyState('Задержек и проблем нет.');
+}
+
+/* мой раздел */
+function taskRow(attr,title,sub,status,go){return `<button class="taskrow ${status||''}" ${attr}><div><div>${title}</div><div class="wo">${sub}</div></div><span class="go">${go} →</span></button>`}
+function renderMine(){
+  const el=$('v-mine');
+  const am=allMats().filter(([p,m,x])=>x.i<MS.length&&x.status!=='wait'&&canMark(MS[x.i].d,p));
+  const projTasks=[];
+  if(role==='proj'||role==='admin')projects.filter(p=>!p.issued).forEach(p=>projTasks.push(['proj',p]));
+  if(role==='pto'||role==='admin'){projects.filter(p=>p.issued&&!p.rdsite).forEach(p=>projTasks.push(['pto',p]));projects.filter(p=>p.issued&&!p.ppr).forEach(p=>projTasks.push(['ppr',p]))}
+  const total=am.length+projTasks.length;
+  $('tabMine').innerHTML='Мой раздел'+(role!=='rp'&&total?`<span class="badge">${total}</span>`:'');
+  if(role==='rp'){el.innerHTML=emptyState('Руководитель проектов наблюдает за всеми участками. Чтобы вносить отметки, выберите отдел или участок в поле «Я —» вверху.');return}
+  if(!db){el.innerHTML=emptyState('Нет связи с общей базой, отметки сейчас сохранить нельзя.');return}
+  if(!canWrite){el.innerHTML=emptyState('У вас доступ только на просмотр. Попросите владельца выдать права участника (Contributor).');return}
+  let h='';
+  if(role==='proj'||role==='admin'){
+    h+=`<details class="newp" id="d-newp"><summary>+ Новый проект (начать разработку РД)</summary>
+     <form class="form" data-newproj="1">
+      <label>Участок<select id="np-site" name="site" required>${SITES.map(s=>`<option>${esc(s.name)}</option>`).join('')}</select></label>
+      <label>Объект<select id="np-obj" name="obj" required></select></label>
+      <label>Шифр РД<input id="np-code" name="code" required placeholder="91UYE-КЖ1.3"></label>
+      <label class="wide">Название проекта<input id="np-title" name="title" required placeholder="Фундаментная плита, захватка 3"></label>
+      <label>Начало разработки<input id="np-date" name="date" type="date" required max="${TODAY}" value="${TODAY}"></label>
+      <label class="wide">Комментарий<textarea id="np-note" name="note" placeholder="Необязательно"></textarea></label>
+      <div class="actions"><button class="btn" type="submit">Создать проект</button><span class="msg" data-msg></span></div>
+     </form></details>`;
+  }
+  const groups=[];
+  const pp=projTasks.filter(t=>t[0]==='proj');
+  if(pp.length)groups.push({t:'Проекты в разработке — выдать в работу',d:'proj',html:pp.map(([,p])=>taskRow(`data-proj="${p.id}"`,`<span class="mono">${esc(p.code)}</span> · <b>${esc(p.title)}</b>`,`${esc(p.site)} · ${esc(p.obj)} · в разработке ${days(dd(p.dev.date,TODAY))} · материалов ${mats(p).length}`,'','Открыть')).join('')});
+  const pt=projTasks.filter(t=>t[0]==='pto');
+  if(pt.length)groups.push({t:'Выдать РД на строительный участок',d:'pto',html:pt.map(([,p])=>{const w=dd(p.issued.date,TODAY);return taskRow(`data-proj="${p.id}"`,`<span class="mono">${esc(p.code)}</span> · <b>${esc(p.title)}</b>`,`${esc(p.site)} · выдан в работу ${fd(p.issued.date)}, ждёт ${days(w)}`,w>P_RDSITE_NORM?'late':'','Открыть')}).join('')});
+  const pr=projTasks.filter(t=>t[0]==='ppr');
+  if(pr.length)groups.push({t:'Разработать и выдать ППР на участок',d:'pto',html:pr.sort((a,b)=>a[1].issued.date.localeCompare(b[1].issued.date)).map(([,p])=>{const w=dd(p.issued.date,TODAY);return taskRow(`data-proj="${p.id}"`,`<span class="mono">${esc(p.code)}</span> · <b>${esc(p.title)}</b>`,`${esc(p.site)} · ${esc(p.obj)} · проект выдан в работу ${fd(p.issued.date)}, ППР ждёт ${days(w)}, норматив ${P_PPR_NORM}`,w>P_PPR_NORM?'late':'','Открыть')}).join('')});
+  MS.forEach((s,i)=>{
+    const list=am.filter(([,,x])=>x.i===i);if(!list.length)return;
+    const worstOf=rs=>rs.reduce((a,r)=>r[2].wait>a[2].wait?r:a);
+    if(s.k==='lzk'||s.k==='znvp'){
+      const by=new Map();list.forEach(r=>{if(!by.has(r[0].id))by.set(r[0].id,[]);by.get(r[0].id).push(r)});
+      groups.push({t:s.k==='lzk'?'Внести материал в ЛЗК':'Создать ЗнВП по ЛЗК',d:s.d,html:[...by.values()].map(rs=>{const p=rs[0][0],w=worstOf(rs);return taskRow(`data-proj="${p.id}"`,`<span class="mono">${esc(p.code)}</span> · <b>${esc(p.title)}</b>`,`${esc(p.site)} · ${esc(p.obj)} · ${rs.length} поз.: ${rs.slice(0,3).map(r=>esc(r[1].name)).join(', ')}${rs.length>3?'…':''} · ${esc(waitText(p,w[1],w[2]))}`,w[2].status,'Открыть проект')}).join('')});
+    }else if(s.k==='take'){
+      const by=new Map();list.forEach(r=>{const key=r[0].id+'|'+r[1].znvp.no;if(!by.has(key))by.set(key,[]);by.get(key).push(r)});
+      groups.push({t:'Взять в работу позиции ЗнВП',d:s.d,html:[...by.values()].map(rs=>{const p=rs[0][0],no=rs[0][1].znvp.no,w=worstOf(rs);return taskRow(`data-znvp="${p.id}|${esc(no)}"`,`ЗнВП <b>${esc(no)}</b> · ${esc(p.code)}`,`${esc(p.site)} · ${rs.length} поз. не взято в работу · ${esc(waitText(p,w[1],w[2]))}`,w[2].status,'Открыть ЗнВП')}).join('')});
+    }else{
+      groups.push({t:s.n,d:s.d,html:list.sort((a,b)=>b[2].wait-a[2].wait).map(([p,m,x])=>taskRow(`data-pos="${p.id}|${m.id}"`,`<b>${esc(m.name)}</b>, ${nf(m.qty)} ${esc(m.unit)}`,`${esc(p.code)} · ${esc(p.site)} · ЗнВП ${esc(m.znvp?.no||'—')} · ${esc(waitText(p,m,x))}`,x.status,'Отметить')).join('')});
+    }
+  });
+  h+=groups.length?groups.map(g=>`<div class="group"><h3><i style="background:${dc(g.d)}"></i>${g.t}</h3><div class="tasks">${g.html}</div></div>`).join(''):emptyState('Сейчас ничего не ждёт вашей отметки.');
+  el.innerHTML=h;
+  if($('np-site'))fillNpObj();
+}
+function fillNpObj(){const s=$('np-site').value,o=$('np-obj'),v=o.value;const objs=SITES.find(x=>x.name===s)?.objects||[];o.innerHTML=objs.length?objs.map(x=>`<option ${x===v?'selected':''}>${esc(x)}</option>`).join(''):'<option value="">Нет объектов — добавьте во вкладке «Участки»</option>'}
+
+/* проекты */
+function pCounts(p){const ms=mats(p);const c=k=>ms.filter(m=>m[k]).length;return {n:ms.length,lzk:c('lzk'),znvp:c('znvp'),take:c('take'),store:c('store'),wo:c('wo')}}
+function renderProjects(){
+  siteSelect('pSite','Все участки');objSelect('pObj',$('pSite').value);
+  if(!loaded){$('pBody').innerHTML='<tr><td colspan="11" class="wo">Загружаем…</td></tr>';return}
+  const q=$('pText').value.trim().toLowerCase(),fs=$('pSite').value,fo=$('pObj').value,st=$('pStatus').value;
+  const list=projects.filter(p=>(!fs||p.site===fs)&&(!fo||p.obj===fo)&&(!q||(p.code+' '+p.title).toLowerCase().includes(q))&&(!st||(st==='attn'?allMats([p]).some(([,,x])=>x.status==='late'||x.status==='problem'):pStatus(p)===st))).sort((a,b)=>a.code.localeCompare(b.code,'ru',{numeric:true}));
+  $('pBody').innerHTML=list.length?list.map(p=>{const c=pCounts(p);const am=allMats([p]).filter(([,,x])=>x.status!=='done'&&x.status!=='wait');const w=am.sort((a,b)=>b[2].wait-a[2].wait)[0];
+    return `<tr class="row" data-proj="${p.id}" tabindex="0"><td class="mono">${esc(p.code)}</td><td><div class="wt">${esc(p.title)}${p.demo?'<span class="tag">пример</span>':''}</div><div class="wo">${esc(p.site)} · ${esc(p.obj)}</div></td>
+     <td><span class="pill ${pStatus(p)}">${p.issued?'Выдан в работу':'В разработке'}</span><div class="wo">${p.issued?fd(p.issued.date):'с '+fd(p.dev?.date)}</div></td>
+     <td>${p.ppr?`<span class="pill yes">Выдан</span><div class="wo">${fd(p.ppr.date)}</div>`:p.issued?`<span class="pill ${dd(p.issued.date,TODAY)>P_PPR_NORM?'late':'no'}">Не выдан</span><div class="wo">ждёт ${days(dd(p.issued.date,TODAY))}</div>`:'<span class="wo">—</span>'}</td>
+     <td class="num">${c.n}</td><td>${frac(c.lzk,c.n)}</td><td>${frac(c.znvp,c.n)}</td><td>${frac(c.take,c.n)}</td><td>${frac(c.store,c.n)}</td><td>${frac(c.wo,c.n)}</td>
+     <td>${w?`<div>Ждёт: ${MS[w[2].i].n.toLowerCase()}</div><div class="wo"><span class="pill ${w[2].status}">${days(w[2].wait)}</span> ${esc(w[1].name)}</div>`:'<span class="wo">—</span>'}</td></tr>`}).join('')
+    :`<tr><td colspan="11" class="wo">${projects.length?'Под выбранные условия проектов нет.':'Проектов пока нет. Первый проект создаёт проектный отдел в «Моём разделе».'}</td></tr>`;
+}
+
+/* ЗнВП */
+function renderZnvp(){
+  siteSelect('zSite','Все участки');
+  if(!loaded){$('zBody').innerHTML='<tr><td colspan="7" class="wo">Загружаем…</td></tr>';return}
+  const fs=$('zSite').value,only=$('zOpen').checked;
+  const list=znvpList().filter(z=>(!fs||z.p.site===fs)&&(!only||z.ms.some(m=>!m.take)));
+  $('zBody').innerHTML=list.length?list.map(z=>{const n=z.ms.length,t=z.ms.filter(m=>m.take).length,s=z.ms.filter(m=>m.store).length;
+    const near=z.ms.filter(m=>m.take&&!m.store).map(m=>m.take.plan).filter(Boolean).sort()[0];
+    return `<tr class="row" data-znvp="${z.p.id}|${esc(z.no)}" tabindex="0"><td class="mono"><b>${esc(z.no)}</b></td><td><div class="wt">${esc(z.p.code)}</div><div class="wo">${esc(z.p.site)} · ${esc(z.p.obj)}</div></td><td>${fd(z.date)}</td><td class="num">${n}</td><td>${frac(t,n)}</td><td>${frac(s,n)}</td>
+      <td>${near?`<span class="pill ${near<TODAY?'problem':'ok'}">${fd(near)}</span>`:'<span class="wo">—</span>'}</td></tr>`}).join('')
+    :`<tr><td colspan="7" class="wo">ЗнВП пока нет. Их создаёт строительный участок по материалам, внесённым в ЛЗК.</td></tr>`;
+}
+
+/* лента */
+function renderFeed(){
+  if(!$('feDept').options.length)$('feDept').innerHTML='<option value="">Все отделы</option>'+Object.entries(DEPTS).map(([k,d])=>`<option value="${k}">${d.n}</option>`).join('');
+  siteSelect('feSite','Все участки');
+  if(!loaded){$('feedList').innerHTML=emptyState('Загружаем…');return}
+  const fdp=$('feDept').value,fs=$('feSite').value;const ev=[];
+  projects.forEach(p=>{
+    if(p.dev)ev.push({p,d:'proj',m:p.dev,t:'Начата разработка РД',attr:`data-proj="${p.id}"`});
+    if(p.issued)ev.push({p,d:'proj',m:p.issued,t:'Проект выдан в работу'+(p.dev?`, разработка заняла ${days(dd(p.dev.date,p.issued.date))}`:''),attr:`data-proj="${p.id}"`});
+    if(p.rdsite)ev.push({p,d:'pto',m:p.rdsite,t:'РД выдана на участок',attr:`data-proj="${p.id}"`});
+    if(p.ppr)ev.push({p,d:'pto',m:p.ppr,t:`ППР выдан на участок${p.ppr.no?' · № '+p.ppr.no:''}${p.ppr.file?' · документ приложен':''} · разработка ППР заняла ${days(dd(p.issued.date,p.ppr.date))}`,attr:`data-proj="${p.id}"`});
+    mats(p).forEach(m=>MS.forEach((s,i)=>{const mk=m[s.k];if(!mk)return;const dur=mDur(p,m,i);
+      const det=[mk.no&&('№ '+mk.no),s.k==='take'&&m.mgr&&('менеджер '+m.mgr),mk.plan&&('срок поставки '+fd(mk.plan)),mk.qty!=null&&('кол-во '+nf(mk.qty)),mk.result,mk.file&&'документ приложен'].filter(Boolean).join(' · ');
+      ev.push({p,d:s.d,m:mk,t:`${s.f}: ${m.name}${det?' · '+det:''}${dur!=null?` · этап занял ${days(dur)}`:''}`,attr:`data-pos="${p.id}|${m.id}"`})}));
+  });
+  const list=ev.filter(e=>(!fdp||e.d===fdp)&&(!fs||e.p.site===fs)).sort((a,b)=>(b.m.date+(b.m.at||'')).localeCompare(a.m.date+(a.m.at||''))).slice(0,400);
+  let h='',cur='';
+  list.forEach(e=>{if(e.m.date!==cur){cur=e.m.date;h+=`<div class="day">${fday(e.m.date)}</div>`}
+    h+=`<div class="ev" ${e.attr}><div><div class="mono">${esc(e.p.code)}</div><div class="dep" style="color:${dc(e.d)}">${DEPTS[e.d].n}</div></div><div class="tx">${esc(e.t)}<div class="wo">${esc(e.p.site)} · ${esc(e.p.obj)} · ${esc(byName(e.m))}</div></div></div>`});
+  $('feedList').innerHTML=h||emptyState('Событий пока нет.');
+}
+
+/* участки */
+function renderSites(){
+  const edit=isBoss()&&canWrite&&db;
+  $('sitesList').innerHTML=SITES.map((s,si)=>{
+    const l=projects.filter(p=>p.site===s.name),am=allMats(l);
+    const bad=am.filter(([,,x])=>x.status==='late'||x.status==='problem').length;
+    const cs=colStats(l).filter(c=>typeof c.norm==='number'&&c.v!=null).sort((a,b)=>b.v/b.norm-a.v/a.norm)[0];
+    return `<div class="dcard" style="border-top-color:var(--c-site)">
+      <div><h3>${esc(s.name)}</h3><div class="who">${cs?`Дольше всего относительно нормы: ${cs.n.toLowerCase()} — ${r1(cs.v)} дн. при норме ${cs.norm}`:'Пока нет данных по срокам'}</div></div>
+      <div class="dstats"><div><b class="num">${l.filter(p=>!p.issued).length}</b><span>в разработке</span></div><div><b class="num">${l.filter(p=>p.issued).length}</b><span>выдано в работу</span></div><div class="${bad?'bad':''}"><b class="num">${bad}</b><span>поз. с задержкой</span></div></div>
+      <div><div class="who" style="margin-bottom:6px">Объекты</div><div class="objs">${s.objects.map((o,oi)=>`<span class="obj">${esc(o)}<span class="muted">${l.filter(p=>p.obj===o).length}</span>${edit?`<button title="Убрать объект" data-act="delObj" data-si="${si}" data-oi="${oi}">×</button>`:''}</span>`).join('')||'<span class="who">Объекты не добавлены</span>'}</div></div>
+      ${edit?`<form class="addobj" data-addobj="${si}"><input id="ao-${si}" placeholder="Код объекта, напр. 93UYE" required aria-label="Новый объект"><button class="btn ghost" type="submit">Добавить</button></form>`:''}
+    </div>`}).join('');
+}
+async function saveSites(next){try{await db.doc('settings/sites').set({sites:next})}catch(e){}}
+
+/* отделы */
+function renderDepts(){
+  const am=allMats();
+  $('deptsList').innerHTML=Object.entries(DEPTS).map(([k,d])=>{
+    const w=am.filter(([,,x])=>x.i<MS.length&&x.status!=='wait'&&MS[x.i].d===k);
+    let pw=0;if(k==='proj')pw=projects.filter(p=>!p.issued).length;if(k==='pto')pw=projects.filter(p=>p.issued&&(!p.rdsite||!p.ppr)).length;
+    const bad=w.filter(([,,x])=>x.status!=='ok').length;
+    const durs=[];projects.forEach(p=>mats(p).forEach(m=>MS.forEach((s,i)=>{if(s.d===k){const v=mDur(p,m,i);if(v!=null)durs.push(v)}})));
+    if(k==='proj')projects.forEach(p=>{if(p.issued&&p.dev)durs.push(dd(p.dev.date,p.issued.date))});
+    if(k==='pto')projects.forEach(p=>{if(p.rdsite)durs.push(dd(p.issued.date,p.rdsite.date));if(p.ppr)durs.push(dd(p.issued.date,p.ppr.date))});
+    const steps=[...(k==='proj'?['разработка и выдача РД']:[]),...(k==='pto'?['выдача РД на участок','разработка и выдача ППР']:[]),...MS.filter(s=>s.d===k).map(s=>s.n.toLowerCase())];
+    return `<div class="dcard" style="border-top-color:${dc(k)}"><div><h3>${d.n}</h3><div class="who">Этапы: ${steps.join(', ')}</div></div>
+      <div class="dstats">${k==='proj'||k==='pto'?`<div><b class="num">${pw}</b><span>проектов ждут</span></div>`:''}${k!=='proj'?`<div><b class="num">${w.length}</b><span>позиций ждут</span></div>`:''}<div class="${bad?'bad':''}"><b class="num">${bad}</b><span>с задержкой</span></div><div><b class="num">${durs.length?r1(avgOf(durs)):'—'}</b><span>дн. на этап в среднем</span></div></div></div>`}).join('');
+}
+
+/* ---------- боковая панель ---------- */
+function crumbs(){
+  return stack.map((v,i)=>{const p=projects.find(x=>x.id===v.pid);const t=v.t==='proj'?(p?.code||'Проект'):v.t==='znvp'?'ЗнВП '+v.no:(p&&p.materials?.[v.mid]?.name)||'Позиция';
+    return i<stack.length-1?`<button data-crumb="${i}">${esc(t)}</button><span>›</span>`:`<span>${esc(t)}</span>`}).join('');
+}
+function renderDrawer(){
+  const v=stack[stack.length-1];const p=projects.find(x=>x.id===v.pid);
+  if(!p){closeDrawer();return}
+  let body='';
+  if(v.t==='proj')body=projView(p);else if(v.t==='znvp')body=znvpView(p,v.no);else{const m=p.materials?.[v.mid];if(!m){stack.pop();if(stack.length)return renderDrawer();return closeDrawer()}body=posView(p,{...m,id:v.mid})}
+  $('drawer').innerHTML=`<div class="dnav"><div class="crumbs">${stack.length>1?crumbs():''}</div><button class="close" data-act="close">Закрыть</button></div>${body}`;
+}
+function openView(v,reset){if(reset)stack=[];stack.push(v);sel.clear();editK=null;confirmDel=false;renderDrawer();$('drawer').hidden=false;$('scrim').hidden=false;$('drawer').scrollTop=0}
+function closeDrawer(){stack=[];pending=false;$('drawer').hidden=true;$('scrim').hidden=true}
+
+let fid=0;
+function markForm(attrs,fields,pref,label,extra){
+  const m=pref||{},id='f'+(++fid);
+  return `<form class="form" ${attrs}>
+    <label>Дата<input type="date" name="date" required value="${esc(m.date||TODAY)}" max="${TODAY}"></label>
+    ${fields.map(([k,lab,type,req,opts])=>type==='select'?`<label>${lab}<select name="${k}" ${req?'required':''}>${opts.map(o=>`<option ${o===m[k]?'selected':''}>${o}</option>`).join('')}</select></label>`
+      :`<label>${lab}<input type="${type}" name="${k}" ${req?'required':''} ${type==='number'?'step="any" min="0"':''} value="${esc(m[k]??'')}" autocomplete="off"></label>`).join('')}
+    ${extra||''}
+    <label class="wide">Комментарий<textarea name="note" placeholder="Необязательно">${esc(m.note||'')}</textarea></label>
+    <div class="actions"><button class="btn" type="submit">${label}</button><span class="msg" data-msg></span></div></form>`;
+}
+
+/* проект */
+function projView(p){
+  const ms=mats(p),c=pCounts(p);
+  const zs=znvpList().filter(z=>z.p.id===p.id);
+  const canLzk=canMark('pto',p)&&!!p.issued,canZ=canMark('site',p)&&!!p.issued;
+  const showCb=(canLzk&&ms.some(m=>!m.lzk))||(canZ&&ms.some(m=>m.lzk&&!m.znvp));
+  const tl=[
+    {t:'Начата разработка РД',m:p.dev,d:'proj'},
+    {t:'Проект выдан в работу',m:p.issued,d:'proj',dur:p.issued&&p.dev?dd(p.dev.date,p.issued.date):null},
+    {t:'РД выдана на строительный участок',m:p.rdsite,d:'pto',dur:p.rdsite&&p.issued?dd(p.issued.date,p.rdsite.date):null,norm:P_RDSITE_NORM},
+    {t:'ППР разработан и выдан на строительный участок',m:p.ppr,d:'pto',dur:p.ppr&&p.issued?dd(p.issued.date,p.ppr.date):null,norm:P_PPR_NORM}
+  ];
+  let h=`<div class="dh"><div class="kind">Проект</div><h2>${esc(p.title)}</h2><span class="pill ${pStatus(p)}">${p.issued?'Выдан в работу':'В разработке'}</span>${p.demo?'<span class="tag">пример</span>':''}</div>
+   <div class="meta"><div><span>Шифр РД</span>${esc(p.code)}</div><div><span>Участок</span>${esc(p.site)}</div><div><span>Объект</span>${esc(p.obj)}</div>
+    <div><span>Материалов</span>${c.n}</div><div><span>Внесено в ЛЗК</span>${c.lzk} из ${c.n}</div><div><span>В ЗнВП</span>${c.znvp} из ${c.n}</div></div>
+   <ol class="tl">${tl.map((s,i)=>{const cur=!s.m&&(i>=2?!!p.issued:(i===0||tl[i-1].m));const over=s.norm&&s.dur!=null&&s.dur>s.norm;
+     let b=s.m?`<div class="sd">${fd(s.m.date)} · ${esc(byName(s.m))}</div>${s.m.no?`<div class="st">№ ${esc(s.m.no)}</div>`:''}${s.m.note?`<div class="st muted">${esc(s.m.note)}</div>`:''}${i===3?docLink(s.m.file,'ППР'):''}`:`<div class="sd">${DEPTS[s.d].n} · ${cur?'ожидается'+(i>=2&&p.issued?', ждёт '+days(dd(p.issued.date,TODAY))+', норматив '+s.norm:i===1&&p.dev?', в разработке '+days(dd(p.dev.date,TODAY)):''):'впереди'}</div>`;
+     if(cur&&i===1&&canMark('proj',p))b+=`<div class="inner">${markForm(`data-pmark="issued" data-pid="${p.id}"`,[],null,'Выдать проект в работу')}</div>`;
+     if(cur&&i===2&&canMark('pto',p))b+=`<div class="inner">${markForm(`data-pmark="rdsite" data-pid="${p.id}"`,[],null,'Отметить: РД выдана на участок')}</div>`;
+     if(cur&&i===3&&canMark('pto',p))b+=`<div class="inner">${markForm(`data-pmark="ppr" data-pid="${p.id}"`,[['no','№ / шифр ППР','text',1]],null,'Отметить: ППР выдан на участок',assets?'<label class="wide">Файл ППР (PDF, по необходимости)<input type="file" name="file" accept="application/pdf,image/png,image/jpeg,image/webp"></label>':'')}</div>`;
+     return `<li class="${s.m?'d':cur?'c':'f'}"><span class="dot">П${i+1}</span><div><div class="sn">${s.t}</div>${b}</div>${s.dur!=null?`<div class="dur ${over?'over':''}">${days(s.dur)}</div>`:''}</li>`}).join('')}</ol>
+   <div class="dsec"><h2>Материалы по проекту</h2>
+   <p class="hint">Нажмите на строку, чтобы открыть путь позиции. Номер ЗнВП открывает заявку целиком.${showCb?' Галочками отметьте позиции для ЛЗК или ЗнВП — форма ниже таблицы.':''}</p>
+   <div class="mt-scroll"><table><thead><tr>${showCb?'<th class="cb"></th>':''}<th>Материал</th><th>Кол-во</th><th>ЛЗК</th><th>ЗнВП</th><th>Сейчас</th></tr></thead><tbody>${
+     ms.length?ms.map(m=>{const x=mInfo(p,m);const elig=(canLzk&&!m.lzk)||(canZ&&m.lzk&&!m.znvp);
+      return `<tr class="row" data-pos="${p.id}|${m.id}">${showCb?`<td class="cb">${elig?`<input type="checkbox" data-sel="${m.id}" ${sel.has(m.id)?'checked':''} aria-label="Выбрать ${esc(m.name)}">`:''}</td>`:''}
+       <td><div class="wt">${esc(m.name)}</div></td><td class="num">${nf(m.qty)} ${esc(m.unit)}</td>
+       <td><div class="st-cell">${m.lzk?`<span class="pill yes">Внесено</span><span class="mono">№ ${esc(m.lzk.no)}</span>`:'<span class="pill no">Не внесено</span>'}</div></td>
+       <td><div class="st-cell">${m.znvp?`<span class="pill yes">Создан</span><button class="linkbtn mono" data-znvp="${p.id}|${esc(m.znvp.no)}">№ ${esc(m.znvp.no)}</button>`:'<span class="pill no">Не создан</span>'}</div></td>
+       <td>${x.status==='done'?'<span class="pill done">Использовано</span>':x.status==='wait'?'<span class="pill wait">Проект в разработке</span>':`<div>Ждёт: ${MS[x.i].n.toLowerCase()}</div><span class="pill ${x.status}">${days(x.wait)}</span>`}</td></tr>`}).join('')
+     :`<tr><td colspan="6" class="wo">Материалы ещё не добавлены.</td></tr>`}</tbody></table></div>`;
+  if(canLzk&&ms.some(m=>!m.lzk))h+=`<div class="box" style="margin-top:12px"><h3>Внести выбранные позиции в ЛЗК</h3>${markForm(`data-bulk="lzk" data-pid="${p.id}"`,[['no','№ ЛЗК','text',1]],null,'Внести в ЛЗК')}</div>`;
+  if(canZ&&ms.some(m=>m.lzk&&!m.znvp))h+=`<div class="box" style="margin-top:12px"><h3>Создать ЗнВП на выбранные позиции</h3>${markForm(`data-bulk="znvp" data-pid="${p.id}"`,[['no','№ ЗнВП','text',1]],null,'Создать ЗнВП')}</div>`;
+  if(canMark('pto',p)||canMark('proj',p))h+=`<details class="box" id="d-addmat-${p.id}" style="margin-top:12px"><summary style="padding:12px 16px;cursor:pointer;font-weight:600">+ Добавить материал</summary>
+    <form class="form" data-addmat="${p.id}"><label class="wide">Наименование<input name="name" id="am-name-${p.id}" required placeholder="Арматура А500С Ø12"></label><label>Ед. изм.<input name="unit" id="am-unit-${p.id}" required placeholder="т"></label><label>Количество<input name="qty" id="am-qty-${p.id}" type="number" step="any" min="0" required></label><div class="actions"><button class="btn" type="submit">Добавить</button><span class="msg" data-msg></span></div></form></details>`;
+  h+=`</div>`;
+  if(zs.length)h+=`<div class="dsec"><h2>ЗнВП по проекту</h2><div class="mt-scroll"><table><thead><tr><th>№ ЗнВП</th><th>Создан</th><th>Позиций</th><th>Взято в работу</th><th>Поступило</th></tr></thead><tbody>${zs.map(z=>`<tr class="row" data-znvp="${p.id}|${esc(z.no)}"><td class="mono"><b>${esc(z.no)}</b></td><td>${fd(z.date)}</td><td>${z.ms.length}</td><td>${frac(z.ms.filter(m=>m.take).length,z.ms.length)}</td><td>${frac(z.ms.filter(m=>m.store).length,z.ms.length)}</td></tr>`).join('')}</tbody></table></div></div>`;
+  if(canAdmin&&db)h+=`<div class="confirm"><span class="muted">${confirmDel?'Удалить проект со всеми материалами и отметками? Это необратимо.':'Удалить проект целиком'}</span><span>${confirmDel?`<button class="btn ghost" data-act="cancelDel">Отмена</button> <button class="btn danger" data-act="delProj" data-pid="${p.id}">Удалить</button>`:'<button class="btn ghost" data-act="askDel">Удалить…</button>'}</span></div>`;
+  return h;
+}
+
+/* ЗнВП */
+function managers(){return [...new Set(projects.flatMap(p=>mats(p).map(m=>m.mgr)).filter(Boolean))].sort()}
+function mgrList(){return `<datalist id="mgrs">${managers().map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`}
+function takeForm(p,m){
+  const id='t-'+m.id;
+  return `<form class="form" data-take="${p.id}|${m.id}">
+    <label>Менеджер по закупкам<input name="mgr" id="${id}-mgr" list="mgrs" required value="${esc(m.mgr||'')}" placeholder="Фамилия И. О."></label>
+    <label>Срок поставки<input name="plan" id="${id}-plan" type="date" value="${esc(m.take?.plan||'')}" min="${esc(m.znvp?.date||'')}"></label>
+    <label>Дата взятия в работу<input name="date" id="${id}-date" type="date" max="${TODAY}" min="${esc(m.znvp?.date||'')}" value="${esc(m.take?.date||TODAY)}"></label>
+    <div class="actions"><button class="btn" type="submit" value="take">${m.take?'Сохранить исправление':'Взять в работу'}</button>${m.take?'':'<button class="btn ghost" type="submit" value="assign">Только назначить менеджера</button>'}<span class="msg" data-msg></span></div></form>`;
+}
+function znvpView(p,no){
+  const ms=mats(p).filter(m=>m.znvp?.no===no);
+  const buy=canMark('buy',p);
+  const t=ms.filter(m=>m.take).length;
+  return `<div class="dh"><div class="kind">Заказ на внутреннее потребление</div><h2>ЗнВП № ${esc(no)}</h2><span class="pill ${t===ms.length?'yes':'no'}">Взято в работу ${t} из ${ms.length}</span></div>
+   <div class="meta"><div><span>Проект</span><button class="linkbtn" data-proj="${p.id}">${esc(p.code)}</button></div><div><span>Участок · объект</span>${esc(p.site)} · ${esc(p.obj)}</div><div><span>Создан</span>${fd(ms[0]?.znvp.date)} · ${esc(byName(ms[0]?.znvp))}</div></div>
+   ${mgrList()}
+   <div class="mt-scroll"><table><thead><tr><th>Позиция</th><th>Кол-во</th><th>Менеджер</th><th>Статус</th><th>Срок поставки</th><th>Склад</th></tr></thead><tbody>${
+    ms.map(m=>{const x=mInfo(p,m);const late=m.take?.plan&&!m.store&&TODAY>m.take.plan;
+     return `<tr class="row" data-pos="${p.id}|${m.id}"><td><div class="wt">${esc(m.name)}</div><div class="wo">ЛЗК № ${esc(m.lzk?.no||'—')}</div></td><td class="num">${nf(m.qty)} ${esc(m.unit)}</td>
+      <td>${m.mgr?esc(m.mgr):'<span class="wo">не назначен</span>'}</td>
+      <td>${m.take?`<span class="pill yes">Взято в работу</span><div class="wo">${fd(m.take.date)}</div>`:`<span class="pill ${x.status==='late'?'late':'no'}">Не взято в работу</span><div class="wo">ждёт ${days(x.wait)}</div>`}</td>
+      <td>${m.take?.plan?`<span class="${late?'pill problem':''}">${fd(m.take.plan)}</span>${late?`<div class="wo">просрочено на ${days(dd(m.take.plan,TODAY))}</div>`:''}`:'<span class="wo">—</span>'}</td>
+      <td>${m.store?`<span class="pill done">Поступило</span><div class="wo">${fd(m.store.date)}</div>`:'<span class="wo">не поступало</span>'}</td></tr>
+      ${buy&&!m.take?`<tr class="subrow"><td colspan="6">${takeForm(p,m)}</td></tr>`:''}`}).join('')}</tbody></table></div>`;
+}
+
+/* позиция */
+function stepForm(p,m,i,pr){
+  const s=MS[i];
+  const file=s.file?(assets?`<label class="wide">${s.file} (PDF, фото или скан, по необходимости)<input type="file" name="file" accept="application/pdf,image/png,image/jpeg,image/webp"></label>${pr?.file?'<span class="wo wide">Если файл не выбрать, останется прежний.</span>':''}`:`<span class="wo wide">${s.file}: прикрепить файл здесь нельзя — у вас нет прав на загрузку. Укажите номер документа.</span>`):'';
+  const pf=pr||{qty:s.fields.some(f=>f[0]==='qty')?(m[MS[i-1]?.k]?.qty??m.qty):undefined};
+  return markForm(`data-step="${p.id}|${m.id}|${s.k}" ${pr?'data-edit="1"':''}`,s.fields,pf,pr?'Сохранить исправление':'Отметить: '+s.n.toLowerCase(),file);
+}
+function problemForm(p,m){
+  return `<form class="form" data-problem="${p.id}|${m.id}"><label class="wide">Что мешает пройти этап<textarea name="text" id="pr-${m.id}" required placeholder="Например: поставщик перенёс отгрузку на 10.11">${esc(m.problem?.text||'')}</textarea></label>
+    <div class="actions"><button class="btn ghost" type="submit">${m.problem?.text?'Обновить':'Сообщить о проблеме'}</button>${m.problem?.text?`<button class="linkbtn" type="button" data-act="clearProblem" data-pid="${p.id}" data-mid="${m.id}">Проблема решена</button>`:''}<span class="msg" data-msg></span></div></form>`;
+}
+function posView(p,m){
+  const x=mInfo(p,m);
+  const tl=MS.map((s,i)=>{
+    const mk=m[s.k],cls=mk?'d':i===x.i&&x.status!=='wait'?'c '+x.status:'f';
+    const dur=mDur(p,m,i);let b='',right='';
+    if(mk){
+      const det=[mk.no&&('№ '+mk.no),s.k==='take'&&m.mgr&&('менеджер '+m.mgr),s.k==='take'&&(mk.plan?'срок поставки '+fd(mk.plan):'срок поставки не указан'),mk.qty!=null&&('кол-во '+nf(mk.qty)+' '+m.unit),mk.result].filter(Boolean).join(' · ');
+      const qtyWarn=mk.qty!=null&&mk.qty<m.qty?`<div class="st" style="color:var(--bad)">Меньше потребности на ${nf(m.qty-mk.qty)} ${esc(m.unit)}</div>`:'';
+      const canEd=canMark(s.d,p)&&s.k!=='lzk'&&s.k!=='znvp';
+      b=`<div class="sd">${fd(mk.date)} · ${esc(byName(mk))}${canEd?` · <button class="linkbtn" data-act="edit" data-k="${s.k}">Исправить</button>`:''}</div>${det?`<div class="st">${esc(det)}</div>`:''}${qtyWarn}${mk.note?`<div class="st muted">${esc(mk.note)}</div>`:''}${s.file?docLink(mk.file,s.file):''}`;
+      if(dur!=null)right=`<div class="dur ${isOver(p,m,i,dur)?'over':''}">${days(dur)}</div>`;
+      if(editK===s.k&&canEd)b+=`<div class="inner">${s.k==='take'?mgrList()+takeForm(p,m):stepForm(p,m,i,mk)}</div>`;
+    }else if(i===x.i&&x.status!=='wait'){
+      b=`<div class="sd">${DEPTS[s.d].n} · ${esc(waitText(p,m,x))}</div><div class="st"><span class="pill ${x.status}">${STATUS[x.status]}</span></div>`;
+      if(m.problem?.text)b+=`<div class="note">${esc(m.problem.text)}<div class="sd">${esc(byName(m.problem))}</div></div>`;
+      if(canMark(s.d,p)){
+        if(s.k==='take')b+=`${mgrList()}<div class="inner">${takeForm(p,m)}</div>`;
+        else if(s.k==='lzk'||s.k==='znvp')b+=`<div class="inner">${markForm(`data-step="${p.id}|${m.id}|${s.k}"`,s.fields,null,s.k==='lzk'?'Внести в ЛЗК':'Создать ЗнВП')}</div>`;
+        else b+=`<div class="inner">${stepForm(p,m,i)}</div>`;
+      }
+      right=`<div class="dur ${x.status!=='ok'?'over':''}">${days(x.wait)}…</div>`;
+    }else b=`<div class="sd">${DEPTS[s.d].n} · ${x.status==='wait'?'после выдачи проекта в работу':'впереди'}</div>`;
+    return `<li class="${cls}"><span class="dot">${i+1}</span><div><div class="sn">${s.f}</div>${b}</div>${right}</li>`}).join('');
+  return `<div class="dh"><div class="kind">Позиция заявки</div><h2>${esc(m.name)}</h2><span class="pill ${x.status}">${x.status==='ok'?'В работе':STATUS[x.status]}</span></div>
+   <div class="meta"><div><span>Потребность</span>${nf(m.qty)} ${esc(m.unit)}</div><div><span>Проект</span><button class="linkbtn" data-proj="${p.id}">${esc(p.code)}</button></div><div><span>Участок · объект</span>${esc(p.site)} · ${esc(p.obj)}</div>
+    <div><span>ЛЗК</span>${m.lzk?'№ '+esc(m.lzk.no):'не внесено'}</div><div><span>ЗнВП</span>${m.znvp?`<button class="linkbtn" data-znvp="${p.id}|${esc(m.znvp.no)}">№ ${esc(m.znvp.no)}</button>`:'не создан'}</div><div><span>Менеджер закупок</span>${esc(m.mgr||'не назначен')}</div></div>
+   <h2>Путь позиции</h2><p class="hint">Справа — сколько дней занял этап от предыдущей отметки. Красным — дольше норматива или позже срока поставки.</p>
+   <ol class="tl">${tl}</ol>
+   ${x.status!=='done'&&x.status!=='wait'&&role!=='rp'&&canWrite&&db?`<div class="box" style="margin-top:8px"><h3>Проблема по позиции</h3>${problemForm(p,m)}</div>`:''}
+   ${(canMark('pto',p)||canMark('proj',p))&&!m.lzk?`<div class="confirm"><span class="muted">Позиция добавлена по ошибке?</span><button class="btn ghost" data-act="delMat" data-pid="${p.id}" data-mid="${m.id}">Удалить позицию</button></div>`:''}`;
+}
+
+/* ---------- запись ---------- */
+function msg(f,t,ok){const m=f.querySelector('[data-msg]');if(m){m.textContent=t;m.className='msg '+(ok?'okm':'err')}}
+function errText(e){return e?.code==='quota_exceeded'?'База заполнена, удалите лишние проекты.':e?.code==='invalid_argument'?'Нет прав на запись. Попросите владельца выдать доступ участника.':e?.code==='too_large'?'Файл больше 20 МБ.':e?.code==='unsupported_type'?'Этот тип файла не принимается. Нужен PDF, JPG, PNG или WEBP.':e?.code==='not_granted'?'Нет прав на загрузку файлов.':'Не удалось сохранить, попробуйте ещё раз.'}
+function readForm(f,fields){const o={};for(const [k,v] of new FormData(f).entries()){if(v instanceof File)continue;const s=String(v).trim();if(s==='')continue;o[k]=(fields||[]).find(x=>x[0]===k)?.[2]==='number'?+s:s}return o}
+const pref=pid=>db.collection('projects').doc(pid);
+function fullDoc(p){const d={...p};delete d.id;return d}
+async function withBtn(f,fn){const bs=f.querySelectorAll('button');bs.forEach(x=>x.disabled=true);try{await fn()}catch(e){msg(f,errText(e))}finally{bs.forEach(x=>x.disabled=false)}}
+
+document.addEventListener('submit',async e=>{
+  const f=e.target;e.preventDefault();
+  if(f.dataset.addobj!=null){const si=+f.dataset.addobj,v=$('ao-'+si).value.trim().toUpperCase();if(!v)return;const next=SITES.map(s=>({name:s.name,objects:[...s.objects]}));if(!next[si].objects.includes(v))next[si].objects.push(v);$('ao-'+si).value='';saveSites(next);return}
+  if(f.dataset.newproj){const o=readForm(f);if(!o.obj)return msg(f,'Сначала добавьте объект участку во вкладке «Участки».');if(o.date>TODAY)return msg(f,'Дата не может быть в будущем.');
+    return withBtn(f,async()=>{const doc={code:o.code,title:o.title,site:o.site,obj:o.obj,created:nowIso(),dev:{date:o.date,by:myId,at:nowIso(),...(o.note?{note:o.note}:{})},materials:{}};
+      const ref=await db.collection('projects').add(doc);['np-code','np-title','np-note'].forEach(id=>{if($(id))$(id).value=''});openView({t:'proj',pid:ref.id},true)})}
+  if(f.dataset.pmark){const p=projects.find(x=>x.id===f.dataset.pid),k=f.dataset.pmark,o=readForm(f);const prev=k==='issued'?p.dev?.date:p.issued?.date;
+    if(o.date>TODAY)return msg(f,'Дата не может быть в будущем.');if(prev&&o.date<prev)return msg(f,`Дата раньше предыдущего этапа (${fd(prev)}).`);
+    const file=f.querySelector('input[type=file]')?.files?.[0];
+    return withBtn(f,async()=>{let extra={};if(file){if(!assets)throw {code:'not_granted'};msg(f,'Загружаем документ…',true);const r=await assets.upload(file,file.type?undefined:{type:'application/pdf'});extra.file={id:r.id,name:file.name}}
+      await pref(p.id).update({[k]:{...o,...extra,by:myId,at:nowIso()}});render(true)})}
+  if(f.dataset.addmat){const o=readForm(f,[['qty','','number']]);const mid='m'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+    return withBtn(f,async()=>{await pref(f.dataset.addmat).update({materials:{[mid]:{n:Date.now(),name:o.name,unit:o.unit,qty:o.qty}}});f.reset();msg(f,'Добавлено.',true)})}
+  if(f.dataset.bulk){const p=projects.find(x=>x.id===f.dataset.pid),k=f.dataset.bulk,o=readForm(f);
+    const ids=mats(p).filter(m=>sel.has(m.id)&&(k==='lzk'?!m.lzk:m.lzk&&!m.znvp)).map(m=>m.id);
+    if(!ids.length)return msg(f,'Отметьте галочками позиции в таблице выше.');
+    if(o.date>TODAY)return msg(f,'Дата не может быть в будущем.');
+    const bad=ids.map(id=>p.materials[id]).find(m=>{const pd=k==='lzk'?p.issued?.date:m.lzk?.date;return pd&&o.date<pd});
+    if(bad)return msg(f,`Дата раньше предыдущего этапа у позиции «${bad.name}».`);
+    return withBtn(f,async()=>{const upd={};ids.forEach(id=>upd[id]={[k]:{...o,by:myId,at:nowIso()},problem:null});await pref(p.id).update({materials:upd});sel.clear();render(true)})}
+  if(f.dataset.take){const [pid,mid]=f.dataset.take.split('|');const p=projects.find(x=>x.id===pid),m=p.materials[mid];const o=readForm(f);const act=e.submitter?.value||'take';
+    if(act==='assign')return withBtn(f,async()=>{await pref(pid).update({materials:{[mid]:{mgr:o.mgr}}});msg(f,'Менеджер назначен.',true)});
+    if(!o.date)return msg(f,'Укажите дату взятия в работу.');if(o.date>TODAY)return msg(f,'Дата не может быть в будущем.');if(m.znvp&&o.date<m.znvp.date)return msg(f,`Дата раньше создания ЗнВП (${fd(m.znvp.date)}).`);
+    return withBtn(f,async()=>{const take={date:o.date,by:m.take?.by??myId,at:nowIso(),...(o.plan?{plan:o.plan}:{})};
+      if(m.take){const d=fullDoc(p);d.materials={...d.materials,[mid]:{...m,mgr:o.mgr,take}};await pref(pid).set(d)}
+      else await pref(pid).update({materials:{[mid]:{mgr:o.mgr,take,problem:null}}});
+      editK=null;render(true)})}
+  if(f.dataset.step){const [pid,mid,k]=f.dataset.step.split('|');const p=projects.find(x=>x.id===pid),m=p.materials[mid];const i=MS.findIndex(s=>s.k===k);const o=readForm(f,MS[i].fields);
+    if(o.date>TODAY)return msg(f,'Дата не может быть в будущем.');const pd=prevDate(p,m,i);if(pd&&o.date<pd)return msg(f,`Дата раньше предыдущего этапа (${fd(pd)}).`);
+    const file=f.querySelector('input[type=file]')?.files?.[0];
+    return withBtn(f,async()=>{
+      let fileRec=f.dataset.edit?m[k]?.file:undefined;
+      if(file){if(!assets)throw {code:'not_granted'};msg(f,'Загружаем документ…',true);const r=await assets.upload(file,file.type?undefined:{type:'application/pdf'});fileRec={id:r.id,name:file.name}}
+      const mark={...o,by:f.dataset.edit?(m[k]?.by??myId):myId,at:nowIso(),...(fileRec?{file:fileRec}:{})};
+      if(f.dataset.edit){const d=fullDoc(p);d.materials={...d.materials,[mid]:{...m,[k]:mark}};await pref(pid).set(d)}
+      else await pref(pid).update({materials:{[mid]:{[k]:mark,problem:null}}});
+      editK=null;render(true)})}
+  if(f.dataset.problem){const [pid,mid]=f.dataset.problem.split('|');const t=String(new FormData(f).get('text')||'').trim();if(!t)return;
+    return withBtn(f,async()=>{await pref(pid).update({materials:{[mid]:{problem:{text:t,by:myId,at:nowIso()}}}});msg(f,'Отправлено, руководитель видит это в сводке.',true)})}
+});
+
+document.addEventListener('change',e=>{
+  if(e.target.id==='np-site')fillNpObj();
+  if(e.target.dataset.sel){e.target.checked?sel.add(e.target.dataset.sel):sel.delete(e.target.dataset.sel)}
+});
+document.addEventListener('click',async e=>{
+  if(e.target.closest('input[type=checkbox],label'))return;
+  const a=e.target.closest('[data-act]');
+  if(a){const act=a.dataset.act;
+    if(act==='close')closeDrawer();
+    if(act==='edit'){editK=editK===a.dataset.k?null:a.dataset.k;renderDrawer()}
+    if(act==='askDel'){confirmDel=true;renderDrawer()}
+    if(act==='cancelDel'){confirmDel=false;renderDrawer()}
+    if(act==='delProj'){const id=a.dataset.pid;closeDrawer();try{await pref(id).delete()}catch(err){}}
+    if(act==='delMat'){const p=projects.find(x=>x.id===a.dataset.pid);const d=fullDoc(p);d.materials={...d.materials};delete d.materials[a.dataset.mid];stack.pop();try{await pref(p.id).set(d)}catch(err){}if(stack.length)renderDrawer();else closeDrawer()}
+    if(act==='clearProblem'){try{await pref(a.dataset.pid).update({materials:{[a.dataset.mid]:{problem:null}}})}catch(err){}}
+    if(act==='delObj'){const next=SITES.map(s=>({name:s.name,objects:[...s.objects]}));next[+a.dataset.si].objects.splice(+a.dataset.oi,1);saveSites(next)}
+    if(act==='askDemo'){$('demoAct').innerHTML='<span class="muted">Удалить все примеры?</span> <button class="btn ghost" data-act="noDemo">Нет</button> <button class="btn danger" data-act="delDemo">Удалить</button>'}
+    if(act==='noDemo')renderBanner();
+    if(act==='delDemo'){for(const p of projects.filter(p=>p.demo)){try{await pref(p.id).delete()}catch(err){}}}
+    return}
+  if(e.target.closest('form'))return;
+  const kp=e.target.closest('[data-kpi]');if(kp){const k=kp.dataset.kpi;
+    if(k==='cycle'){$('pipe').scrollIntoView({behavior:'smooth',block:'center'});return}
+    const s=$('sSite').value,o=$('sObj').value;$('pText').value='';
+    siteSelect('pSite','Все участки');$('pSite').value=s;objSelect('pObj',s);$('pObj').value=o;$('pStatus').value=k;
+    showTab('projects');renderProjects();window.scrollTo(0,0);return}
+  const cr=e.target.closest('[data-crumb]');if(cr){stack=stack.slice(0,+cr.dataset.crumb+1);editK=null;sel.clear();renderDrawer();return}
+  const inDrawer=!!e.target.closest('#drawer');
+  const z=e.target.closest('[data-znvp]');if(z){e.stopPropagation();const [pid,...rest]=z.dataset.znvp.split('|');openView({t:'znvp',pid,no:rest.join('|')},!inDrawer);return}
+  const ps=e.target.closest('[data-pos]');if(ps){const [pid,mid]=ps.dataset.pos.split('|');openView({t:'pos',pid,mid},!inDrawer);return}
+  const pj=e.target.closest('[data-proj]');if(pj){openView({t:'proj',pid:pj.dataset.proj},!inDrawer);return}
+  const hs=e.target.closest('tr[data-site]');if(hs){$('sSite').value=hs.dataset.site;$('sObj').value='';render();return}
+  if(e.target.id==='scrim')closeDrawer();
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&stack.length)closeDrawer();
+  if(e.key==='Enter'&&e.target.matches('tr.row'))e.target.click();
+});
+document.addEventListener('focusout',()=>{setTimeout(()=>{if(pending&&!drawerBusy())render()},50)});
+const TABS=['sum','mine','projects','znvp','feed','sites','depts'];
+function showTab(t){tab=t;document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));TABS.forEach(k=>$('v-'+k).hidden=k!==t);try{history.replaceState(null,'','#'+t)}catch(e){try{location.hash=t}catch(e2){}}window.scrollTo(0,0)}
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+['pText','pObj','pStatus'].forEach(id=>$(id).addEventListener('input',renderProjects));
+$('pSite').addEventListener('change',()=>{$('pObj').value='';renderProjects()});
+['zSite','zOpen'].forEach(id=>$(id).addEventListener('change',renderZnvp));
+['feDept','feSite'].forEach(id=>$(id).addEventListener('change',renderFeed));
+$('sSite').addEventListener('change',()=>{$('sObj').value='';render()});
+$('sObj').addEventListener('change',render);
+function fillRole(){const rs=roles();if(!rs.some(r=>r[0]===role))role='rp';$('role').innerHTML=rs.map(([k,n])=>`<option value="${k}" ${k===role?'selected':''}>${esc(n)}</option>`).join('')}
+fillRole();
+$('role').onchange=()=>{role=$('role').value;try{localStorage.setItem('stroy-role',role)}catch(e){}render(true);showTab(role==='rp'?'sum':'mine')};
+window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(TABS.includes(h)&&h!==tab)showTab(h)});
+{const h=location.hash.slice(1);if(TABS.includes(h))showTab(h)}
+render();connect();
+</script>
+
+</body></html>
