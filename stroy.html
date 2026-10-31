@@ -138,6 +138,8 @@ tr.row{cursor:pointer}
 tr.row:hover td{background:var(--sunk)}
 .wt{font-weight:600}
 .wo{font-size:12px;color:var(--muted)}
+td.pcode{min-width:220px;max-width:360px}
+td.pcode .mono{word-break:break-all;font-size:12px}
 .pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
 .pill.ok,.pill.dev{background:var(--sunk);color:var(--ink)}
 .pill.issued{background:var(--accent-soft);color:var(--accent)}
@@ -300,7 +302,7 @@ footer{margin-top:40px;color:var(--muted);font-size:12px;border-top:1px solid va
       <select id="pStatus" aria-label="Статус проекта"><option value="">Все проекты</option><option value="dev">В разработке</option><option value="issued">Выданы в работу</option><option value="attn">Есть задержки</option></select>
     </div>
     <div class="tbl-scroll"><table>
-      <thead><tr><th>Шифр РД</th><th>Проект</th><th>Статус</th><th>ППР</th><th>Материалов</th><th>В ЛЗК</th><th>В ЗнВП</th><th>Взято закупками</th><th>На складе</th><th>Использовано</th><th>Ждёт дольше всех</th></tr></thead>
+      <thead><tr><th>Объект</th><th>Шифр РД</th><th>Статус</th><th>ППР</th><th>Материалов</th><th>В ЛЗК</th><th>В ЗнВП</th><th>В закупке</th><th>На складе</th><th>Использовано</th><th>Списано</th></tr></thead>
       <tbody id="pBody"></tbody>
     </table></div>
   </section>
@@ -422,10 +424,11 @@ const MS=[
  {k:'store',n:'Поступило на склад', f:'Материал поступил на склад',               d:'store',norm:'plan', file:'Накладная', fields:[['no','№ накладной','text',1],['qty','Принято, кол-во','number',1]]},
  {k:'qc',   n:'Входной контроль',   f:'Входной контроль проведён',                d:'qc',   norm:3,  file:'Акт входного контроля', fields:[['no','№ акта ВК','text',1],['result','Результат','select',1,['Соответствует','Частично, есть брак','Не соответствует']]]},
  {k:'issue',n:'Выдано на участок',  f:'Материал получен участком со склада',      d:'site', norm:3,  file:'Накладная на перемещение', fields:[['no','№ накладной на перемещение','text',1],['qty','Получено, кол-во','number',1]]},
- {k:'wo',   n:'Использовано',       f:'Материал использован в строительстве',     d:'site', norm:30, file:'Акт на списание', fields:[['no','№ акта на списание','text',1],['qty','Списано, кол-во','number',1]]}
+ {k:'wo',   n:'Использовано',       f:'Материал использован в строительстве',     d:'site', norm:30, fields:[['qty','Использовано, кол-во','number',1]]},
+ {k:'off',  n:'Списано',            f:'Материал списан по акту',                  d:'site', norm:30, file:'Акт на списание', fields:[['no','№ акта на списание','text',1],['qty','Списано, кол-во','number',1]]}
 ];
 const P_RDSITE_NORM=2, P_PPR_NORM=10;
-const STATUS={ok:'В срок',late:'Задержка',problem:'Проблема',done:'Использовано',wait:'Проект в разработке'};
+const STATUS={ok:'В срок',late:'Задержка',problem:'Проблема',done:'Списано',wait:'Проект в разработке'};
 function roles(){return [['rp','Руководитель проектов (просмотр)'],['proj','Проектный отдел'],['pto','ПТО'],...SITES.map(s=>['site:'+s.name,'Участок '+s.name]),['buy','Отдел закупок'],['store','Склад'],['qc','Входной контроль'],['admin','Администратор (все разделы)']]}
 
 /* ---------- утилиты ---------- */
@@ -468,7 +471,7 @@ function mInfo(p,m){
   return {i,status,wait};
 }
 function waitText(p,m,x){
-  if(x.status==='done')return 'использовано '+fd(m.wo.date);
+  if(x.status==='done')return 'списано '+fd((m.off||m.wo).date);
   if(x.status==='wait')return 'проект ещё в разработке';
   const s=MS[x.i];
   if(s.norm==='plan'){const pl=m.take?.plan;if(pl)return TODAY>pl?`поставка просрочена на ${days(dd(pl,TODAY))} (срок ${fd(pl)})`:`срок поставки ${fd(pl)}`;return `ждёт ${days(x.wait)}, срок поставки не указан`}
@@ -629,19 +632,18 @@ function renderMine(){
 function fillNpObj(){const s=$('np-site').value,o=$('np-obj'),v=o.value;const objs=SITES.find(x=>x.name===s)?.objects||[];o.innerHTML=objs.length?objs.map(x=>`<option ${x===v?'selected':''}>${esc(x)}</option>`).join(''):'<option value="">Нет объектов — добавьте во вкладке «Участки»</option>'}
 
 /* проекты */
-function pCounts(p){const ms=mats(p);const c=k=>ms.filter(m=>m[k]).length;return {n:ms.length,lzk:c('lzk'),znvp:c('znvp'),take:c('take'),store:c('store'),wo:c('wo')}}
+function pCounts(p){const ms=mats(p);const c=k=>ms.filter(m=>m[k]).length;return {n:ms.length,lzk:c('lzk'),znvp:c('znvp'),take:c('take'),store:c('store'),wo:c('wo'),off:c('off')}}
 function renderProjects(){
   siteSelect('pSite','Все участки');objSelect('pObj',$('pSite').value);
   if(!loaded){$('pBody').innerHTML='<tr><td colspan="11" class="wo">Загружаем…</td></tr>';return}
   const q=$('pText').value.trim().toLowerCase(),fs=$('pSite').value,fo=$('pObj').value,st=$('pStatus').value;
   const list=projects.filter(p=>(!fs||p.site===fs)&&(!fo||p.obj===fo)&&(!q||(p.code+' '+p.title).toLowerCase().includes(q))&&(!st||(st==='attn'?allMats([p]).some(([,,x])=>x.status==='late'||x.status==='problem'):pStatus(p)===st))).sort((a,b)=>a.code.localeCompare(b.code,'ru',{numeric:true}));
-  $('pBody').innerHTML=list.length?list.map(p=>{const c=pCounts(p);const am=allMats([p]).filter(([,,x])=>x.status!=='done'&&x.status!=='wait');const w=am.sort((a,b)=>b[2].wait-a[2].wait)[0];
-    return `<tr class="row" data-proj="${p.id}" tabindex="0"><td class="mono">${esc(p.code)}</td><td><div class="wt">${esc(p.title)}${p.demo?'<span class="tag">пример</span>':''}</div><div class="wo">${esc(p.site)} · ${esc(p.obj)}</div></td>
-     <td><span class="pill ${pStatus(p)}">${p.issued?'Выдан в работу':'В разработке'}</span><div class="wo">${p.issued?fd(p.issued.date):'с '+fd(p.dev?.date)}</div></td>
-     <td>${p.ppr?`<span class="pill yes">Выдан</span><div class="wo">${fd(p.ppr.date)}</div>`:p.issued?`<span class="pill ${dd(p.issued.date,TODAY)>P_PPR_NORM?'late':'no'}">Не выдан</span><div class="wo">ждёт ${days(dd(p.issued.date,TODAY))}</div>`:'<span class="wo">—</span>'}</td>
-     <td class="num">${c.n}</td><td>${frac(c.lzk,c.n)}</td><td>${frac(c.znvp,c.n)}</td><td>${frac(c.take,c.n)}</td><td>${frac(c.store,c.n)}</td><td>${frac(c.wo,c.n)}</td>
-     <td>${w?`<div>Ждёт: ${MS[w[2].i].n.toLowerCase()}</div><div class="wo"><span class="pill ${w[2].status}">${days(w[2].wait)}</span> ${esc(w[1].name)}</div>`:'<span class="wo">—</span>'}</td></tr>`}).join('')
-    :`<tr><td colspan="11" class="wo">${projects.length?'Под выбранные условия проектов нет.':'Проектов пока нет. Первый проект создаёт проектный отдел в «Моём разделе».'}</td></tr>`;
+  $('pBody').innerHTML=list.length?list.map(p=>{const c=pCounts(p);
+    return `<tr class="row" data-proj="${p.id}" tabindex="0"><td class="mono"><b>${esc(p.obj||'—')}</b></td><td class="pcode"><div class="mono wt">${esc(p.code)}</div><div class="wo">${p.title?esc(p.title)+' · ':''}${esc(p.site)}${p.demo?' <span class="tag">пример</span>':''}</div></td>
+     <td><span class="pill ${p.issued?'yes':'no'}">${p.issued?'Выдан':'Не выдан'}</span><div class="wo">${p.issued?fd(p.issued.date):'в разработке с '+fd(p.dev?.date)}</div></td>
+     <td><span class="pill ${p.ppr?'yes':'no'}">${p.ppr?'Выдан':'Не выдан'}</span><div class="wo">${p.ppr?fd(p.ppr.date):p.issued?'ждёт '+days(dd(p.issued.date,TODAY)):''}</div></td>
+     <td class="num">${c.n}</td><td>${frac(c.lzk,c.n)}</td><td>${frac(c.znvp,c.n)}</td><td>${frac(c.take,c.n)}</td><td>${frac(c.store,c.n)}</td><td>${frac(c.wo,c.n)}</td><td>${frac(c.off,c.n)}</td></tr>`}).join('')
+    :`<tr><td colspan="11" class="wo">${projects.length?'Под выбранные условия проектов нет.':'Проектов пока нет.'}</td></tr>`;
 }
 
 /* ЗнВП */
