@@ -170,6 +170,12 @@ td.pcode .mono{word-break:break-all;font-size:12px}
 .box>h3{padding:12px 16px 0;margin:0}
 .newp{background:var(--surface);border:1px solid var(--ink);border-radius:8px;margin-bottom:18px}
 .newp>summary{padding:12px 16px;cursor:pointer;font-weight:600}
+.pnewbtn{background:var(--ink);color:var(--bg);border:1px solid var(--ink);border-radius:6px;padding:8px 14px;font-weight:600;cursor:pointer;min-height:38px}
+.pnewbtn[aria-expanded="true"]{background:var(--surface);color:var(--ink)}
+.pnew{margin:0 0 14px}
+.meta>div{min-width:0;overflow-wrap:anywhere}
+.pnewh{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px 0}
+.pnewh b{font-size:16px}
 
 .tasks{display:flex;flex-direction:column;gap:8px}
 .taskrow{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:6px;padding:10px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;align-items:center;cursor:pointer;text-align:left;width:100%}
@@ -300,6 +306,19 @@ footer{margin-top:40px;color:var(--muted);font-size:12px;border-top:1px solid va
       <select id="pSite" aria-label="Участок"></select>
       <select id="pObj" aria-label="Объект"></select>
       <select id="pStatus" aria-label="Статус проекта"><option value="">Все проекты</option><option value="dev">В разработке</option><option value="issued">Выданы в работу</option><option value="attn">Есть задержки</option></select>
+      <button type="button" class="pnewbtn" id="pNewBtn" aria-expanded="false">+ Новый проект</button>
+    </div>
+    <div class="newp pnew" id="pNew" hidden>
+     <div class="pnewh"><b>Новый проект</b><button type="button" class="btn ghost" id="pNewClose">Закрыть</button></div>
+     <form class="form" data-newproj="1">
+      <label>Участок<select id="np-site" name="site" required></select></label>
+      <label>Объект<select id="np-obj" name="obj" required></select></label>
+      <label class="wide">Шифр РД<input id="np-code" name="code" required placeholder="ED.D.A097.9.2UYF&&CZA&&&.076.DC.0001.E_C01" autocomplete="off"></label>
+      <label class="wide">Название проекта<input id="np-title" name="title" placeholder="Необязательно, например: Фундаментная плита, захватка 3" autocomplete="off"></label>
+      <label>Начало разработки<input id="np-date" name="date" type="date" required></label>
+      <label class="wide">Комментарий<textarea id="np-note" name="note" placeholder="Необязательно"></textarea></label>
+      <div class="actions"><button class="btn" type="submit">Создать проект</button><span class="msg" data-msg></span></div>
+     </form>
     </div>
     <div class="tbl-scroll"><table>
       <thead><tr><th>Объект</th><th>Шифр РД</th><th>Статус</th><th>ППР</th><th>Материалов</th><th>В ЛЗК</th><th>В ЗнВП</th><th>В закупке</th><th>На складе</th><th>Использовано</th><th>Списано</th></tr></thead>
@@ -751,7 +770,7 @@ function projView(p){
     {t:'РД выдана на строительный участок',m:p.rdsite,d:'pto',dur:p.rdsite&&p.issued?dd(p.issued.date,p.rdsite.date):null,norm:P_RDSITE_NORM},
     {t:'ППР разработан и выдан на строительный участок',m:p.ppr,d:'pto',dur:p.ppr&&p.issued?dd(p.issued.date,p.ppr.date):null,norm:P_PPR_NORM}
   ];
-  let h=`<div class="dh"><div class="kind">Проект</div><h2>${esc(p.title)}</h2><span class="pill ${pStatus(p)}">${p.issued?'Выдан в работу':'В разработке'}</span>${p.demo?'<span class="tag">пример</span>':''}</div>
+  let h=`<div class="dh"><div class="kind">Проект</div><h2>${esc(p.title||p.code)}</h2><span class="pill ${pStatus(p)}">${p.issued?'Выдан в работу':'В разработке'}</span>${p.demo?'<span class="tag">пример</span>':''}</div>
    <div class="meta"><div><span>Шифр РД</span>${esc(p.code)}</div><div><span>Участок</span>${esc(p.site)}</div><div><span>Объект</span>${esc(p.obj)}</div>
     <div><span>Материалов</span>${c.n}</div><div><span>Внесено в ЛЗК</span>${c.lzk} из ${c.n}</div><div><span>В ЗнВП</span>${c.znvp} из ${c.n}</div></div>
    <ol class="tl">${tl.map((s,i)=>{const cur=!s.m&&(i>=2?!!p.issued:(i===0||tl[i-1].m));const over=s.norm&&s.dur!=null&&s.dur>s.norm;
@@ -863,7 +882,7 @@ document.addEventListener('submit',async e=>{
   const f=e.target;e.preventDefault();
   if(f.dataset.addobj!=null){const si=+f.dataset.addobj,v=$('ao-'+si).value.trim().toUpperCase();if(!v)return;const next=SITES.map(s=>({name:s.name,objects:[...s.objects]}));if(!next[si].objects.includes(v))next[si].objects.push(v);$('ao-'+si).value='';saveSites(next);return}
   if(f.dataset.newproj){const o=readForm(f);if(!o.obj)return msg(f,'Сначала добавьте объект участку во вкладке «Участки».');if(o.date>TODAY)return msg(f,'Дата не может быть в будущем.');
-    return withBtn(f,async()=>{const doc={code:o.code,title:o.title,site:o.site,obj:o.obj,created:nowIso(),dev:{date:o.date,by:myId,at:nowIso(),...(o.note?{note:o.note}:{})},materials:{}};
+    return withBtn(f,async()=>{const doc={code:o.code.trim(),title:(o.title||'').trim(),site:o.site,obj:o.obj,created:nowIso(),dev:{date:o.date,by:myId,at:nowIso(),...(o.note?{note:o.note}:{})},materials:{}};
       const ref=await db.collection('projects').add(doc);['np-code','np-title','np-note'].forEach(id=>{if($(id))$(id).value=''});openView({t:'proj',pid:ref.id},true)})}
   if(f.dataset.pmark){const p=projects.find(x=>x.id===f.dataset.pid),k=f.dataset.pmark,o=readForm(f);const prev=k==='issued'?p.dev?.date:p.issued?.date;
     if(o.date>TODAY)return msg(f,'Дата не может быть в будущем.');if(prev&&o.date<prev)return msg(f,`Дата раньше предыдущего этапа (${fd(prev)}).`);
@@ -954,6 +973,11 @@ $('role').onchange=()=>{role=$('role').value;try{localStorage.setItem('stroy-rol
 window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(TABS.includes(h)&&h!==tab)showTab(h)});
 {const h=location.hash.slice(1);if(TABS.includes(h))showTab(h)}
 render();connect();
+/* форма создания проекта во вкладке «Проекты» */
+function pNewToggle(on){const box=$('pNew'),b=$('pNewBtn');if(on==null)on=box.hidden;box.hidden=!on;b.setAttribute('aria-expanded',on);
+  if(on){const ss=$('np-site'),v=ss.value;ss.innerHTML=SITES.map(s=>`<option ${s.name===v?'selected':''}>${esc(s.name)}</option>`).join('');if(!v){const u=SITES.find(s=>s.name==='УОР №2');if(u)ss.value=u.name}
+    if(!$('np-date').value){$('np-date').value=TODAY}$('np-date').max=TODAY;fillNpObj();setTimeout(()=>$('np-code').focus(),0)}}
+$('pNewBtn').onclick=()=>pNewToggle();$('pNewClose').onclick=()=>pNewToggle(false);
 </script>
 
 </body></html>
