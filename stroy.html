@@ -204,6 +204,18 @@ td.pcode .mono{word-break:break-all;font-size:12px}
 .dstats span{font-size:11px;color:var(--muted)}
 .dstats .bad b{color:var(--bad)}
 .objs{display:flex;flex-wrap:wrap;gap:6px}
+.objbtn{cursor:pointer}
+.objbtn:hover{border-color:var(--ink)}
+.objbtn.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.objbtn.on .muted{color:var(--bg);opacity:.75}
+.objlist{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+.objlh{display:flex;gap:8px;align-items:baseline;margin-bottom:4px}
+.objp{display:flex;flex-wrap:wrap;gap:6px 12px;justify-content:space-between;align-items:center;padding:8px 6px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:4px}
+.objp:last-child{border-bottom:0}
+.objp:hover{background:var(--sunk)}
+.objpc{min-width:0;flex:1 1 220px}
+.objpc .mono{overflow-wrap:anywhere}
+.objps{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .obj{font-family:var(--f-mono);font-size:12px;padding:3px 8px;border:1px solid var(--line);border-radius:4px;background:var(--sunk);display:inline-flex;gap:6px;align-items:center}
 .obj button{background:none;border:0;padding:0;color:var(--muted);cursor:pointer;font-size:14px;line-height:1}
 .addobj{display:flex;gap:6px}
@@ -701,6 +713,14 @@ function renderFeed(){
 }
 
 /* участки */
+let openObj='';
+function objProjList(s,l){
+  if(!openObj||openObj.split('|')[0]!==s.name)return '';const o=openObj.slice(s.name.length+1);if(!s.objects.includes(o))return '';
+  const ps=l.filter(p=>p.obj===o).sort((a,b)=>a.code.localeCompare(b.code,'ru',{numeric:true}));
+  return `<div class="objlist"><div class="objlh"><b>Проекты объекта ${esc(o)}</b><span class="muted">${ps.length}</span></div>${ps.length?ps.map(p=>{const c=pCounts(p);return `<div class="objp row" data-proj="${p.id}" tabindex="0">
+    <div class="objpc"><div class="mono">${esc(p.code)}</div>${p.title?`<div class="wo">${esc(p.title)}</div>`:''}</div>
+    <div class="objps"><span class="pill ${p.issued?'yes':'no'}">РД: ${p.issued?'выдан':'не выдан'}</span><span class="pill ${p.ppr?'yes':'no'}">ППР: ${p.ppr?'выдан':'не выдан'}</span><span class="wo">материалов ${c.n} · списано ${c.off}/${c.n}</span></div></div>`}).join(''):'<div class="wo" style="padding:8px 0">Проектов по этому объекту пока нет.</div>'}</div>`;
+}
 function renderSites(){
   const edit=isBoss()&&canWrite&&db;
   $('sitesList').innerHTML=SITES.map((s,si)=>{
@@ -710,7 +730,7 @@ function renderSites(){
     return `<div class="dcard" style="border-top-color:var(--c-site)">
       <div><h3>${esc(s.name)}</h3><div class="who">${cs?`Дольше всего относительно нормы: ${cs.n.toLowerCase()} — ${r1(cs.v)} дн. при норме ${cs.norm}`:'Пока нет данных по срокам'}</div></div>
       <div class="dstats"><div><b class="num">${l.filter(p=>!p.issued).length}</b><span>в разработке</span></div><div><b class="num">${l.filter(p=>p.issued).length}</b><span>выдано в работу</span></div><div class="${bad?'bad':''}"><b class="num">${bad}</b><span>поз. с задержкой</span></div></div>
-      <div><div class="who" style="margin-bottom:6px">Объекты</div><div class="objs">${s.objects.map((o,oi)=>`<span class="obj">${esc(o)}<span class="muted">${l.filter(p=>p.obj===o).length}</span>${edit?`<button title="Убрать объект" data-act="delObj" data-si="${si}" data-oi="${oi}">×</button>`:''}</span>`).join('')||'<span class="who">Объекты не добавлены</span>'}</div></div>
+      <div><div class="who" style="margin-bottom:6px">Объекты</div><div class="objs">${s.objects.map((o,oi)=>`<span class="obj objbtn${openObj===s.name+'|'+o?' on':''}" role="button" tabindex="0" data-objopen="${esc(s.name+'|'+o)}" title="Показать проекты объекта">${esc(o)}<span class="muted">${l.filter(p=>p.obj===o).length}</span>${edit?`<button title="Убрать объект" data-act="delObj" data-si="${si}" data-oi="${oi}">×</button>`:''}</span>`).join('')||'<span class="who">Объекты не добавлены</span>'}</div>${objProjList(s,l)}</div>
       ${edit?`<form class="addobj" data-addobj="${si}"><input id="ao-${si}" placeholder="Код объекта, напр. 93UYE" required aria-label="Новый объект"><button class="btn ghost" type="submit">Добавить</button></form>`:''}
     </div>`}).join('');
 }
@@ -977,7 +997,11 @@ render();connect();
 function pNewToggle(on){const box=$('pNew'),b=$('pNewBtn');if(on==null)on=box.hidden;box.hidden=!on;b.setAttribute('aria-expanded',on);
   if(on){const ss=$('np-site'),v=ss.value;ss.innerHTML=SITES.map(s=>`<option ${s.name===v?'selected':''}>${esc(s.name)}</option>`).join('');if(!v){const u=SITES.find(s=>s.name==='УОР №2');if(u)ss.value=u.name}
     if(!$('np-date').value){$('np-date').value=TODAY}$('np-date').max=TODAY;fillNpObj();setTimeout(()=>$('np-code').focus(),0)}}
-$('pNewBtn').onclick=()=>pNewToggle();$('pNewClose').onclick=()=>pNewToggle(false);
+$('pNewBtn').onclick=()=>pNewToggle();
+/* участки: нажатие на объект — список его проектов */
+function objToggle(el){const k=el.dataset.objopen;openObj=openObj===k?'':k;renderSites()}
+document.addEventListener('click',e=>{if(e.target.closest('button'))return;const el=e.target.closest('[data-objopen]');if(el)objToggle(el)});
+document.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const el=e.target.closest&&e.target.closest('[data-objopen]');if(el){e.preventDefault();objToggle(el)}});$('pNewClose').onclick=()=>pNewToggle(false);
 </script>
 
 </body></html>
