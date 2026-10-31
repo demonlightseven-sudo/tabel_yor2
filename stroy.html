@@ -173,6 +173,9 @@ td.pcode .mono{word-break:break-all;font-size:12px}
 .pnewbtn{background:var(--ink);color:var(--bg);border:1px solid var(--ink);border-radius:6px;padding:8px 14px;font-weight:600;cursor:pointer;min-height:38px}
 .pnewbtn[aria-expanded="true"]{background:var(--surface);color:var(--ink)}
 .pnew{margin:0 0 14px}
+.zfile{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 8px 6px 12px}
+.zfile>span:first-child{display:flex;flex-direction:column;line-height:1.2}
+.zfile label.pnewbtn{display:inline-flex;align-items:center}
 .meta>div{min-width:0;overflow-wrap:anywhere}
 .pnewh{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px 0}
 .pnewh b{font-size:16px}
@@ -342,7 +345,9 @@ footer{margin-top:40px;color:var(--muted);font-size:12px;border-top:1px solid va
     <div class="filters">
       <select id="zSite" aria-label="Участок"></select>
       <label><input type="checkbox" id="zOpen"> только с позициями, не взятыми в работу</label>
+      <div class="zfile"><span><b>Отчёт по заявкам</b><span class="wo">из него заполняются ЗнВП и позиции проектов</span></span><label class="pnewbtn">📎 Прикрепить файл .xlsx<input type="file" id="zFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden></label><span class="wo" id="zFileMsg"></span></div>
     </div>
+    <div class="newp pnew" id="zImp" hidden></div>
     <div class="tbl-scroll"><table>
       <thead><tr><th>№ ЗнВП</th><th>Проект</th><th>Создан</th><th>Позиций</th><th>Взято в работу</th><th>Поступило на склад</th><th>Ближайший срок поставки</th></tr></thead>
       <tbody id="zBody"></tbody>
@@ -484,7 +489,7 @@ const isBoss=()=>role==='rp'||role==='admin';
 
 /* ---------- модель ---------- */
 const mats=p=>Object.entries(p.materials||{}).map(([id,m])=>({...m,id})).sort((a,b)=>(a.n||0)-(b.n||0));
-function mNext(m){for(let i=0;i<MS.length;i++)if(!m[MS[i].k])return i;return MS.length}
+function mNext(m){for(let i=MS.length-1;i>=0;i--)if(m[MS[i].k])return i+1;return 0}   /* следующий этап — после последнего отмеченного (ЗнВП из файла может прийти без отметки ЛЗК) */
 function prevDate(p,m,i){return i===0?p.issued?.date:m[MS[i-1].k]?.date}
 function mDur(p,m,i){const a=prevDate(p,m,i),b=m[MS[i].k]?.date;return a&&b?dd(a,b):null}
 function isOver(p,m,i,spent){
@@ -993,6 +998,97 @@ $('role').onchange=()=>{role=$('role').value;try{localStorage.setItem('stroy-rol
 window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(TABS.includes(h)&&h!==tab)showTab(h)});
 {const h=location.hash.slice(1);if(TABS.includes(h))showTab(h)}
 render();connect();
+/* ---------- ЗнВП из файла «Отчёт по заявкам на поставку» (.xlsx) ---------- */
+function zZip(buf){
+  const u=new Uint8Array(buf),dv=new DataView(buf);let e=-1;
+  for(let i=u.length-22;i>=Math.max(0,u.length-70000);i--){if(dv.getUint32(i,true)===0x06054b50){e=i;break}}
+  if(e<0)throw new Error('Это не файл Excel (.xlsx)');
+  let n=dv.getUint16(e+10,true),off=dv.getUint32(e+16,true);const files={},dec=new TextDecoder();
+  for(let k=0;k<n;k++){const m=dv.getUint16(off+10,true),cs=dv.getUint32(off+20,true),nl=dv.getUint16(off+28,true),xl=dv.getUint16(off+30,true),cl=dv.getUint16(off+32,true),lo=dv.getUint32(off+42,true);
+    files[dec.decode(u.subarray(off+46,off+46+nl))]={m,cs,lo};off+=46+nl+xl+cl}
+  const get=name=>{const f=files[name];if(!f)return Promise.resolve(null);const st=f.lo+30+dv.getUint16(f.lo+26,true)+dv.getUint16(f.lo+28,true),data=u.subarray(st,st+f.cs);
+    if(f.m===0)return Promise.resolve(dec.decode(data));
+    if(typeof DecompressionStream==='undefined')return Promise.reject(new Error('Браузер не умеет читать Excel — обновите его'));
+    return new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text()};
+  return {names:Object.keys(files),get};
+}
+async function zSheets(buf){
+  const z=zZip(buf),P=new DOMParser(),ss=[];
+  const sst=await z.get('xl/sharedStrings.xml');
+  if(sst){const sd=P.parseFromString(sst,'application/xml');[...sd.getElementsByTagName('si')].forEach(si=>ss.push([...si.getElementsByTagName('t')].map(t=>t.textContent).join('')))}
+  const out=[];
+  for(const sh of z.names.filter(n=>/^xl\/worksheets\/sheet\d+\.xml$/.test(n)).sort((a,b)=>a.replace(/\D/g,'')-b.replace(/\D/g,''))){
+    const d=P.parseFromString(await z.get(sh),'application/xml'),rows=[];
+    [...d.getElementsByTagName('row')].forEach(rw=>{const ri=Number(rw.getAttribute('r'))-1,row=[];
+      [...rw.getElementsByTagName('c')].forEach(c=>{const L=(/^[A-Z]+/.exec(c.getAttribute('r')||'')||[''])[0];let col=0;for(let i=0;i<L.length;i++)col=col*26+(L.charCodeAt(i)-64);col--;
+        const t=c.getAttribute('t'),v=c.getElementsByTagName('v')[0];let val='';
+        if(t==='s'&&v)val=ss[Number(v.textContent)]||'';else if(t==='inlineStr')val=[...c.getElementsByTagName('t')].map(x=>x.textContent).join('');else if(v)val=v.textContent;
+        row[col]=String(val).trim()});rows[ri]=row});
+    out.push(rows);
+  }
+  return out;
+}
+const zKey=s=>String(s||'').toUpperCase().replace(/\s+/g,'');
+const zNum=v=>{const n=Number(String(v==null?'':v).replace(/\s/g,'').replace(',','.'));return isFinite(n)?Math.round(n*1000)/1000:0};
+function zHash(s){let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return (h>>>0).toString(36)}
+/* разбор: строки с шифром РД в «Примечании»; отменённые («Отмена / замена» = да) пропускаем */
+function zParse(sheets,fname){
+  let rows=null,H=-1;
+  for(const rs of sheets){for(let i=0;i<Math.min(rs.length,40);i++){const r=(rs[i]||[]).map(x=>String(x||'').replace(/\s+/g,' ').toLowerCase());if(r.some(x=>/заявка/.test(x))&&r.some(x=>/позиция/.test(x))){rows=rs;H=i;break}}if(rows)break}
+  if(!rows)throw new Error('Не нашёл таблицу: нужны колонки «Заявка (№ и дата)», «Позиция», «Примечание»');
+  const hd=rows[H].map(x=>String(x||'').replace(/\s+/g,' ').toLowerCase()),col=re=>hd.findIndex(x=>re.test(x));
+  const C={obj:col(/объект/),req:col(/заявка/),pos:col(/позиция/),qty:col(/затребован|кол-?во/),unit:col(/^ед/),got:col(/^поставлено/),cancel:col(/отмена/),note:col(/примечание|шифр/)};
+  if(C.note<0||C.req<0||C.pos<0)throw new Error('В таблице нет колонок «Заявка», «Позиция» или «Примечание»');
+  const m=/(\d{1,2})\.(\d{1,2})(?:\.(\d{2,4}))?/.exec(fname||'');let rep=TODAY;
+  if(m){const y=m[3]?(m[3].length===2?'20'+m[3]:m[3]):TODAY.slice(0,4);rep=`${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;if(rep>TODAY)rep=TODAY}
+  const by={},seen={};let noCode=0,cancel=0;
+  for(let i=H+1;i<rows.length;i++){const r=rows[i];if(!r||!r[C.pos])continue;
+    if(C.cancel>=0&&/^да/i.test(r[C.cancel]||'')){cancel++;continue}
+    const code=(r[C.note]||'').trim();if(!code){noCode++;continue}
+    const q=/([\d-]{5,})\s*(?:от\s*(\d{2})\.(\d{2})\.(\d{4}))?/.exec(r[C.req]||'');if(!q)continue;
+    const no=q[1],date=q[4]?`${q[4]}-${q[3]}-${q[2]}`:rep,name=r[C.pos],unit=C.unit>=0?r[C.unit]||'':'';
+    const base=no+'|'+zKey(name)+'|'+zKey(unit),occ=seen[zKey(code)+'|'+base]=(seen[zKey(code)+'|'+base]||0)+1;
+    (by[zKey(code)]=by[zKey(code)]||{code,obj:C.obj>=0?r[C.obj]||'':'',items:[]}).items.push({fk:base+'|'+occ,no,date,name,unit,qty:zNum(r[C.qty]),got:C.got>=0?zNum(r[C.got]):0});
+  }
+  return {by,noCode,cancel,rep,fname};
+}
+let zRes=null;
+function zShow(){
+  const box=$('zImp');if(!zRes){box.hidden=true;box.innerHTML='';return}
+  const groups=Object.values(zRes.by),pk={};projects.forEach(p=>pk[zKey(p.code)]=p);
+  const hit=groups.filter(g=>pk[zKey(g.code)]),miss=groups.filter(g=>!pk[zKey(g.code)]);
+  const rowsH=hit.map(g=>{const p=pk[zKey(g.code)],ex={};mats(p).forEach(m=>{if(m.fk)ex[m.fk]=1});const nw=g.items.filter(x=>!ex[x.fk]).length,zs=[...new Set(g.items.map(x=>x.no))];
+    return `<tr><td><b class="mono">${esc(p.obj||g.obj)}</b></td><td class="pcode"><div class="mono wt">${esc(p.code)}</div></td><td class="mono">${zs.map(esc).join('<br>')}</td><td class="num">${g.items.length}</td><td class="num">${nw}</td><td class="num">${g.items.filter(x=>x.got>0).length}</td></tr>`}).join('');
+  box.hidden=false;
+  box.innerHTML=`<div class="pnewh"><b>Файл: ${esc(zRes.fname)}</b><button type="button" class="btn ghost" data-zact="close">Закрыть</button></div>
+   <div style="padding:8px 16px 14px">
+   ${hit.length?`<p class="hint" style="margin:0 0 8px">Найдено проектов по шифру РД: <b>${hit.length}</b>. Позиции попадут в материалы проекта с номером и датой ЗнВП, поставленное количество — в «Поступило на склад» (датой отчёта ${fd(zRes.rep)}). Отменённые позиции не берутся. Повторная загрузка обновляет те же позиции, а не дублирует их.</p>
+   <div class="tbl-scroll"><table><thead><tr><th>Объект</th><th>Шифр РД</th><th>ЗнВП</th><th>Позиций</th><th>Новых</th><th>Поставлено</th></tr></thead><tbody>${rowsH}</tbody></table></div>
+   <div class="actions" style="display:flex;gap:10px;align-items:center;margin-top:10px"><button type="button" class="btn" data-zact="apply">Заполнить проекты из файла</button><span class="msg" id="zMsg"></span></div>`
+   :'<p class="hint" style="margin:0">В файле нет позиций с шифром РД, который совпадает с проектами в разделе. Шифр берётся из колонки «Примечание».</p>'}
+   <p class="wo" style="margin:10px 0 0">${miss.length?`Шифров, которых нет среди проектов: ${miss.length} (${miss.reduce((a,g)=>a+g.items.length,0)} поз.). `:''}${zRes.noCode?`Строк без шифра: ${zRes.noCode}. `:''}${zRes.cancel?`Отменено / замена: ${zRes.cancel}.`:''}</p>
+   ${miss.length?`<details style="margin-top:6px"><summary class="wo" style="cursor:pointer">Показать шифры, которых нет среди проектов</summary><div class="wo mono" style="margin-top:6px;overflow-wrap:anywhere">${miss.map(g=>esc(g.code)+' — '+g.items.length+' поз.').join('<br>')}</div></details>`:''}
+   </div>`;
+}
+async function zApply(btn){
+  const pk={};projects.forEach(p=>pk[zKey(p.code)]=p);let np=0,ni=0;btn.disabled=true;const msgEl=$('zMsg');
+  try{
+    for(const g of Object.values(zRes.by)){const p=pk[zKey(g.code)];if(!p)continue;
+      const ex={};let n=0;mats(p).forEach(m=>{if(m.fk)ex[m.fk]=m;n=Math.max(n,m.n||0)});const upd={},at=nowIso();
+      g.items.forEach(x=>{const old=ex[x.fk],mid=old?Object.keys(p.materials).find(k=>p.materials[k]===old):'f'+zHash(x.fk);
+        const o={fk:x.fk,name:x.name,unit:x.unit,qty:x.qty,znvp:{no:x.no,date:x.date,by:myId,at,src:'file'}};
+        if(!old)o.n=++n;
+        if(x.got>0&&!(old&&old.store&&old.store.src!=='file'))o.store={qty:x.got,date:(old&&old.store&&old.store.date)||zRes.rep,no:'по отчёту '+fd(zRes.rep),by:myId,at,src:'file'};
+        upd[mid]=o;ni++});
+      msgEl.textContent='Записываю '+esc(p.code)+'…';
+      await pref(p.id).update({materials:upd});np++;
+    }
+    msgEl.textContent=`Готово: проектов ${np}, позиций ${ni}.`;
+  }catch(e){msgEl.textContent='Не удалось записать: '+errText(e)}finally{btn.disabled=false}
+}
+$('zFile').addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;$('zFileMsg').textContent='Читаю '+f.name+'…';
+  try{zRes=zParse(await zSheets(await f.arrayBuffer()),f.name);$('zFileMsg').textContent='';zShow()}catch(err){zRes=null;zShow();$('zFileMsg').textContent=(err&&err.message)||'Не удалось прочитать файл'}});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-zact]');if(!b)return;if(b.dataset.zact==='close'){zRes=null;zShow()}else if(b.dataset.zact==='apply')zApply(b)});
 /* форма создания проекта во вкладке «Проекты» */
 function pNewToggle(on){const box=$('pNew'),b=$('pNewBtn');if(on==null)on=box.hidden;box.hidden=!on;b.setAttribute('aria-expanded',on);
   if(on){const ss=$('np-site'),v=ss.value;ss.innerHTML=SITES.map(s=>`<option ${s.name===v?'selected':''}>${esc(s.name)}</option>`).join('');if(!v){const u=SITES.find(s=>s.name==='УОР №2');if(u)ss.value=u.name}
