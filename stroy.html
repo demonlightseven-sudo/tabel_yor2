@@ -494,7 +494,7 @@ async function connect(){
     setConn(true);
     claude.use('assets').then(a=>{assets=a;render()}).catch(()=>{});
     db.doc('settings/sites').onSnapshot(d=>{const v=d.exists&&d.data().sites;if(Array.isArray(v)&&v.length){SITES=v;fillRole();render()}},()=>{});
-    db.collection('projects').onSnapshot(snap=>{projects=snap.docs.map(d=>({id:d.id,...d.data()}));loaded=true;render();resolveNames()},err=>setConn(false,err.code));
+    db.collection('projects').onSnapshot(snap=>{projects=snap.docs.map(d=>({id:d.id,...d.data()}));projects.forEach(p=>Object.values(p.materials||{}).forEach(m=>{if(m&&m.wo&&m.wo.no&&!m.off)m.off={...m.wo}}));loaded=true;render();resolveNames()},err=>setConn(false,err.code));
   }catch(e){setConn(false)}
 }
 function setConn(ok,code){const c=$('conn');c.className='conn '+(ok?'ok':'bad');c.textContent=ok?'общая, онлайн':'нет связи'+(code?' ('+code+')':'');if(!ok){loaded=true;render()}}
