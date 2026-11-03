@@ -714,6 +714,16 @@ body.vstroy #hnav{display:flex}
 body.vstroy main{max-width:1400px}
 #stroyv iframe{display:block;width:100%;border:0;background:transparent;min-height:60vh;color-scheme:normal}
 #stroyv iframe.ov{position:fixed;left:0;width:100%;z-index:30000}
+
+/* отметка прямо из «Табеля» */
+#mqd{display:none}
+body.vmonth.mq .row2{display:flex}
+body.vmonth.mq #msg{display:block}
+body.vmonth.mq #mqd{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;font-weight:700;padding:0 10px;flex:0 0 auto}
+body.vmonth.mq .row2 input{min-width:110px}
+@media (max-width:600px){body.vmonth.mq #scanBtn{display:none}}
+#mqd.past{border-color:#C9A227;background:var(--flash)}
+.mt .dsel{box-shadow:inset 0 3px 0 var(--work)}
 </style>
 </head>
 <body>
@@ -728,6 +738,7 @@ body.vstroy main{max-width:1400px}
     <button id="menuBtn" data-a="menu" aria-label="Меню">☰</button>
   </div>
   <div class="row2">
+    <button id="mqd" data-a="date" aria-label="День, за который ставится отметка"></button>
     <input id="q" type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Табельный номер">
     <button id="kb" data-a="kb" aria-label="Переключить клавиатуру: цифры или буквы">abc</button>
     <button id="scanBtn" data-a="scan" aria-label="Сканировать карточку камерой" title="Сканировать карточку">📷</button>
@@ -759,7 +770,7 @@ body.vstroy main{max-width:1400px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='200';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='201';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1580,6 +1591,8 @@ function render(){
   document.body.classList.toggle('vtask',ui.view==='task'||ui.view==='teams');
   document.body.classList.toggle('vteams',ui.view==='teams');
   document.body.classList.toggle('vhdate',ui.view==='board'||ui.view==='task'||ui.view==='brig'||ui.view==='nd'||ui.view==='teams'||ui.view==='day'||ui.view==='docs'||ui.view==='month');
+  var mq=ui.view==='month'&&!!role()&&role()!=='mont'&&role()!=='rukp'&&dayEditOk(); document.body.classList.toggle('mq',mq);
+  var mqd=$('mqd'); if(mqd){ var td=today(); mqd.textContent='за '+ui.date.slice(8,10)+'.'+ui.date.slice(5,7)+(ui.date===td?'':' ⚠'); mqd.classList.toggle('past',ui.date!==td); mqd.title='Отметка ставится за '+ui.date.split('-').reverse().join('.')+'. Нажмите, чтобы выбрать другой день'; }
   renderTop(); renderBanner(); renderSyncBar(); slFetch(false);
   var nws=(ui.view==='task'||ui.view==='nd')&&wsOn(); document.body.classList.toggle('nws',nws);
   if(ui.view==='stroy') stroyShow(); else if(document.body.classList.contains('site-off')){} else if(ui.view==='month') renderMonth(); else if(ui.view==='docs') renderDocs(); else if(ui.view==='nd') renderNd(); else if(isXv()) renderX(); else { renderStats(); renderList(); }
@@ -1645,7 +1658,7 @@ function renderMonth(){
   var head='<tr><th class="c0">ФИО</th><th class="c1">График</th>';
   for(i=1;i<=n;i++){
     var ds=m+'-'+pad(i), wd=new Date(a[0],a[1]-1,i).getDay();
-    head+='<th class="'+(ds===t?'tdy':'')+(srt&&srt.d===ds?' srt':'')+'"><button class="dh" data-a="mday" data-d="'+ds+'" aria-label="'+i+' число: сортировка или открыть день">'+i+'<small>'+WD[wd]+'</small></button></th>';
+    head+='<th class="'+(ds===t?'tdy':'')+(ds===ui.date&&document.body.classList.contains('mq')?' dsel':'')+(srt&&srt.d===ds?' srt':'')+'"><button class="dh" data-a="mday" data-d="'+ds+'" aria-label="'+i+' число: сортировка или открыть день">'+i+'<small>'+WD[wd]+'</small></button></th>';
   }
   head+='<th class="tot">Дн.</th><th class="tot">Ч.</th></tr>';
   var cnt=[], abs=[], are=true, cu=[], cp=[], cs=[], cd=[]; for(i=0;i<n;i++){ cnt.push(0); abs.push(0); cu.push(0); cp.push(0); cs.push(0); cd.push(0); }
@@ -1884,7 +1897,7 @@ function submitEntry(){ if(!canDay(true)) return;
   if(!allNum){
     var found=ppl.filter(function(p){ return matches(p,text); });
     if(found.length===1){ markPresent([found[0]],[],text); return; }
-    showMsg(found.length?'Найдено: '+found.length+'. Нажмите «Пришёл» у нужного человека в списке или введите табельный номер.':'Никого не найдено.',found.length?'warn':'bad');
+    showMsg(found.length&&ui.view==='month'?'Найдено: '+found.length+'. Уточните ФИО или введите табельный номер.':found.length?'Найдено: '+found.length+'. Нажмите «Пришёл» у нужного человека в списке или введите табельный номер.':'Никого не найдено.',found.length?'warn':'bad');
     return;
   }
   var by={}; ppl.forEach(function(p){ if(p.num) (by[normNum(p.num)]=by[normNum(p.num)]||[]).push(p); });
