@@ -770,7 +770,7 @@ body.vmonth.mq .row2 input{min-width:110px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='202';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='203';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4525,7 +4525,7 @@ function tmRender(){
       (k?'<small class="note tmks">КТУ проставлен: '+esc(whoBase(k.data.fio||k.who))+' · '+fmtDT(k.t)+'</small>':(can||!mem.length?'':'<small class="note tmks">КТУ за этот день не проставлен</small>'))+
       (can?'<button class="tbtdl tmsave" data-a="ktusave" data-l="'+esc(x.lead)+'" data-d="'+esc(d)+'" data-o="'+esc(x.b?x.b.obj||'':'')+'">Сохранить КТУ</button>':'')+'</details></div>';
   }).join('');
-  return '<h2 class="dh2">Бригады</h2><p class="note">Состав бригад закреплён, его меняет начальник участка в меню «Бригады». КТУ от 0,5 до 1,5 ставит бригадир своей бригаде по итогам дня.</p>'+
+  return '<h2 class="dh2">Бригады</h2>'+
     (rows==null||tmTeams==null?'<p class="note">Загружаю…</p>':'')+'<div class="tkgrid">'+cards+'</div>';
 }
 function ktuSave(el){
