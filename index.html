@@ -770,7 +770,7 @@ body.vmonth.mq .row2 input{min-width:110px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='201';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='202';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1637,7 +1637,7 @@ function renderMonth(){
   /* переключатель месяца — вверху, в шапке, как дата в остальных вкладках */
   var pm=shiftMonth(m,-1), nm=shiftMonth(m,1), mS=function(x){ return '<span class="wd">'+MONTHS_N[Number(x.slice(5,7))-1].slice(0,3)+'</span>'; };
   var hn=$('hnav'); if(hn) hn.innerHTML='<div class="xnav"><button class="xarr" data-a="mnav" data-d="-1" aria-label="Предыдущий месяц">◀ '+mS(pm)+'</button>'+
-    '<span class="hdate hstatic"><span class="dlong">'+MONTHS_N[a[1]-1]+' '+a[0]+'</span><span class="dshort">'+MONTHS_N[a[1]-1].slice(0,3)+' '+a[0]+'</span></span>'+
+    '<span class="hdate hstatic"><span class="dlong">'+MONTHS_N[a[1]-1]+' '+a[0]+'</span><span class="dshort">'+MONTHS_N[a[1]-1]+'</span></span>'+
     '<button class="xarr" data-a="mnav" data-d="1" aria-label="Следующий месяц">'+mS(nm)+' ▶</button>'+
     '<button class="xarr" data-a="mexp" aria-label="Сохранить файл для Excel" title="Файл для Excel">⬇</button><button class="xarr mfull" data-a="mfull" aria-label="Во весь экран" title="Во весь экран (F11)">⛶</button></div>';
   var nav='';
@@ -4525,7 +4525,7 @@ function tmRender(){
       (k?'<small class="note tmks">КТУ проставлен: '+esc(whoBase(k.data.fio||k.who))+' · '+fmtDT(k.t)+'</small>':(can||!mem.length?'':'<small class="note tmks">КТУ за этот день не проставлен</small>'))+
       (can?'<button class="tbtdl tmsave" data-a="ktusave" data-l="'+esc(x.lead)+'" data-d="'+esc(d)+'" data-o="'+esc(x.b?x.b.obj||'':'')+'">Сохранить КТУ</button>':'')+'</details></div>';
   }).join('');
-  return '<h2 class="dh2">Бригады</h2><p class="note">Рейтинг в баллах за '+MON_N[Number(a[1])-1].toLowerCase()+' '+a[0]+': каждое наряд-задание даёт до 10 баллов по проценту выполнения, баллы складываются — чем больше выполненных заданий, тем выше место. Совместное задание (бригады объединены) делится поровну между бригадирами-участниками. Итог × коэффициент численности (бригада больше средней по участку — до ×1,2, меньше — до ×0,8). Состав бригад закреплён, его меняет начальник участка в меню «Бригады». КТУ от 0,5 до 1,5 ставит бригадир своей бригаде по итогам дня.</p>'+
+  return '<h2 class="dh2">Бригады</h2><p class="note">Состав бригад закреплён, его меняет начальник участка в меню «Бригады». КТУ от 0,5 до 1,5 ставит бригадир своей бригаде по итогам дня.</p>'+
     (rows==null||tmTeams==null?'<p class="note">Загружаю…</p>':'')+'<div class="tkgrid">'+cards+'</div>';
 }
 function ktuSave(el){
