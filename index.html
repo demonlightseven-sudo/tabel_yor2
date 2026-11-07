@@ -596,6 +596,17 @@ body.vhdate #dateBtn{display:none}
 
 .tkpf{display:flex;flex-wrap:wrap;gap:4px 14px;margin:3px 0 2px 18px;font-size:13px}
 .tkpl{color:#d4a017}.tkfa{color:#2fa84f}
+.bdobjs{margin:10px 0 16px}.bdtabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.bdtab{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:6px 12px;font-weight:800;font-size:15px;background:var(--card,var(--bg));color:var(--ink);cursor:pointer;width:auto;margin:0}
+.bdtab small{font-weight:600;font-size:12px;color:var(--muted)}.bdtab.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}.bdtab.on small{color:var(--bg);opacity:.75}
+.bdtd{width:9px;height:9px;border-radius:50%;background:#2fa84f;flex:none}.bdtd-warn{background:#D9A92E}.bdtd-bad{background:var(--ab)}
+.bdop{border:2px solid var(--line);border-radius:14px;padding:8px 12px;background:var(--bg)}.bdop.xo-warn{border-color:#D9A92E}.bdop.xo-bad{border-color:var(--ab)}
+.bdoch{display:flex;margin:2px 0 6px}
+.bdr{display:grid;grid-template-columns:150px minmax(0,1fr) 90px 90px;gap:10px;align-items:baseline;padding:6px 2px;border-bottom:1px solid var(--line);font-size:14px}
+.bdr.bdrh{font-size:11px;color:var(--muted);padding:2px 2px 4px}.bdrn{font-weight:700;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bdrp{text-align:right;color:#d4a017;font-weight:700;white-space:nowrap}.bdrh .bdrp,.bdrh .bdrf{color:var(--muted);font-weight:400}.bdrf{text-align:right;color:#2fa84f;font-weight:700;white-space:nowrap}
+.bdmore{margin-top:8px}.bdmore>summary{font-size:13px;color:var(--muted);font-weight:600;padding:4px 0}
+@media (max-width:600px){.bdr{grid-template-columns:minmax(0,1fr) auto auto;gap:2px 10px}.bdr .bdrn{grid-column:1/4}.bdr .bdrn:empty{display:none}.bdr.bdrh{display:none}.bdtab{font-size:14px;padding:5px 9px}}
 .tkbx{display:inline-block;padding:0 6px;border:1px solid var(--line);border-radius:5px;font-size:12px;line-height:18px;white-space:nowrap}
 .tkpl~.tkbx{border-color:#d4a017}.tkfa~.tkbx{border-color:#2fa84f}
 .xmem>.ndk4,.xmem>.ndtbtb{margin-top:6px}
@@ -835,7 +846,7 @@ body.vmonth.mq .row2 input{min-width:110px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='219';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='220';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3699,7 +3710,7 @@ document.addEventListener('click',function(e){
   if(a.indexOf('tbt')===0){ tbtClick(a,el); return; }
   if(a==='ndapply'||a==='ndmanual'){ ndApplyComp(el.dataset.id,el.dataset.d,a==='ndmanual'?'manual':'file'); return; }
   if(a==='ndrenew'){ ndRenew(el.dataset.id,el.dataset.d); return; }
-  if(a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'||a==='tmday'||a==='ktusave'||a==='ndfrom'||a==='ndtbt'||a==='tkdone'||a==='tkdoneedit'||a==='tkrep'||a==='tkall'||a==='tkirow'||a==='tkidel'||a==='tkwadd'||a==='tkwdel'||a==='brgpick'||a==='brgpk'||a==='brgpickadd'||a==='xdpick'||a==='xdshift'||a==='xdtoday'||a==='mvcopy'||/^dt/.test(a)){ xClick(a,el); return; }
+  if(a==='bdobj'||a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'||a==='tmday'||a==='ktusave'||a==='ndfrom'||a==='ndtbt'||a==='tkdone'||a==='tkdoneedit'||a==='tkrep'||a==='tkall'||a==='tkirow'||a==='tkidel'||a==='tkwadd'||a==='tkwdel'||a==='brgpick'||a==='brgpk'||a==='brgpickadd'||a==='xdpick'||a==='xdshift'||a==='xdtoday'||a==='mvcopy'||/^dt/.test(a)){ xClick(a,el); return; }
   switch(a){
     case 'book': if(root.cur!==el.dataset.b){ root.cur=el.dataset.b; save(); ui.q=''; $('q').value=''; ui.open={}; clearMsg(); render(); window.scrollTo(0,0); pull(); } break;
     case 'date': sheetDate(); break;
@@ -5135,6 +5146,16 @@ function tkSend(){
     .catch(function(e){ msg.textContent='Не отправлено: '+((e&&e.message)||'ошибка'); });
 }
 var bdMemOpen={};
+var bdObjSel=(function(){ try{ return localStorage.getItem('tabel-bdobj')||''; }catch(e){ return ''; } })();
+/* вкладки объектов: наряды выбранного объекта — список в одну колонку */
+function bdRowsHtml(to){
+  return to.map(function(t){ var nm=esc(shortName(whoBase(t.data.brig)));
+    if(!tkHasItems(t)) return '<div class="bdr"><span class="bdrn">'+nm+'</span><span class="bdrw">'+tkTaskBody(t,true)+'</span><span class="bdrp"></span><span class="bdrf"></span></div>';
+    var dn=tkDone(t), fc=dn&&dn.data&&Array.isArray(dn.data.facts)?dn.data.facts:null;
+    return t.data.items.map(function(it,i){ var f=fc&&fc[i], pl=tkNum(it.v), u=it.u?' '+esc(it.u):'', fv;
+      if(!f||(pl!=null&&f.f==null)) fv='—'; else if(pl!=null) fv=esc(tkFmt(f.f))+u+' <b class="'+(f.p>=100?'tkok':f.p>0?'tkpart':'xno')+'">'+f.p+'%</b>'; else fv=f.p>=100?'сделано':'<span class="xno">не сделано</span>';
+      return '<div class="bdr"><span class="bdrn">'+(i?'':nm)+'</span><span class="bdrw">'+subTag(it)+esc(it.t)+'</span><span class="bdrp">'+(pl!=null?esc(it.v)+u:'')+'</span><span class="bdrf">'+fv+'</span></div>'; }).join(''); }).join('');
+}
 /* развёрнутые списки людей в наряде и TBT (свёрнуты по умолчанию, состояние держится до перезапуска) */
 var ndFold={};
 document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classList&&t.classList.contains('ndfold')) ndFold[t.dataset.fold]=t.open; },true);
@@ -5318,12 +5339,14 @@ function bdRender(){
     if(sum.comp) oChip('warn','состав ≠ наряд: '+sum.comp);
     if(sum.n&&!sum.bad&&!sum.warn) oc=['<span class="xchip ok">✓ всё в порядке</span>'];
     var olvl=sum.bad?'bad':sum.warn?'warn':'ok';
-    fl.push({lvl:olvl, i:fl.length, html:'<div class="xobj xo-'+olvl+'"><details class="xobjd" data-bid="'+esc(ok)+'"'+(bdMemOpen[ok]?' open':'')+'><summary class="xobjh">'+esc(o)+' <small>Бригадиров: '+to.length+' · чел.: <b class="xok">'+bo.reduce(function(s,x){ return s+(x.data.nums||[]).length; },0)+'</b></small>'+(oc.length?'<span class="xchips xochips">'+oc.join('')+'</span>':'')+
-      (to.length?'<div class="xobjtk">'+to.map(function(t){ return '<div class="xotr"><div class="xotn">'+esc(whoBase(t.data.brig))+'</div>'+(tkHasItems(t)?tkTaskBody(t,'bd'):'<div class="tkil">'+tkTaskBody(t,true)+'</div>')+'</div>'; }).join('')+'</div>':'')+'</summary>'+
-      (cards||'<p class="note">Наряд-заданий и бригад нет.</p>')+foot+'</details></div>'});
+    var npl=bo.reduce(function(s,x){ return s+(x.data.nums||[]).length; },0);
+    fl.push({lvl:olvl, i:fl.length, o:o, nb:to.length, np:npl, html:'<div class="bdop xo-'+olvl+'">'+(oc.length?'<div class="xchips bdoch">'+oc.join('')+'</div>':'')+
+      (to.length?'<div class="bdrows"><div class="bdr bdrh"><span>Бригадир</span><span>Работа</span><span class="bdrp">План</span><span class="bdrf">Факт</span></div>'+bdRowsHtml(to)+'</div>':'')+
+      '<details class="xobjd bdmore" data-bid="'+esc(ok)+'"'+(bdMemOpen[ok]?' open':'')+'><summary>Подробно: бригады, состав, наряд-допуски, TBT</summary>'+(cards||'<p class="note">Наряд-заданий и бригад нет.</p>')+foot+'</details></div>'});
   });
-  var LV={bad:0,warn:1,ok:2}; fl.sort(function(a,b){ return LV[a.lvl]-LV[b.lvl]||a.i-b.i; }); frames=fl.map(function(x){ return x.html; }).join('');
-  h+=frames?'<div class="xobjs">'+frames+'</div>':'<p class="note">На этот день наряд-задания не выданы и численность не подана.</p>';
+  var LV={bad:0,warn:1,ok:2}; fl.sort(function(a,b){ return LV[a.lvl]-LV[b.lvl]||a.i-b.i; }); var cur=fl.filter(function(x){ return x.o===bdObjSel; })[0]||fl[0];
+  frames=fl.length?'<div class="bdtabs">'+fl.map(function(x){ return '<button type="button" class="bdtab'+(x===cur?' on':'')+'" data-a="bdobj" data-o="'+esc(x.o)+'"><i class="bdtd bdtd-'+x.lvl+'"></i>'+esc(x.o)+' <small>'+x.nb+' бриг · '+x.np+' чел</small></button>'; }).join('')+'</div>'+cur.html:'';
+  h+=frames?'<div class="bdobjs">'+frames+'</div>':'<p class="note">На этот день наряд-задания не выданы и численность не подана.</p>';
   return '<div class="bdgrid"><div class="bdmain">'+h+'</div><aside class="bdside">'+dtBoardHtml(d)+nsubHtml(d,brigs)+'</aside></div>';
 }
 /* четыре рамки нарядов под бригадой: нажатие — новый наряд с людьми бригады и следующим номером */
@@ -5411,6 +5434,7 @@ function ndFromBrig(k,obj,d,bid,lead){
   if(k==='fire'&&!dr.rel) toast('Открытого наряда на опасные работы у этой бригады на '+esc(tbtDmy(d))+' нет');
 }
 function xClick(a,el){
+  if(a==='bdobj'){ bdObjSel=el.dataset.o||''; try{ localStorage.setItem('tabel-bdobj',bdObjSel); }catch(e){} renderX(); return; }
   if(a==='mvcopy'){ mvCopy(); return; }
   if(a==='brgpk'){ var ob=brgSt(), d0=today(), m0=bdItems(d0).filter(function(x){ return x.kind==='brig'&&x.id===myBrigId(d0); })[0]; ob.pk=Object.assign({},(m0&&m0.data&&m0.data.pk)||{},ob.pk||{}); ob.pk[el.dataset.n]=el.dataset.b; brgSave(ob); renderX(); return; }
   if(a==='brgpick'){ brgPickToggle(el.dataset.f,el.dataset.v,false); return; }
