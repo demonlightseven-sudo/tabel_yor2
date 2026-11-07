@@ -739,6 +739,13 @@ body.vmonth.mq .row2 input{min-width:110px}
 .mchq button{flex:1;min-width:60px;min-height:40px}
 .mchq button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 @media (max-width:420px){.mcbs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.texl{display:flex;gap:8px;margin-top:8px}
+.texl select{flex:1;min-width:0}
+.texl button{min-width:44px}
+.tmaddl{margin-top:8px;align-self:flex-start}
+.tmn b.tmnm{display:block;-webkit-line-clamp:unset;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tmls{display:block;color:var(--muted);font-size:11px;font-weight:400}
 </style>
 </head>
 <body>
@@ -785,7 +792,7 @@ body.vmonth.mq .row2 input{min-width:110px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='205';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='206';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3759,6 +3766,8 @@ document.addEventListener('click',function(e){
     case 'tmedit': teamForm(el.dataset.id||''); break;
     case 'tmback': renderTeamsList(); break;
     case 'tmsave': teamSave(el.dataset.id||''); break;
+    case 'tmaddl': { var xc=$('te_xl'); if(xc) xc.insertAdjacentHTML('beforeend',teamXRow('')); break; }
+    case 'tmdell': { var rw=el.closest('.texl'); if(rw) rw.remove(); break; }
     case 'tmdel': teamDel(el.dataset.id||''); break;
     case 'uback': renderUsers(); break;
     case 'uedit': uForm(el.dataset.id||''); break;
@@ -4534,7 +4543,7 @@ var tmDate='', ktuDraft={}, KTU_V=['0.5','0.6','0.7','0.8','0.9','1.0','1.1','1.
 document.addEventListener('change',function(e){ var t=e.target; if(t&&t.dataset&&t.dataset.ktu){ var a=t.dataset.ktu.split('|'); (ktuDraft[a[0]]=ktuDraft[a[0]]||{})[a[1]]=t.value; } },true);
 function tmStats(ym){ tkStatsBody(ym+'-01'); var c=tkSt[ym]; return c?c.rows:null; }
 function ktuItem(d,lead){ return bdItems(d).filter(function(x){ return x.kind==='ktu'&&x.data&&fioKey(x.data.lead)===fioKey(lead); })[0]||null; }
-function ktuCan(d,lead){ if(isAdmin()) return true; return role()==='mont'&&fioKey(lead)===fioKey(sync.who)&&(d===today()||d===addDays(today(),-1)); }
+function ktuCan(d,lead){ if(role()!=='mont'||!(d===today()||d===addDays(today(),-1))) return false; var t=teamOf(lead), me=fioKey(whoBase(sync.who)); return (t?teamLeads(t):[lead]).some(function(n){ return fioKey(n)===me; }); }   /* КТУ — только бригадиры своей бригады */
 var tmTeams=null, tmTeamsAt=0, tmTeamsBusy=false;
 function teamsLoad(force){
   if(!syncOn()||tmTeamsBusy||(!force&&tmTeams&&Date.now()-tmTeamsAt<60000)) return;
@@ -4543,10 +4552,15 @@ function teamsLoad(force){
     .catch(function(){ tmTeamsBusy=false; });
 }
 document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classList&&t.classList.contains('tmd')) bdMemOpen[t.dataset.bid]=t.open; },true);
-function teamOf(lead){ return (tmTeams||[]).filter(function(t){ return fioKey(t.lead)===fioKey(lead); })[0]||null; }
+function teamLeads(t){ var l=(t&&Array.isArray(t.leads)&&t.leads.length?t.leads:[t&&t.lead]).filter(Boolean), seen={}; if(t&&t.lead&&!l.some(function(n){ return fioKey(n)===fioKey(t.lead); })) l.unshift(t.lead); return l.filter(function(n){ var k=fioKey(n); if(seen[k]) return false; seen[k]=1; return true; }); }
+function teamOf(lead){ var k=fioKey(lead); return (tmTeams||[]).filter(function(t){ return teamLeads(t).some(function(n){ return fioKey(n)===k; }); })[0]||null; }
+function teamLnums(t){ var o=[]; teamLeads(t).forEach(function(n,i){ var p=personByFio(n), v=i===0&&t.lnum?t.lnum:(p&&p.num?p.num:''); if(v) o.push(normNum(v)); }); return o; }
+/* показатели за месяц по всем бригадирам бригады */
+function stSum(by,names){ var o=null; names.forEach(function(n){ var s=by[fioKey(n)]; if(!s) return; o=o||{n:0,ok:0,part:0,no:0,none:0,sum:0,pts:0,sh:0};
+  ['n','ok','part','no','none','sh'].forEach(function(k){ o[k]+=Number(s[k])||0; }); o.sum+=s.sum!=null?Number(s.sum):((s.ok||0)*100+(s.part||0)*50); o.pts+=Number(s.pts)||0; }); if(o) o.pts=Math.round(o.pts*100)/100; return o; }
 /* члены бригады: закреплённый состав; если бригады нет в списке — по подаче за день */
 function tmMembers(lead,d){
-  var t=teamOf(lead); if(t){ var ln=teamLnum(t); return t.nums.filter(function(n){ return normNum(n)!==normNum(ln); }); }
+  var t=teamOf(lead); if(t){ var lns=teamLnums(t); return t.nums.filter(function(n){ return lns.indexOf(normNum(n))<0; }); }
   var b=bdItems(d).filter(function(x){ return x.kind==='brig'&&fioKey(x.data.lead)===fioKey(lead); })[0];
   return b?(b.data.nums||[]).filter(function(n){ return normNum(n)!==normNum(b.data.lnum||''); }):[];
 }
@@ -4557,20 +4571,22 @@ function tmRender(){
   var ym=d.slice(0,7), rows=tmStats(ym), a=ym.split('-'), by={};
   (rows||[]).forEach(function(x){ by[fioKey(x.brig)]=x; });
   var brigs=bdItems(d).filter(function(x){ return x.kind==='brig'; }), leads=[], seen={};
-  (tmTeams||[]).map(function(t){ return t.lead; }).concat(tmTeams?[]:BRIG_NAMES).concat(brigs.map(function(b){ return whoBase(b.data.lead); })).forEach(function(n){ var k=fioKey(n); if(n&&!seen[k]){ seen[k]=1; leads.push(n); } });
-  var list=leads.map(function(n){ var st=by[fioKey(n)]||null; return {lead:n, t:teamOf(n), b:brigs.filter(function(x){ return fioKey(x.data.lead)===fioKey(n); })[0]||null, st:st, ppl:tmMembers(n,d).length+1, pct:st&&st.n?Math.round((st.sum!=null?st.sum:st.ok*100+st.part*50)/st.n):null}; });
+  (tmTeams||[]).map(function(t){ return t.lead; }).concat(tmTeams?[]:BRIG_NAMES).concat(brigs.map(function(b){ return whoBase(b.data.lead); })).forEach(function(n){ var tt=n?teamOf(n):null; if(tt) n=tt.lead; var k=fioKey(n); if(n&&!seen[k]){ seen[k]=1; leads.push(n); } });
+  var list=leads.map(function(n){ var t=teamOf(n), names=t?teamLeads(t):[n], st=stSum(by,names), keys=names.map(fioKey), mem=tmMembers(n,d).length;
+    return {lead:n, t:t, names:names, b:brigs.filter(function(x){ return keys.indexOf(fioKey(x.data.lead))>=0; })[0]||null, st:st, mem:mem, nl:names.length, ppl:mem+names.length, ppb:mem/names.length, pct:st&&st.n?Math.round(st.sum/st.n):null}; });
   /* численность: поправка до ±20% к проценту — больше средней по участку бригады получают до ×1,2, меньше — до ×0,8 */
-  var withP=list.filter(function(x){ return x.pct!=null&&x.ppl>1; }), avgN=withP.length?withP.reduce(function(s0,x){ return s0+x.ppl; },0)/withP.length:0;
-  list.forEach(function(x){ x.k=avgN?Math.round((1+0.2*Math.max(-1,Math.min(1,(x.ppl-avgN)/avgN)))*100)/100:1; x.score=x.pct==null?null:Math.round((x.st&&x.st.pts!=null?x.st.pts*10:x.pct)*x.k); });   // 10 баллов за полностью выполненное задание; совместное — делится между участниками
+  /* поправка до ±20%: людей на одного бригадира больше средней по участку — до ×1,2, меньше — до ×0,8 */
+  var withP=list.filter(function(x){ return x.pct!=null&&x.mem>0; }), avgN=withP.length?withP.reduce(function(s0,x){ return s0+x.ppb; },0)/withP.length:0;
+  list.forEach(function(x){ x.k=avgN?Math.round((1+0.2*Math.max(-1,Math.min(1,(x.ppb-avgN)/avgN)))*100)/100:1; x.score=x.pct==null?null:Math.round((x.st&&x.st.pts!=null?x.st.pts*10:x.pct)*x.k); });   // 10 баллов за полностью выполненное задание; совместное — делится между участниками
   list.sort(function(x,y){ return (y.score==null?-1:y.score)-(x.score==null?-1:x.score)||(y.pct==null?-1:y.pct)-(x.pct==null?-1:x.pct)||y.ppl-x.ppl||((x.t?x.t.no:999)-(y.t?y.t.no:999)); });
   var place=0, last=null;
   var cards=list.map(function(x,i){
     if(x.score!=null&&x.score!==last){ place=i+1; last=x.score; }
     var pl=x.score!=null?place:0, k=ktuItem(d,x.lead), vals=(k&&k.data&&k.data.vals)||{}, mem=tmMembers(x.lead,d), can=mem.length>0&&ktuCan(d,x.lead), dr=ktuDraft[x.lead]||{};
     var lnum=x.t?teamLnum(x.t):(x.b&&x.b.data.lnum), lp=lnum?brigP(x.b,lnum):null;
-    var head='<div class="tmno">'+(x.t?'Бригада № '+x.t.no:'Бригада без номера')+'</div><div class="tmh">'+(pl?'<span class="tmpl p'+Math.min(pl,4)+'" title="Место в рейтинге">'+pl+'</span>':'<span class="tmpl p0">—</span>')+'<div class="tmn"><b>'+esc(whoBase(x.lead))+'</b>'+(lnum?' <small>таб. № '+esc(lnum)+(lp&&lp.p.role?' · '+esc(lp.p.role):'')+'</small>':'')+'</div>'+
+    var head='<div class="tmno">'+(x.t?'Бригада № '+x.t.no:'Бригада без номера')+'</div><div class="tmh">'+(pl?'<span class="tmpl p'+Math.min(pl,4)+'" title="Место в рейтинге">'+pl+'</span>':'<span class="tmpl p0">—</span>')+'<div class="tmn">'+(x.nl>1?'<small class="tmls">Бригадиры:</small>'+x.names.map(function(nm){ return '<b class="tmnm">'+esc(shortName(whoBase(nm)))+'</b>'; }).join(''):'<b>'+esc(whoBase(x.lead))+'</b>')+(lnum&&x.nl===1?' <small>таб. № '+esc(lnum)+(lp&&lp.p.role?' · '+esc(lp.p.role):'')+'</small>':'')+'</div>'+
       (x.score!=null?'<div class="tmsc"><b>'+x.score+'</b><small>баллов</small></div>':'<div class="tmsc"><b class="none">—</b><small>баллов</small></div>')+'</div>'+
-      (x.st?'<div class="tmbar"><i style="width:'+Math.min(100,x.pct)+'%"></i></div><div class="tmst">заданий <b>'+x.st.n+'</b>'+(x.st.sh?' (совместных '+x.st.sh+')':'')+' · засчитано <b>'+(x.st.pts!=null?String(x.st.pts).replace('.',','):'—')+'</b> · выполнение '+x.pct+'%<br>× численность '+x.ppl+' чел. (<b>×'+String(x.k).replace('.',',')+'</b>) · полностью '+Math.round(x.st.ok*100/x.st.n)+'% · частично '+Math.round(x.st.part*100/x.st.n)+'%'+(x.st.none?' · не отмечено '+x.st.none:'')+'</div>':'<div class="tmbar tmbar0"></div><div class="tmst">численность '+x.ppl+' чел.<br>заданий с отметкой нет</div>');
+      (x.st?'<div class="tmbar"><i style="width:'+Math.min(100,x.pct)+'%"></i></div><div class="tmst">заданий <b>'+x.st.n+'</b>'+(x.st.sh?' (совместных '+x.st.sh+')':'')+' · засчитано <b>'+(x.st.pts!=null?String(x.st.pts).replace('.',','):'—')+'</b> · выполнение '+x.pct+'%<br>× '+fmtH(Math.round(x.ppb*10)/10)+' чел. на бригадира (<b>×'+String(x.k).replace('.',',')+'</b>) · полностью '+Math.round(x.st.ok*100/x.st.n)+'% · частично '+Math.round(x.st.part*100/x.st.n)+'%'+(x.st.none?' · не отмечено '+x.st.none:'')+'</div>':'<div class="tmbar tmbar0"></div><div class="tmst">'+x.mem+' чел., бригадиров '+x.nl+'<br>заданий с отметкой нет</div>');
     var rowsH=mem.map(function(n){ var p=brigP(x.b,n), key=normNum(n), v=dr[key]!=null?dr[key]:(vals[key]!=null?Number(vals[key]).toFixed(1):(can?'1.0':'')), ds=p?personDayStat(p,d):'';
       return '<div class="tmr"><span class="tmnum">'+esc(n)+'</span><span class="tmfio">'+(p?esc(p.p.name)+'<small>'+esc(p.p.role||'')+(ds?' · <span class="'+(ds==='прогул'?'xno':'')+'">'+esc(ds)+'</span>':'')+'</small>':'<span class="xno">нет в табеле</span>')+'</span>'+
         (can?'<select data-ktu="'+esc(x.lead)+'|'+esc(key)+'" aria-label="КТУ">'+KTU_V.map(function(o){ return '<option'+(o===v?' selected':'')+'>'+o+'</option>'; }).join('')+'</select>'
@@ -4601,16 +4617,21 @@ function renderTeamsList(){
   b.innerHTML='<p class="note">Состав закреплён: он не меняется от подачи численности и меняется только здесь. Номер бригады — постоянный.</p>'+
     '<button class="primary uaddb" data-a="tmedit" data-id="">+ Новая бригада</button>'+
     L.map(function(t){ var ln=teamLnum(t), n=t.nums.filter(function(x){ return normNum(x)!==normNum(ln); }).length;
-      return '<div class="urow"><div class="uinfo"><b>Бригада № '+t.no+'</b><div>'+esc(t.lead)+(ln?' · таб. № '+esc(ln):'')+'</div><small>членов бригады: '+n+'</small></div><button data-a="tmedit" data-id="'+esc(t.id)+'">Изменить</button></div>'; }).join('');
+      var lns=teamLnums(t); n=t.nums.filter(function(x){ return lns.indexOf(normNum(x))<0; }).length;
+      return '<div class="urow"><div class="uinfo"><b>Бригада № '+t.no+'</b><div>'+teamLeads(t).map(esc).join(', ')+(ln&&teamLeads(t).length===1?' · таб. № '+esc(ln):'')+'</div><small>бригадиров: '+teamLeads(t).length+' · членов бригады: '+n+'</small></div><button data-a="tmedit" data-id="'+esc(t.id)+'">Изменить</button></div>'; }).join('');
 }
+function teamXRow(n){ var L=(teamForm.leads||BRIG_NAMES).slice(); if(n&&L.indexOf(n)<0) L.unshift(n);
+  return '<div class="texl"><select class="te_xlead" aria-label="Ещё бригадир"><option value="">— выберите —</option>'+L.map(function(x){ return '<option'+(x===n?' selected':'')+'>'+esc(x)+'</option>'; }).join('')+'</select><button type="button" data-a="tmdell" aria-label="Убрать бригадира">✕</button></div>'; }
 function teamsPreview(v){ var ns=parseNums(v); return ns.length?ns.map(function(n,i){ var p=anyPerson(n); return '<div class="xrow"><b>'+(i+1)+'.</b> '+esc(n)+' '+(p?esc(p.p.name)+' <small>'+esc(p.p.role||'')+' · '+BOOKS[p.b]+'</small>':'<span class="xno">нет в табеле</span>')+'</div>'; }).join(''):'<p class="note">Впишите табельные номера.</p>'; }
 function teamForm(id){
   var b=$('tmlst'); if(!b) return; var L=tmTeams||[], t=L.filter(function(x){ return x.id===id; })[0]||{id:'',no:L.reduce(function(m,x){ return Math.max(m,x.no); },0)+1,lead:'',lnum:'',nums:[]};
   var leads=BRIG_NAMES.slice(); if(t.lead&&leads.indexOf(t.lead)<0) leads.unshift(t.lead);
-  var nums=t.nums.filter(function(x){ return normNum(x)!==normNum(teamLnum(t)); }).join(' ');
+  var lns0=t.id?teamLnums(t):[], nums=t.nums.filter(function(x){ return lns0.indexOf(normNum(x))<0; }).join(' '), xl=t.id?teamLeads(t).slice(1):[];
+  teamForm.leads=leads;
   b.innerHTML='<h3 class="dh3">'+(t.id?'Бригада № '+t.no:'Новая бригада')+'</h3><div class="uform">'+
     '<label for="te_no">Номер бригады</label><input id="te_no" type="number" min="1" max="999" value="'+t.no+'">'+
-    '<label for="te_lead">Бригадир</label><select id="te_lead"><option value="">— выберите —</option>'+leads.map(function(n){ return '<option'+(n===t.lead?' selected':'')+'>'+esc(n)+'</option>'; }).join('')+'<option value="__new">+ Новый бригадир…</option></select>'+
+    '<label for="te_lead">Бригадиры</label><select id="te_lead"><option value="">— выберите —</option>'+leads.map(function(n){ return '<option'+(n===t.lead?' selected':'')+'>'+esc(n)+'</option>'; }).join('')+'<option value="__new">+ Новый бригадир…</option></select>'+
+    '<div id="te_xl">'+xl.map(teamXRow).join('')+'</div><button type="button" class="tmaddl" data-a="tmaddl">+ Ещё бригадир</button>'+
     '<div id="te_new" class="uform tenew" hidden><small class="note">Новый бригадир сразу появится в «Пользователях» (уровень «Бригадир») и сможет входить под своим ФИО.</small>'+
       '<label for="te_nfio">ФИО нового бригадира</label><input id="te_nfio" maxlength="60" autocomplete="off" list="te_ppl" placeholder="Фамилия Имя Отчество">'+
       '<datalist id="te_ppl">'+root.books.rf.people.concat(root.books.are.people).filter(function(p){ return !p.archived; }).map(function(p){ return '<option value="'+esc(p.name)+'">'+esc((p.num?p.num+' · ':'')+(p.role||''))+'</option>'; }).join('')+'</datalist>'+
@@ -4649,15 +4670,18 @@ function teamSaveGo(id,lead){
   var msg=$('te_msg'), no=parseInt($('te_no').value,10), nums=parseNums($('te_nums').value);
   if(!(no>0)){ msg.textContent='Укажите номер бригады.'; return; }
   if(!lead){ msg.textContent='Выберите бригадира.'; return; }
-  var L=(tmTeams||[]).map(function(x){ return {id:x.id,no:x.no,lead:x.lead,lnum:x.lnum,nums:x.nums.slice()}; });
+  var L=(tmTeams||[]).map(function(x){ return {id:x.id,no:x.no,lead:x.lead,leads:teamLeads(x),lnum:x.lnum,nums:x.nums.slice()}; });
+  var xls=[]; Array.prototype.forEach.call(document.querySelectorAll('.te_xlead'),function(s){ var v=s.value; if(v&&fioKey(v)!==fioKey(lead)&&!xls.some(function(z){ return fioKey(z)===fioKey(v); })) xls.push(v); });
+  var allL=[lead].concat(xls), busyL=[];
+  L.forEach(function(x){ if(x.id===id) return; allL.forEach(function(n){ if(x.leads.some(function(m){ return fioKey(m)===fioKey(n); })) busyL.push(n+' — бригада № '+x.no); }); });
+  if(busyL.length){ msg.textContent='Уже бригадир в другой бригаде: '+busyL.join('; ')+'.'; return; }
   if(L.some(function(x){ return x.id!==id&&x.no===no; })){ msg.textContent='Бригада № '+no+' уже есть.'; return; }
-  if(L.some(function(x){ return x.id!==id&&fioKey(x.lead)===fioKey(lead); })){ msg.textContent='У этого бригадира уже есть бригада.'; return; }
-  var lp=personByFio(lead), lnum=lp&&lp.num?lp.num:'';
-  nums=nums.filter(function(n){ return normNum(n)!==normNum(lnum); });
+  var lp=personByFio(lead), lnum=lp&&lp.num?lp.num:'', lnA=allL.map(function(n){ var p=personByFio(n); return p&&p.num?normNum(p.num):''; }).filter(Boolean);
+  nums=nums.filter(function(n){ return lnA.indexOf(normNum(n))<0; });
   var other=[]; L.forEach(function(x){ if(x.id===id) return; nums.forEach(function(n){ if(x.nums.some(function(m){ return normNum(m)===normNum(n); })) other.push(n+' — в бригаде № '+x.no); }); });
   if(other.length&&teamSave.warn!==other.join()){ teamSave.warn=other.join(); msg.textContent='Уже числятся в других бригадах: '+other.join('; ')+'. Нажмите «Сохранить» ещё раз, если всё верно.'; return; }
   teamSave.warn=null;
-  var t={id:id||('t'+Date.now().toString(36)),no:no,lead:lead,lnum:lnum,nums:nums};
+  var t={id:id||('t'+Date.now().toString(36)),no:no,lead:lead,leads:allL,lnum:lnum,nums:nums};
   var i=L.findIndex(function(x){ return x.id===id; }); if(i>=0) L[i]=t; else L.push(t);
   teamsPut(L,'Бригада № '+no+' сохранена');
 }
