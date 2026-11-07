@@ -724,6 +724,21 @@ body.vmonth.mq .row2 input{min-width:110px}
 @media (max-width:600px){body.vmonth.mq #scanBtn{display:none}}
 #mqd.past{border-color:#C9A227;background:var(--flash)}
 .mt .dsel{box-shadow:inset 0 3px 0 var(--work)}
+
+.lg-u{color:var(--ul-t)} .lg-p{color:var(--pl-t)} .lg-s{color:var(--sick-t)} .lg-a{color:var(--ab-t)}
+.mt td.uvall{text-align:center;color:var(--ab-t);background:var(--ab-bg);font-weight:800;font-size:15px;letter-spacing:.35em;cursor:default}
+.mcbs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mcb{font-weight:700;min-height:48px}
+.mcb.on{outline:3px solid var(--ink);outline-offset:-3px}
+.mcb.mc-w{background:var(--work-bg);color:var(--work-t)} .mcb.mc-o{background:var(--off-bg);color:var(--off-t)} .mcb.mc-s{background:var(--sick-bg);color:var(--sick-t)}
+.mcb.mc-p{background:var(--pl-bg);color:var(--pl-t)} .mcb.mc-u{background:var(--ul-bg);color:var(--ul-t)} .mcb.mc-a{background:var(--ab-bg);color:var(--ab-t)}
+.mch{display:flex;gap:8px}
+.mch input{flex:1;min-width:0;text-align:center;font-size:20px;font-weight:700}
+.mch button{min-width:56px}
+.mchq{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.mchq button{flex:1;min-width:60px;min-height:40px}
+.mchq button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+@media (max-width:420px){.mcbs{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
@@ -770,7 +785,7 @@ body.vmonth.mq .row2 input{min-width:110px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='204';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='205';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1641,7 +1656,7 @@ function renderMonth(){
     '<button class="xarr" data-a="mnav" data-d="1" aria-label="Следующий месяц">'+mS(nm)+' ▶</button>'+
     '<button class="xarr" data-a="mexp" aria-label="Сохранить файл для Excel" title="Файл для Excel">⬇</button><button class="xarr mfull" data-a="mfull" aria-label="Во весь экран" title="Во весь экран (F11)">⛶</button></div>';
   var nav='';
-  var leg='<p class="mleg">'+(true?'UL — Отпуск без сохранения зар. платы · PL — Оплачиваемый отпуск · SL — Больничный · AB — Прогул · <span class="dob">DO</span> — Выходной по графику · УВ — Уволен':'Число — часы · В — выходной · Б — больничный · ОТ — отпуск · БС — отпуск без ЗП · ПР — прогул')+(true?'':' · оранжевая штриховка — выходной по графику, красная — праздничный день')+'.</p>';
+  var leg='<p class="mleg">'+(true?'<b class="lg-u">UL</b> — Отпуск без сохранения зар. платы · <b class="lg-p">PL</b> — Оплачиваемый отпуск · <b class="lg-s">SL</b> — Больничный · <b class="lg-a">AB</b> — Прогул · <span class="dob">DO</span> — Выходной по графику · <b class="lg-a">УВОЛЕН</b> — с даты увольнения':'Число — часы · В — выходной · Б — больничный · ОТ — отпуск · БС — отпуск без ЗП · ПР — прогул')+(true?'':' · оранжевая штриховка — выходной по графику, красная — праздничный день')+'.</p>';
   var old=monthOld&&syncOn()?'<p class="moldhint">Чтобы здесь были отметки с других телефонов, обновите скрипт в таблице (файл Code.gs, «Новая версия» в «Управление развертываниями»).</p>':'';
   if(!ppl.length){
     $('month').innerHTML=nav+'<div class="empty"><p>В табеле '+BOOKS[root.cur]+' пока нет людей.</p><button class="primary" data-a="people">Добавить людей</button></div>'; return;
@@ -1666,7 +1681,7 @@ function renderMonth(){
     var days=0, hrs=0, tds='';
     for(i=1;i<=n;i++){
       var ds=m+'-'+pad(i), r=(recs[ds]||{})[p.id], cls='';
-      if(!r&&firedOn(p,ds)){ tds+='<td class="uv" data-a="mcell" data-d="'+ds+'" data-id="'+esc(p.id)+'">УВ</td>'; continue; }
+      if(firedOn(p,ds)){ tds+='<td class="uvall" colspan="'+(n-i+1)+'" title="Уволен с '+firedDmy(p)+'">УВОЛЕН</td>'; break; }
       if(r){
         cls=MCLS[r.s];
         if(r.s==='work'&&r.h>0){ days++; hrs+=r.h; cnt[i-1]++; }
@@ -1872,6 +1887,42 @@ function setStatus(id,s){ if(!canDay(true)) return; if(!isAdmin()&&s!=='work'&&s
   else day[id]={s:s,h:s==='work'?(cur&&cur.s==='work'?cur.h:bk().defH):0,t:Date.now()};
   dropEmpty(ui.date); save(); track(root.cur,ui.date,id); updateRow(id);
 }
+/* отметка прямо из «Табеля»: окно на человека и день */
+var mcEd=null;
+function mcPerson(id){ var l=bk().people; for(var i=0;i<l.length;i++) if(l[i].id===id) return l[i]; return null; }
+function mcOpen(ds,id){
+  var p=mcPerson(id); if(!p) return;
+  if(!dayEditOk(ds)){ goDay(ds,id); return; }   /* кто не может отмечать этот день — как раньше, переход в «Явку» */
+  mcEd={d:ds,id:id}; mcRender();
+}
+function mcRender(){
+  if(!mcEd) return; var p=mcPerson(mcEd.id); if(!p){ closeSheet(); mcEd=null; return; }
+  var ds=mcEd.d, r=(bk().records[ds]||{})[p.id], x=parseYmd(ds), adm=isAdmin(), sg=schedById(p.sched||'');
+  var plan=p.sched?(planOff(p,ds)===true?(planHol(p,ds)?'праздничный день':'выходной по графику'):'рабочий день'+(planHours(p,ds)?' ('+planHours(p,ds)+' ч)':'')):'';
+  var btns=STAT.filter(function(s){ return adm||s[0]==='work'||s[0]==='ab'; }).map(function(s){ return '<button data-a="mcset" data-s="'+s[0]+'" class="mcb mc-'+MCLS[s[0]]+(r&&r.s===s[0]?' on':'')+'" aria-pressed="'+!!(r&&r.s===s[0])+'">'+s[1]+'</button>'; }).join('');
+  var hrs=r&&r.s==='work'?'<div class="fld" style="margin-top:14px"><label for="mch">Часы работы</label><div class="mch"><button data-a="mchs" data-d="-1" aria-label="Меньше на час">−1</button><input id="mch" type="text" inputmode="decimal" value="'+fmtH(r.h)+'"><button data-a="mchs" data-d="1" aria-label="Больше на час">+1</button><button class="primary" data-a="mchok">ОК</button></div>'+
+    '<div class="mchq">'+[8,9,10,11,12,13].map(function(h){ return '<button data-a="mchv" data-v="'+h+'"'+(r.h===h?' class="on"':'')+'>'+h+' ч</button>'; }).join('')+'</div></div>':'';
+  openSheet(esc((p.num?p.num+' ':'')+shortName(p.name))+' · '+pad(x.getDate())+'.'+pad(x.getMonth()+1)+' ('+WD[x.getDay()]+')',
+    (plan||firedOn(p,ds)?'<p class="note" style="margin-top:0">'+(sg&&sg.id?esc(sg.short)+': '+plan:'')+(firedOn(p,ds)?(plan?' · ':'')+'<b>уволен с '+firedDmy(p)+'</b>':'')+'</p>':'')+
+    '<div class="mcbs">'+btns+'</div>'+hrs+
+    '<div class="acts">'+(r?'<button data-a="mcclr">Очистить отметку</button>':'')+'<button data-a="mcday">Открыть этот день в «Явке»</button></div>'+
+    (adm?'':'<p class="note">Прораб ставит только «Пришёл» и «Прогул» за сегодня.</p>'));
+}
+function mcSave(ds,id){ dropEmpty(ds); save(); track(root.cur,ds,id); renderMonth(); mcRender(); }
+function mcSet(s){
+  if(!mcEd) return; var ds=mcEd.d, id=mcEd.id; if(!dayEditOk(ds)){ toast(dayDenyText()); return; }
+  if(s&&!isAdmin()&&s!=='work'&&s!=='ab'){ toast('Прораб отмечает только «Пришёл» или «Прогул»'); return; }
+  var day=dayObj(ds,true), cur=day[id], p=mcPerson(id);
+  if(!s||(cur&&cur.s===s)) delete day[id];
+  else day[id]={s:s,h:s==='work'?(cur&&cur.s==='work'?cur.h:((p&&planHours(p,ds))||bk().defH)):0,t:Date.now()};
+  mcSave(ds,id);
+}
+function mcHours(h,step){
+  if(!mcEd) return; var ds=mcEd.d, id=mcEd.id; if(!dayEditOk(ds)){ toast(dayDenyText()); return; }
+  var day=dayObj(ds,false), r=day&&day[id]; if(!r||r.s!=='work') return;
+  if(h==null) h=r.h+step; if(!isFinite(h)){ toast('Часы — числом, например 8 или 10,5'); return; }
+  r.h=clampH(h); r.t=Date.now(); mcSave(ds,id);
+}
 function setHours(id,h){ if(!canDay(true)) return;
   var day=dayObj(ui.date,false), r=day[id]; if(!r||r.s!=='work') return;
   r.h=clampH(h); r.t=Date.now(); save(); track(root.cur,ui.date,id); updateRow(id);
@@ -2038,7 +2089,7 @@ function openSheet(title,html,back){
   $('sheet').innerHTML='<div class="sh"><h2>'+title+'</h2><button data-a="close" aria-label="Закрыть">✕</button></div>'+html;
   $('sheetWrap').hidden=false; $('sheet').scrollTop=0;
 }
-function closeSheet(){ $('sheetWrap').hidden=true; $('sheet').innerHTML=''; }
+function closeSheet(){ $('sheetWrap').hidden=true; $('sheet').innerHTML=''; mcEd=null; }
 var deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); deferredPrompt=e; });
 
@@ -3583,7 +3634,13 @@ document.addEventListener('click',function(e){
     case 'msortx': mPopClose(); ui.mSort=null; renderMonth(); break;
     case 'xcmp': xcmpPick(); break;
     case 'xcmpout': xcExport(); break;
-    case 'mcell': goDay(el.dataset.d,id); break;
+    case 'mcell': mcOpen(el.dataset.d,id); break;
+    case 'mcset': mcSet(el.dataset.s); break;
+    case 'mchs': mcHours(null,Number(el.dataset.d)); break;
+    case 'mchv': mcHours(Number(el.dataset.v)); break;
+    case 'mchok': { var hi=$('mch'); if(hi) mcHours(Number(String(hi.value).replace(',','.'))); break; }
+    case 'mcclr': mcSet(''); break;
+    case 'mcday': { var e0=mcEd; closeSheet(); mcEd=null; if(e0) goDay(e0.d,e0.id); break; }
     case 'mfile': mfSheet(el.dataset.d); mfFetch(root.cur,el.dataset.d.slice(0,7),true); break;
     case 'mfadd': { var fi=$('mfin'); fi.value=''; fi.click(); break; }
     case 'mfget': mfGet(id,'dl'); break;
