@@ -805,7 +805,7 @@ body.vmonth.mq .row2 input{min-width:110px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='213';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='214';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1277,7 +1277,7 @@ function applyAdded(a){
       if(!p){
         p={id:uid(),name:String(x[1]).slice(0,120),role:String(x[2]||'').slice(0,120),num:String(x[0]).slice(0,20),sched:validSched(x[3]),fired:fx,archived:false,added:t,upd:t};
         bb.people.push(p); byNum[k]=p; added.push(p.name); if(b===root.cur) cur=true;
-      } else if(t>1&&t>(p.upd||0)){   // t=1 — запись из сверки: только добавляет, чужие правки не трогает
+      } else if(t>1&&(t>(p.upd||0)||(t===(p.upd||0)&&validSched(x[3])&&p.sched!==validSched(x[3])))){   // t=1 — запись из сверки: только добавляет, чужие правки не трогает; та же правка, но график не был принят старой версией приложения — принять заново
         var ch=p.name!==x[1]||p.role!==(x[2]||'')||p.sched!==validSched(x[3])||(p.fired||'')!==fx;
         p.name=String(x[1]).slice(0,120); p.role=String(x[2]||'').slice(0,120); p.sched=validSched(x[3]); p.fired=fx; p.upd=t;
         if(ch){ edited=true; if(b===root.cur) cur=true; }
