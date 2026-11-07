@@ -835,7 +835,7 @@ body.vmonth.mq .row2 input{min-width:110px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='218';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='219';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4205,7 +4205,7 @@ function nsubHtml(d,brigs){
   var L=nsubList(d,brigs), n=L.rf.length+L.are.length;
   var grp=function(b,t){ return L[b].length?'<div class="nsg"><b>'+t+' · '+L[b].length+'</b><div class="nsl">'+L[b].map(function(p){ return '<span class="nsc" title="'+esc(p.name+(p.role?' · '+p.role:''))+'"><b>'+esc(p.num)+'</b> '+esc(shortName(p.name))+'</span>'; }).join('')+'</div></div>':''; };
   return '<details class="ndfold nsub dtbox"'+(nsubOpen||(n>0&&n<=40)?' open':'')+' data-fold="nsub"><summary><h3 class="tbth3">Не поданы в численность бригад: <span class="'+(n?'xbad':'xok')+'">'+n+' чел.</span></h3></summary>'+
-    (n?'<p class="note">Отмечены «Пришёл» в «Явке», но их нет ни в одной поданной бригаде (ИТР не показаны). Подано бригад: '+brigs.length+'.</p>'+grp('rf','РФ')+grp('are','АРЕ')
+    (n?grp('rf','РФ')+grp('are','АРЕ')
       :'<p class="note">'+(brigs.length?'Все, кто пришёл, поданы бригадирами.':'Бригадиры ещё не подали численность.')+'</p>')+'</details>';
 }
 document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classList&&t.classList.contains('nsub')) nsubOpen=t.open; },true);
@@ -4244,7 +4244,7 @@ function abDashHtml(d){
   return '<div class="abd"><h4>Прогулы · '+mn(pm)+'–'+mn(cm)+'</h4>'+
 
     (rows.length?'<table class="abtb"><thead><tr><th>Таб. №</th><th class="f">ФИО</th><th>'+mn(pm)+'</th><th>'+mn(cm)+'</th><th>Всего</th><th>Подряд</th></tr></thead><tbody>'+
-      rows.slice(0,10).map(function(x){ return '<tr><td>'+esc(x.p.num||'')+'</td><td class="f" title="'+esc(x.p.name)+'">'+esc(shortName(x.p.name))+'</td><td>'+(x.pc||'')+'</td><td>'+(x.cc||'')+'</td><td><b>'+x.c+'</b></td><td>'+x.best+'</td></tr>'; }).join('')+'</tbody></table>'
+      rows.slice(0,5).map(function(x){ return '<tr><td>'+esc(x.p.num||'')+'</td><td class="f" title="'+esc(x.p.name)+'">'+esc(shortName(x.p.name))+'</td><td>'+(x.pc||'')+'</td><td>'+(x.cc||'')+'</td><td><b>'+x.c+'</b></td><td>'+x.best+'</td></tr>'; }).join('')+'</tbody></table>'
       :'<p class="note">Прогулов нет.</p>')+'</div>';
 }
 function bookDay(b,d){
@@ -5275,7 +5275,7 @@ function bdRender(){
   if(MON) return monHtml(d,rf,ar,tot);
   setTimeout(mvPushAtt,0); setTimeout(mvTokGet,0);
   var h='<div class="mvbox">'+(mvLink&&mvLinkD===today()?'<span id="mvurl" class="mvurl" title="Ссылка для просмотра — действует только сегодня">'+esc(mvLink)+'</span>':'')+'<button type="button" class="primary" data-a="mvcopy">🔗 Скопировать ссылку для просмотра</button></div>'+
-    '<h3 class="tbth3">1. Явка</h3><div class="xjrow">'+bdStatsHtml(rf,ar,tot)+abDashHtml(d)+'</div>';
+    '<div class="xjrow">'+bdStatsHtml(rf,ar,tot)+abDashHtml(d)+'</div>';
   /* 2. наряд-задания по бригадирам и поданная ими численность */
   var items=bdItems(d), brigs=items.filter(function(x){ return x.kind==='brig'; }), tasks=items.filter(function(x){ return x.kind==='task'; }), usedB={};
   var objs=ND_OBJS.slice(); items.forEach(function(x){ if(x.obj&&objs.indexOf(x.obj)<0) objs.push(x.obj); });
@@ -5284,7 +5284,7 @@ function bdRender(){
     var list=(dd.nums||[]).map(function(n,i){ var p=anyPerson(n), st=p?personDayStat(p,d):''; if(st==='прогул') bad++; if(!p) no++; return '<div class="xrow'+(st==='прогул'?' xbad':'')+'"><b>'+(i+1)+'.</b> '+esc(n)+' '+(p?esc(shortName(p.p.name))+' <small>'+esc(p.p.role||'')+' · '+esc(st)+'</small>':'<span class="xno">нет в табеле</span>')+'</div>'; }).join('');
     var tx=(Array.isArray(dd.tech)&&dd.tech.length?'<div class="xbrgx"><b>Техника:</b> '+esc(dd.tech.join('; '))+'</div>':'')+(Array.isArray(dd.doc)&&dd.doc.length?'<div class="xbrgx"><b>ППР:</b> '+esc(dd.doc.join('; '))+'</div>':'');
   return tx+'<details class="xmem" data-bid="'+esc(x.id)+'"'+(bdMemOpen[x.id]?' open':'')+'><summary>Состав бригады: '+(dd.nums||[]).length+' чел.'+(bad?' · <span class="xbad">прогул: '+bad+'</span>':'')+(no?' · <span class="xno">нет в табеле: '+no+'</span>':'')+'</summary><div class="xlist">'+list+'</div></details>'; }
-  h+='<h3 class="tbth3">2. Объекты: наряд-задания, бригады, наряд-допуски, TBT</h3>';
+  
   var nds=ndAll(ndSt(),''), frames='', empty=[], fl=[];
   objs.forEach(function(o){
     var to=tasks.filter(function(x){ return x.obj===o; }), bo=brigs.filter(function(x){ return x.obj===o; });
