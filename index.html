@@ -755,6 +755,10 @@ body.vmonth.mq .row2 input{min-width:110px}
 .nsc{font-size:13px;padding:3px 8px;border:1px solid var(--line);border-radius:7px;background:var(--surface);white-space:nowrap}
 .nsc b{font-variant-numeric:tabular-nums}
 @media (min-width:1101px){.bdside{max-height:calc(100vh - var(--toph,64px) - 24px);overflow-y:auto}}
+
+.ktub{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between;font-weight:600}
+.ktub button{min-height:40px}
+.mt td.ktuc{font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -801,7 +805,7 @@ body.vmonth.mq .row2 input{min-width:110px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='208';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='209';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1005,7 +1009,7 @@ function canPeople(show){ var r=role(); if(r==='nach'||r==='tech'||isPro(r)) ret
 var DAY_A={set:1,hstep:1,hset:1,undo:1,go:1,scan:1,fill:1,fillok:1};
 var PEOPLE_A={padd:1,pbulk:1,pbulkok:1,pdel:1,pdelarch:1,pdelall:1,pdelok:1,pedit:1,psave:1,parch:1,imp:1,'import':1,pwgo:1,pwsheet:1,defh:1};
 var ADMIN_A={ssave:1,slink:1,lshare:1,lcopy:1,spl:1,splok:1,smonth:1,soff:1,soffok:1};
-var MONT_A={dtday:1,extadd:1,brgpk:1,tmday:1,ktusave:1,tkrep:1,tkall:1,xdpick:1,xdshift:1,xdtoday:1,tkack:1,brgsend:1,brgpick:1,brgpickadd:1,tkdone:1,tkdoneedit:1,tkday:1,book:1,view:1,mnav:1,mday:1,msort:1,msortx:1,mfile:1,mfget:1,mfshare:1,mfull:1,mexp:1,mexport:1,close:1,menu:1,snow:1,install:1,doinstall:1,month:1,mshift:1};
+var MONT_A={ktugo:1,dtday:1,extadd:1,brgpk:1,tmday:1,ktusave:1,tkrep:1,tkall:1,xdpick:1,xdshift:1,xdtoday:1,tkack:1,brgsend:1,brgpick:1,brgpickadd:1,tkdone:1,tkdoneedit:1,tkday:1,book:1,view:1,mnav:1,mday:1,msort:1,msortx:1,mfile:1,mfget:1,mfshare:1,mfull:1,mexp:1,mexport:1,close:1,menu:1,snow:1,install:1,doinstall:1,month:1,mshift:1};
 function roleClick(a,el){
   var r=role(); if(!r) return false;
   if(r==='mont'&&(!MONT_A[a]||(a==='view'&&['month','brig','task','nar','teams'].indexOf(el.dataset.v)<0)||(a==='book'&&el.dataset.b==='are'))){ if(a!=='mcell'&&a!=='mdayopen') toast(a==='book'?'Бригадиру доступен только табель РФ':'Недоступно для бригадира'); return false; }
@@ -1492,8 +1496,16 @@ function showMsg(html,kind,undo){
   clearTimeout(mt); mt=setTimeout(function(){ e.innerHTML=''; e.className='msg'; ui.undo=null; },12000);
 }
 function clearMsg(){ clearTimeout(mt); var e=$('msg'); e.innerHTML=''; e.className='msg'; ui.undo=null; }
+function ktuRemindHtml(){
+  if(role()!=='mont'||!syncOn()) return ''; var t0=today(), kd=ktuDay(t0); if(addDays(kd,2)<t0) return '';
+  bdFetch(kd,false); teamsLoad(false); var me=fioKey(whoBase(sync.who));
+  var mine=tmTeams?(tmTeams.filter(function(t){ return teamLeads(t).some(function(n){ return fioKey(n)===me; }); })):[];
+  if(!mine.length||!bdCache[kd]) return '';
+  var need=mine.filter(function(t){ return tmMembers(t.lead,kd).length&&!ktuItem(kd,t.lead); }); if(!need.length) return '';
+  return '<div class="banner ktub">🔔 '+(t0===kd?'Сегодня суббота':'Суббота '+ktuDm(kd)+' прошла')+' — проставьте КТУ членам своей бригады.<button class="primary" data-a="ktugo">Проставить КТУ</button></div>';
+}
 function renderBanner(){
-  $('banner').innerHTML=storageOK?'':'<div class="banner">Браузер не сохраняет данные. Отметки пропадут при закрытии. Откройте приложение в обычном режиме (не в приватной вкладке).</div>';
+  $('banner').innerHTML=ktuRemindHtml()+(storageOK?'':'<div class="banner">Браузер не сохраняет данные. Отметки пропадут при закрытии. Откройте приложение в обычном режиме (не в приватной вкладке).</div>');
 }
 
 /* ------------------------------------------------------------- отрисовка */
@@ -1691,7 +1703,7 @@ function renderMonth(){
     var ds=m+'-'+pad(i), wd=new Date(a[0],a[1]-1,i).getDay();
     head+='<th class="'+(ds===t?'tdy':'')+(ds===ui.date&&document.body.classList.contains('mq')?' dsel':'')+(srt&&srt.d===ds?' srt':'')+'"><button class="dh" data-a="mday" data-d="'+ds+'" aria-label="'+i+' число: сортировка или открыть день">'+i+'<small>'+WD[wd]+'</small></button></th>';
   }
-  head+='<th class="tot">Дн.</th><th class="tot">Ч.</th></tr>';
+  head+='<th class="tot" title="Средний КТУ за месяц (по субботним оценкам бригадиров)">КТУ</th><th class="tot">Ч.</th></tr>'; var km=ktuMonth(m);
   var cnt=[], abs=[], are=true, cu=[], cp=[], cs=[], cd=[]; for(i=0;i<n;i++){ cnt.push(0); abs.push(0); cu.push(0); cp.push(0); cs.push(0); cd.push(0); }
   var body=ppl.map(function(p){
     var days=0, hrs=0, tds='';
@@ -1710,7 +1722,7 @@ function renderMonth(){
       tds+='<td class="'+cls+'" data-a="mcell" data-d="'+ds+'" data-id="'+esc(p.id)+'">'+txt+'</td>';
     }
     var sg=schedById(p.sched||'');
-    return '<tr><th class="c0" scope="row" title="'+esc((p.num?p.num+' ':'')+p.name)+'">'+(p.num?'<span class="tn">'+esc(p.num)+'</span>':'')+esc(p.name)+(p.fired&&p.fired.slice(0,7)===m?'<small class="uvn">уволен с '+firedDmy(p)+'</small>':'')+'</th><td class="c1" title="'+esc(sg&&sg.id?sg.name:'График не задан')+'">'+esc(MSCH_S[p.sched||'']||'—')+'</td>'+tds+'<td class="tot">'+days+'</td><td class="tot">'+fmtH(hrs)+'</td></tr>';
+    return '<tr><th class="c0" scope="row" title="'+esc((p.num?p.num+' ':'')+p.name)+'">'+(p.num?'<span class="tn">'+esc(p.num)+'</span>':'')+esc(p.name)+(p.fired&&p.fired.slice(0,7)===m?'<small class="uvn">уволен с '+firedDmy(p)+'</small>':'')+'</th><td class="c1" title="'+esc(sg&&sg.id?sg.name:'График не задан')+'">'+esc(MSCH_S[p.sched||'']||'—')+'</td>'+tds+'<td class="tot ktuc" title="'+(km&&p.num&&km[normNum(p.num)]?'КТУ: '+km[normNum(p.num)].v.map(function(v){ return String(v).replace('.',','); }).join(' · '):'КТУ не проставлен')+'">'+(km&&p.num&&km[normNum(p.num)]?String(Math.round(km[normNum(p.num)].sum/km[normNum(p.num)].v.length*100)/100).replace('.',','):'')+'</td><td class="tot">'+fmtH(hrs)+'</td></tr>';
   }).join('');
   if(!ppl.length) body='<tr><th class="c0">Никого</th><td class="c1"></td><td colspan="'+(n+2)+'" class="mnone">'+(srt?'В этот день ни у кого нет отметки «'+MSORT_N[srt.s]+'»':'С таким графиком в табеле никого нет')+'</td></tr>';
   var E='<td class="c1"></td>', f1='<tr class="f1"><th class="c0">Явка, чел.</th>'+E, f2='<tr class="f2"><th class="c0">AB - прогул</th>'+E,
@@ -3772,6 +3784,7 @@ document.addEventListener('click',function(e){
     case 'srvbk': sheetSrvBk(); break;
     case 'users': sheetUsers(); break;
     case 'teamsmenu': sheetTeams(); break;
+    case 'ktugo': tmDate=ktuDay(today()); (tmTeams||[]).forEach(function(t){ if(teamLeads(t).some(function(n){ return fioKey(n)===fioKey(whoBase(sync.who)); })) bdMemOpen['tm|'+fioKey(t.lead)]=true; }); setView('teams'); if(ui.view==='teams') renderX(); break;
     case 'tmedit': teamForm(el.dataset.id||''); break;
     case 'tmback': renderTeamsList(); break;
     case 'tmsave': teamSave(el.dataset.id||''); break;
@@ -4146,6 +4159,17 @@ function nsubHtml(d,brigs){
       :'<p class="note">'+(brigs.length?'Все, кто пришёл, поданы бригадирами.':'Бригадиры ещё не подали численность.')+'</p>')+'</details>';
 }
 document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classList&&t.classList.contains('nsub')) nsubOpen=t.open; },true);
+/* КТУ за месяц: среднее по субботним оценкам (по табельному номеру) */
+var ktuMC={}, ktuMBusy={};
+function ktuMonth(ym){
+  var c=ktuMC[ym];
+  if((!c||Date.now()-c.at>60000)&&!ktuMBusy[ym]&&syncOn()){ ktuMBusy[ym]=1;
+    call({action:'ktum',ym:ym}).then(function(j){ ktuMBusy[ym]=0; var map={};
+      (j.items||[]).forEach(function(it){ if(parseYmd(it.d).getDay()!==6) return; var v=it.vals||{}; Object.keys(v).forEach(function(k){ var n=Number(v[k]); if(!isFinite(n)) return; var o=map[normNum(k)]||(map[normNum(k)]={sum:0,v:[]}); o.sum+=n; o.v.push(n); }); });
+      var was=JSON.stringify(c&&c.map); ktuMC[ym]={at:Date.now(),map:map}; if(was!==JSON.stringify(map)&&ui.view==='month'&&ui.month===ym) renderMonth(); })
+      .catch(function(){ ktuMBusy[ym]=0; ktuMC[ym]={at:Date.now(),map:(c&&c.map)||{}}; }); }
+  return c?c.map:null;
+}
 function bookDay(b,d){
   var bb=root.books[b], day=(bb.records||{})[d]||{}, norm=memoNorm(b);
   var c={list:0,work:0,ab:0,off:0,dob:0,sick:0,pl:0,ul:0,unm:0,fired:0,ot:0,wo:0};
@@ -4576,7 +4600,9 @@ var tmDate='', ktuDraft={}, KTU_V=['0.5','0.6','0.7','0.8','0.9','1.0','1.1','1.
 document.addEventListener('change',function(e){ var t=e.target; if(t&&t.dataset&&t.dataset.ktu){ var a=t.dataset.ktu.split('|'); (ktuDraft[a[0]]=ktuDraft[a[0]]||{})[a[1]]=t.value; } },true);
 function tmStats(ym){ tkStatsBody(ym+'-01'); var c=tkSt[ym]; return c?c.rows:null; }
 function ktuItem(d,lead){ return bdItems(d).filter(function(x){ return x.kind==='ktu'&&x.data&&fioKey(x.data.lead)===fioKey(lead); })[0]||null; }
-function ktuCan(d,lead){ if(role()!=='mont'||!(d===today()||d===addDays(today(),-1))) return false; var t=teamOf(lead), me=fioKey(whoBase(sync.who)); return (t?teamLeads(t):[lead]).some(function(n){ return fioKey(n)===me; }); }   /* КТУ — только бригадиры своей бригады */
+function ktuDay(d){ var x=parseYmd(d); return addDays(d,-((x.getDay()+1)%7)); }   /* суббота этой недели (последняя суббота не позже d) */
+function ktuDm(d){ return d.slice(8,10)+'.'+d.slice(5,7); }
+function ktuCan(d,lead){ var t0=today(); if(role()!=='mont'||parseYmd(d).getDay()!==6||d>t0||addDays(d,2)<t0) return false;   /* суббота, можно до понедельника */ var t=teamOf(lead), me=fioKey(whoBase(sync.who)); return (t?teamLeads(t):[lead]).some(function(n){ return fioKey(n)===me; }); }   /* КТУ — только бригадиры своей бригады */
 var tmTeams=null, tmTeamsAt=0, tmTeamsBusy=false;
 function teamsLoad(force){
   if(!syncOn()||tmTeamsBusy||(!force&&tmTeams&&Date.now()-tmTeamsAt<60000)) return;
@@ -4600,7 +4626,7 @@ function tmMembers(lead,d){
 function teamLnum(t){ if(t.lnum) return t.lnum; var p=personByFio(t.lead); return p&&p.num?p.num:''; }
 function personByFio(fio){ var k=fioKey(fio), out=null; ['rf','are'].forEach(function(b){ if(out) return; root.books[b].people.forEach(function(p){ if(!out&&!p.archived&&fioKey(p.name)===k) out=p; }); }); return out; }
 function tmRender(){
-  var d=tmDate||today(); bdFetch(d,false); teamsLoad(false); var hn=$('hnav'); if(hn) hn.innerHTML=navDate('tmday',d);
+  var d=tmDate||today(), kd=ktuDay(d); bdFetch(d,false); if(kd!==d) bdFetch(kd,false); teamsLoad(false); var hn=$('hnav'); if(hn) hn.innerHTML=navDate('tmday',d);
   var ym=d.slice(0,7), rows=tmStats(ym), a=ym.split('-'), by={};
   (rows||[]).forEach(function(x){ by[fioKey(x.brig)]=x; });
   var brigs=bdItems(d).filter(function(x){ return x.kind==='brig'; }), leads=[], seen={};
@@ -4615,7 +4641,7 @@ function tmRender(){
   var place=0, last=null;
   var cards=list.map(function(x,i){
     if(x.score!=null&&x.score!==last){ place=i+1; last=x.score; }
-    var pl=x.score!=null?place:0, k=ktuItem(d,x.lead), vals=(k&&k.data&&k.data.vals)||{}, mem=tmMembers(x.lead,d), can=mem.length>0&&ktuCan(d,x.lead), dr=ktuDraft[x.lead]||{};
+    var pl=x.score!=null?place:0, k=ktuItem(kd,x.lead), vals=(k&&k.data&&k.data.vals)||{}, mem=tmMembers(x.lead,d), can=mem.length>0&&ktuCan(kd,x.lead), dr=ktuDraft[x.lead]||{};
     var lnum=x.t?teamLnum(x.t):(x.b&&x.b.data.lnum), lp=lnum?brigP(x.b,lnum):null;
     var head='<div class="tmno">'+(x.t?'Бригада № '+x.t.no:'Бригада без номера')+'</div><div class="tmh">'+(pl?'<span class="tmpl p'+Math.min(pl,4)+'" title="Место в рейтинге">'+pl+'</span>':'<span class="tmpl p0">—</span>')+'<div class="tmn">'+(x.nl>1?'<small class="tmls">Бригадиры:</small>'+x.names.map(function(nm){ return '<b class="tmnm">'+esc(shortName(whoBase(nm)))+'</b>'; }).join(''):'<b>'+esc(whoBase(x.lead))+'</b>')+(lnum&&x.nl===1?' <small>таб. № '+esc(lnum)+(lp&&lp.p.role?' · '+esc(lp.p.role):'')+'</small>':'')+'</div>'+
       (x.score!=null?'<div class="tmsc"><b>'+x.score+'</b><small>баллов</small></div>':'<div class="tmsc"><b class="none">—</b><small>баллов</small></div>')+'</div>'+
@@ -4628,10 +4654,10 @@ function tmRender(){
     return '<div class="xcard tmc">'+head+
       '<details class="tmd" data-bid="'+esc(dk)+'"'+(bdMemOpen[dk]?' open':'')+'><summary>Состав: '+mem.length+' чел.'+(k?' · <span class="xok">КТУ ✓</span>':(mem.length?' · КТУ не проставлен':''))+'</summary>'+
       '<div class="tmlh"><span>Таб. №</span><span>'+(x.t?'Состав':'Состав за день')+' ('+mem.length+')</span><span>КТУ</span></div>'+(rowsH||'<p class="note">'+(x.t?'Состав бригады не задан — его задаёт начальник участка в меню «Бригады».':'Численность за этот день не подана.')+'</p>')+
-      (k?'<small class="note tmks">КТУ проставлен: '+esc(whoBase(k.data.fio||k.who))+' · '+fmtDT(k.t)+'</small>':(can||!mem.length?'':'<small class="note tmks">КТУ за этот день не проставлен</small>'))+
-      (can?'<button class="tbtdl tmsave" data-a="ktusave" data-l="'+esc(x.lead)+'" data-d="'+esc(d)+'" data-o="'+esc(x.b?x.b.obj||'':'')+'">Сохранить КТУ</button>':'')+'</details></div>';
+      (k?'<small class="note tmks">КТУ за субботу '+ktuDm(kd)+' проставлен: '+esc(whoBase(k.data.fio||k.who))+' · '+fmtDT(k.t)+'</small>':(can||!mem.length?'':'<small class="note tmks">КТУ за субботу '+ktuDm(kd)+' не проставлен</small>'))+
+      (can?'<button class="tbtdl tmsave" data-a="ktusave" data-l="'+esc(x.lead)+'" data-d="'+esc(kd)+'" data-o="'+esc(x.b?x.b.obj||'':'')+'">Сохранить КТУ</button>':'')+'</details></div>';
   }).join('');
-  return '<h2 class="dh2">Бригады</h2>'+
+  return '<h2 class="dh2">Бригады</h2><p class="note">КТУ бригадир проставляет раз в неделю — в субботу (успеть можно до понедельника). Показан КТУ за субботу '+ktuDm(kd)+'.</p>'+
     (rows==null||tmTeams==null?'<p class="note">Загружаю…</p>':'')+'<div class="tkgrid">'+cards+'</div>';
 }
 function ktuSave(el){
