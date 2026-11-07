@@ -760,7 +760,9 @@ body.vmonth.mq .row2 input{min-width:110px}
 .ktub button{min-height:40px}
 .mt td.ktuc{font-variant-numeric:tabular-nums}
 
-.xjrow{display:grid;grid-template-columns:minmax(230px,290px) minmax(0,1fr);gap:14px;align-items:start}
+.xjrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:stretch}
+.xjrow>.xtw{height:100%}
+.xjrow>.xtw>.xtjv{height:100%}
 @media (max-width:720px){.xjrow{grid-template-columns:minmax(0,1fr)}}
 .xtjv{width:100%;font-size:13px}
 .xtjv thead th{font-size:12px;color:var(--muted);font-weight:600}
@@ -777,7 +779,8 @@ body.vmonth.mq .row2 input{min-width:110px}
 .abtb{width:100%;border-collapse:collapse;font-size:13px}
 .abtb th{font-size:11px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--line);padding:4px;text-align:center}
 .abtb td{border-bottom:1px solid var(--line);padding:4px;text-align:center;font-variant-numeric:tabular-nums}
-.abtb .f{text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
+.abtb .f{text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.abtb th,.abtb td{padding:4px 3px}
 </style>
 </head>
 <body>
@@ -824,7 +827,7 @@ body.vmonth.mq .row2 input{min-width:110px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='215';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='216';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
