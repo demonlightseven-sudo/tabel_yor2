@@ -805,7 +805,7 @@ body.vmonth.mq .row2 input{min-width:110px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='212';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='213';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1036,7 +1036,7 @@ function applyRole(){
   c.toggle('only-month',r==='mont');
   var st=document.getElementById('stats'); if(st) st.setAttribute('data-ro',dayDenyText());
 }
-setInterval(function(){ if(!auth||document.hidden) return; var was=document.body.classList.contains('ro-day'); applyRole(); if(was!==document.body.classList.contains('ro-day')&&ui.view==='day') render(); },60000);
+setInterval(function(){ if(!auth||document.hidden) return; autoAbCheck(); var was=document.body.classList.contains('ro-day'); applyRole(); if(was!==document.body.classList.contains('ro-day')&&ui.view==='day') render(); },60000);
 var lgSel='', lgDept='';
 var BRIG_NAMES=['Айдинов Пулатжон Азизович','Кавурас Роман Эдуардович','Горбач Евгений Владимирович','Тюрин Даниил Павлович','Шефер Сергей Александрович','Золотницин Владимир Александрович','Стрельцов Иван Александрович','Катруш Павел Сергеевич','Новокрещенов Антон Павлович','Рафиков Вадим Витальевич'];
 var lgUsers=null, lgULoad=false;
@@ -1334,6 +1334,26 @@ function applyGone(g){
   toast('Удалены навсегда (в таблице): '+(names.length>3?names.length+' чел.':names.join(', ')));
 }
 /* забрать отметки за открытый день; побеждает более поздняя запись */
+/* кого не отметили сегодня до 09:00 — автоматически «Прогул».
+   Не трогаем: ночной график, выходной/праздник по графику, уволенных, архив. Делает телефон начальника участка, техника или прораба — один раз в день, после свежей загрузки отметок с сервера */
+var autoAbBusy=false;
+function autoAbCheck(){
+  var r0=role(); if(!(r0==='nach'||r0==='tech'||r0==='prorab')||!syncOn()||autoAbBusy||MV) return;
+  if(new Date().getHours()<9) return;
+  var d=today(), k='tabel-autoab|'+d; try{ if(localStorage.getItem(k)) return; }catch(e){ return; }
+  autoAbBusy=true;
+  Promise.all(['rf','are'].map(function(b){ return call({action:'pull',book:b,date:d}).then(function(j){ applyServer(j); mergePull(b,d,j.items||[]); }); })).then(function(){
+    var n=0, now=Date.now();
+    ['rf','are'].forEach(function(b){ var bb=root.books[b]; bb.records=bb.records||{}; var day=bb.records[d]||(bb.records[d]={});
+      bb.people.forEach(function(p){ if(p.archived||firedOn(p,d)||day[p.id]) return; if(planOff(p,d)===true) return; var g=schedById(p.sched||''); if(g&&g.night) return;
+        day[p.id]={s:'ab',h:0,t:now}; track(b,d,p.id); n++; });
+      if(!Object.keys(day).length) delete bb.records[d]; });
+    try{ localStorage.setItem(k,String(n)); }catch(e){}
+    autoAbBusy=false; save();
+    if(n){ render(); toast('Не отмечены до 9:00 — проставлен прогул: '+n+' чел. (кроме ночного графика и выходных по графику)'); scheduleFlush(300); }
+  }).catch(function(){ autoAbBusy=false; });
+}
+setTimeout(function(){ if(auth) autoAbCheck(); },8000);
 function mergePull(b,d0,items){
   var bb=root.books[b], byNum={}, changed=false;
   bb.people.forEach(function(p){ if(p.num&&!p.archived) byNum[normNum(p.num)]=p; });
