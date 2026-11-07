@@ -450,7 +450,7 @@ body.vtask .tktop .tbtf{max-width:none}@media (min-width:1000px){.tktop{grid-tem
 .tkrep{width:100%;margin-top:8px}.xdonef textarea{margin-top:8px}
 @media (min-width:1100px){body.vteams .tkgrid{grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}body.vteams main{padding:0 12px}}
 .tmd{margin-top:2px}.tmd>summary{cursor:pointer;list-style:none;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-weight:600}.tmd>summary::-webkit-details-marker{display:none}.tmd>summary::before{content:'▸ '}.tmd[open]>summary::before{content:'▾ '}.tmd[open]>summary{margin-bottom:4px}.tmst b{color:var(--ink)}
-.tmh{height:62px;overflow:hidden}.tmn b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.tmn small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tmh{height:var(--tmh,62px);overflow:hidden}.tmn b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.tmn small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tmc>.tmbar{flex:0 0 6px;height:6px}.tmst{height:50px;overflow:hidden}.tmc>.tmbar.tmbar0{visibility:hidden}.tmd{margin-top:auto}.tmsc b.none{color:var(--muted)}
 .tenew{margin:6px 0 4px;padding:8px 10px;border:1px dashed var(--line);border-radius:10px}.tenew[hidden]{display:none}
 .tmno{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.03em;text-transform:uppercase}
@@ -846,7 +846,7 @@ body.vmonth.mq .row2 input{min-width:110px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='221';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='222';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4750,7 +4750,7 @@ function tmRender(){
       (can?'<button class="tbtdl tmsave" data-a="ktusave" data-l="'+esc(x.lead)+'" data-d="'+esc(kd)+'" data-o="'+esc(x.b?x.b.obj||'':'')+'">Сохранить КТУ</button>':'')+'</details></div>';
   }).join('');
   return '<h2 class="dh2">Бригады</h2><p class="note">КТУ бригадир проставляет каждую субботу за прошедшую неделю (успеть можно до понедельника). Показан КТУ за неделю '+ktuWk(kd)+(kd>today()?' — его поставят в субботу '+ktuDm(kd):'')+'.</p>'+
-    (rows==null||tmTeams==null?'<p class="note">Загружаю…</p>':'')+'<div class="tkgrid">'+cards+'</div>';
+    (rows==null||tmTeams==null?'<p class="note">Загружаю…</p>':'')+'<div class="tkgrid" style="--tmh:'+Math.max(62,list.reduce(function(m,x){ return Math.max(m,x.nl>1?24+x.nl*21:0); },0))+'px">'+cards+'</div>';
 }
 function ktuSave(el){
   var lead=el.dataset.l, d=el.dataset.d, mem=tmMembers(lead,d); if(!mem.length) return;
