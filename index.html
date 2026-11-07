@@ -762,12 +762,14 @@ body.vmonth.mq .row2 input{min-width:110px}
 
 .xjrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:stretch}
 .bdst{min-width:0}
-.bdst .stats{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:0;gap:8px}
-.bdst .stats>button{cursor:default;display:block;border-left-width:1px;border-top:4px solid var(--line);padding:10px 12px}
+.bdst .stats{grid-template-columns:repeat(4,minmax(0,1fr));margin-top:0;gap:6px}
+.bdst .stats>button{cursor:default;display:block;border-left-width:1px;border-top:4px solid var(--line);padding:7px 8px}
 .bdst .stats .w{border-top-color:var(--work)} .bdst .stats .o{border-top-color:var(--off)} .bdst .stats .s{border-top-color:var(--sick)} .bdst .stats .a{border-top-color:var(--ab)}
-.bdst .stats b{display:block;font-size:30px}
-.bdst .stats span{display:block;font-size:14px}
-.bdst .stats small{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.bdst .stats .d{border-top-color:#d9a300} .bdst .stats .p{border-top-color:var(--pl)} .bdst .stats .u{border-top-color:var(--ul)} .bdst .stats .r{border-top-color:#0d8a8a}
+.bdst .stats b{display:block;font-size:24px}
+.bdst .stats span{display:block;font-size:12px;white-space:normal;line-height:1.2;min-height:2.4em;overflow:visible;overflow-wrap:anywhere}
+@media (max-width:520px){.bdst .stats span{font-size:11px}.bdst .stats>button{padding:6px 5px}}
+.bdst .stats small{display:block;font-size:10px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bdst .stats2{font-size:13px;margin:4px 2px 0;line-height:1.6}
 @media (max-width:720px){.xjrow{grid-template-columns:minmax(0,1fr)}}
 .xtjv{width:100%;font-size:13px}
@@ -833,7 +835,7 @@ body.vmonth.mq .row2 input{min-width:110px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='217';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='218';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4220,14 +4222,11 @@ function ktuMonth(ym){
 }
 /* явка на доске — плитками, как в разделе «Явка» (РФ + АРЕ, под цифрой — по табелям) */
 function bdStatsHtml(rf,ar,tot){
-  var t=function(cls,k,txt){ return '<button type="button" class="'+cls+'" tabindex="-1"><b>'+(tot[k]||0)+'</b><span>'+txt+'</span><small>РФ '+(rf[k]||0)+' · АРЕ '+(ar[k]||0)+'</small></button>'; };
-  var s2=['В списке: '+tot.list+' (РФ '+rf.list+' · АРЕ '+ar.list+')'];
-  if(tot.dob) s2.push('Выходной по графику (DO): '+tot.dob+' — их отмечать не нужно');
-  if(tot.off) s2.push('Выходной (отмечен): '+tot.off);
-  if(tot.pl||tot.ul) s2.push('Отпуск: '+tot.pl+' · Отпуск без ЗП: '+tot.ul);
-  if(tot.unm) s2.push('Без отметки: '+tot.unm);
-  if(tot.wo) s2.push('Работают в выходной: '+tot.wo);
-  return '<div class="bdst"><div class="stats">'+t('w','work','пришли')+t('a','ab','прогул')+t('o','ot','сверхурочка')+t('s','sick','больничный')+'</div><p class="stats2">'+s2.join('<br>')+'</p></div>';
+  var v=function(o,k){ return k==='do'?(o.dob||0)+(o.off||0):(o[k]||0); };
+  var t=function(cls,k,txt){ return '<button type="button" class="'+cls+'" tabindex="-1"><b>'+v(tot,k)+'</b><span>'+txt+'</span><small>РФ '+v(rf,k)+' · АРЕ '+v(ar,k)+'</small></button>'; };
+  return '<div class="bdst"><div class="stats">'+t('w','work','пришли')+t('a','ab','прогул')+t('o','ot','сверхурочка')+t('s','sick','больничный')+
+    t('d','do','выходной')+t('p','pl','отпуск')+t('u','ul','отпуск без ЗП')+t('r','wo','РВД')+'</div>'+
+    '<p class="stats2">В списке: '+tot.list+' (РФ '+rf.list+' · АРЕ '+ar.list+')'+(tot.unm?' · без отметки: '+tot.unm:'')+'</p></div>';
 }
 /* прогулы за прошлый и текущий месяц (по выбранный день) — топ-10 на доске руководителя */
 function abDashHtml(d){
