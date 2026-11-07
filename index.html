@@ -846,7 +846,7 @@ body.vmonth.mq .row2 input{min-width:110px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='220';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='221';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1796,8 +1796,9 @@ function renderMonth(){
   var keepL=0, keepT=0, w0=$('mwrap'); if(w0){ keepL=w0.scrollLeft; keepT=w0.scrollTop; }
   $('month').innerHTML=nav+leg+old+tools+'<div class="mwrap" id="mwrap"><table class="mt"><thead>'+head+'</thead><tbody>'+body+'</tbody><tfoot>'+f1+f2+fu+fp+fs+fdo+f3+'</tfoot></table></div>';
   var w=$('mwrap'), c0=document.querySelector('.mt thead th.c0'), c0w=c0?c0.getBoundingClientRect().width:150; w.querySelector('table').style.setProperty('--c0w',c0w+'px');
-  w.scrollLeft=keepL; w.scrollTop=keepT;
+  if(w0&&w0.style.maxHeight) w.style.maxHeight=w0.style.maxHeight;
   fitMonth();
+  w.scrollLeft=keepL; w.scrollTop=keepT;
   if(!keepL&&ui.month===today().slice(0,7)&&w.scrollWidth>w.clientWidth+4){ var td=document.querySelector('.mt th.tdy'); if(td){ w.scrollLeft=Math.max(0,td.offsetLeft-c0w-90); } }
 }
 /* ---------------------------------------------- служебные записки (сканы PDF) по дням */
