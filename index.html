@@ -805,7 +805,7 @@ body.vmonth.mq .row2 input{min-width:110px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='211';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='212';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2657,11 +2657,8 @@ function memoTimes(x,c){
 }
 function memoTabs(t){ return '<div class="mtype" role="tablist" aria-label="Вид документа"><button role="tab" data-a="mtype" data-t="ot" aria-selected="'+(t==='ot')+'">Сверхурочная работа</button><button role="tab" data-a="mtype" data-t="rvd" aria-selected="'+(t==='rvd')+'">Выходной / праздничный день</button><button role="tab" data-a="mtype" data-t="abs" aria-selected="'+(t==='abs')+'">Акт об отсутствии</button></div>'; }
 /* ---- акт об отсутствии: все, у кого в этот день «Прогул» (оба табеля) */
-/* ночной график: смена этого дня закончится только завтра — в акт за день человек попадает на следующий день */
-function isNight(p){ var g=schedById((p&&p.sched)||''); return !!(g&&g.night); }
 function absPeople(){
-  var prev=addDays(ui.date,-1);
-  return ndPeople().filter(function(x){ var rec=root.books[x.b].records||{}, night=isNight(x.p), r=((night?rec[prev]:rec[ui.date])||{})[x.p.id]; x.night=night?prev:''; return r&&r.s==='ab'; });
+  return ndPeople().filter(function(x){ var r=((root.books[x.b].records||{})[ui.date]||{})[x.p.id]; return r&&r.s==='ab'; });
 }
 function absChecked(x){ var k='abs|'+ui.date+'|'+x.key; return Object.prototype.hasOwnProperty.call(memoSel,k)?memoSel[k]:true; }
 function renderAbs(){
@@ -2669,10 +2666,10 @@ function renderAbs(){
   var rows=list.map(function(x){ var on=absChecked(x);
     return '<label class="mrow'+(on?' on':'')+'"><input type="checkbox" data-ak="'+esc(x.key)+'"'+(on?' checked':'')+'>'+
       '<span class="mn">'+esc(x.p.num||'')+'</span><span class="mf"><b>'+esc(x.p.name)+'</b><small>'+esc(tbtLat(x.p.name))+'</small></span>'+
-      '<span class="mh">'+BOOKS[x.b]+'<small>'+(x.night?'прогул, ночь '+x.night.slice(8,10)+'.'+x.night.slice(5,7):'прогул')+'</small></span></label>'; }).join('');
+      '<span class="mh">'+BOOKS[x.b]+'<small>прогул</small></span></label>'; }).join('');
   $('docs').innerHTML='<div class="dwrap">'+memoTabs('abs')+
     '<h2 class="dh2">Акт об отсутствии работников на рабочих местах</h2>'+
-    '<p class="note">'+WD_FULL[d.getDay()]+', '+d.getDate()+' '+MONTHS_G[d.getMonth()]+' '+d.getFullYear()+'. В акт сами попадают все, у кого в табеле явки (РФ и АРЕ) в этот день стоит «Прогул». Работники с ночным графиком попадают в акт на следующий день: в акт за этот день — те, у кого «Прогул» стоит за прошлую ночь (вчерашнее число). ФИО латиницей — под русским. День меняется кнопкой с датой вверху.</p>'+
+    '<p class="note">'+WD_FULL[d.getDay()]+', '+d.getDate()+' '+MONTHS_G[d.getMonth()]+' '+d.getFullYear()+'. В акт сами попадают все, у кого в табеле явки (РФ и АРЕ) в этот день стоит «Прогул». ФИО латиницей — под русским. День меняется кнопкой с датой вверху.</p>'+
     '<h3 class="dh3">Отсутствовали ('+sel+' из '+list.length+')</h3>'+
     (list.length?'<div class="mlist">'+rows+'</div>':'<p class="note">В этот день ни у кого нет отметки «Прогул».</p>')+
     '<div class="acts"><button class="primary" data-a="absdoc"'+(sel?'':' disabled')+'>Скачать служебную записку (Word)</button></div>'+
