@@ -747,12 +747,14 @@ body.vmonth.mq .row2 input{min-width:110px}
 .tmn b.tmnm{display:block;-webkit-line-clamp:unset;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tmls{display:block;color:var(--muted);font-size:11px;font-weight:400}
 
-.nsub{margin-top:6px}
+.nsub{margin-top:12px}
+.nsub>summary .tbth3{font-size:16px}
 .nsg{margin:6px 0 4px}
 .nsg>b{font-size:13px;color:var(--muted)}
 .nsl{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
 .nsc{font-size:13px;padding:3px 8px;border:1px solid var(--line);border-radius:7px;background:var(--surface);white-space:nowrap}
 .nsc b{font-variant-numeric:tabular-nums}
+@media (min-width:1101px){.bdside{max-height:calc(100vh - var(--toph,64px) - 24px);overflow-y:auto}}
 </style>
 </head>
 <body>
@@ -799,7 +801,7 @@ body.vmonth.mq .row2 input{min-width:110px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='207';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='208';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4122,6 +4124,8 @@ function renderX(){
 function myBrigId(d){ return 'brig|'+d+'|'+nameKey(sync.who).slice(0,30); }
 /* пришли на работу, но ни один бригадир не подал их в численность бригады */
 var nsubOpen=false;
+/* ИТР и служащие — в бригады не входят, в этом списке не показываем */
+var ITR_RE=/(^|[\s(\-])(начальник|зам\.|заместитель|главный|инженер|мастер|прораб|производитель|техник|геодезист|нормировщик|сметчик|экономист|специалист|механик|энергетик|руководитель|менеджер|кладовщик|диспетчер|табельщик|инспектор|эколог|бухгалтер|делопроизводитель|переводчик)/i;
 function nsubList(d,brigs){
   var sub={}, lead={};
   brigs.forEach(function(b){ var x=b.data||{}; (x.nums||[]).forEach(function(n){ sub[normNum(n)]=1; }); if(x.lnum) lead[normNum(x.lnum)]=1; var lp=personByFio(whoBase(x.lead||'')); if(lp&&lp.num) lead[normNum(lp.num)]=1; });
@@ -4129,7 +4133,7 @@ function nsubList(d,brigs){
   BRIG_NAMES.forEach(function(n){ var p=personByFio(n); if(p&&p.num) lead[normNum(p.num)]=1; });
   var out={rf:[],are:[]};
   ['rf','are'].forEach(function(bk0){ var bb=root.books[bk0], day=(bb.records||{})[d]||{};
-    bb.people.forEach(function(p){ if(p.archived||firedOn(p,d)||!p.num) return; var r=day[p.id]; if(!r||r.s!=='work') return; var k=normNum(p.num); if(sub[k]||lead[k]) return; out[bk0].push(p); });
+    bb.people.forEach(function(p){ if(p.archived||firedOn(p,d)||!p.num||ITR_RE.test(p.role||'')) return; var r=day[p.id]; if(!r||r.s!=='work') return; var k=normNum(p.num); if(sub[k]||lead[k]) return; out[bk0].push(p); });
     out[bk0].sort(function(a,b){ return Number(normNum(a.num))-Number(normNum(b.num))||String(a.num).localeCompare(String(b.num)); }); });
   return out;
 }
@@ -4137,8 +4141,8 @@ function nsubHtml(d,brigs){
   teamsLoad(false);
   var L=nsubList(d,brigs), n=L.rf.length+L.are.length;
   var grp=function(b,t){ return L[b].length?'<div class="nsg"><b>'+t+' · '+L[b].length+'</b><div class="nsl">'+L[b].map(function(p){ return '<span class="nsc" title="'+esc(p.name+(p.role?' · '+p.role:''))+'"><b>'+esc(p.num)+'</b> '+esc(shortName(p.name))+'</span>'; }).join('')+'</div></div>':''; };
-  return '<details class="ndfold nsub"'+(nsubOpen||(n>0&&n<=40)?' open':'')+' data-fold="nsub"><summary><h3 class="tbth3">Не поданы в численность бригад: <span class="'+(n?'xbad':'xok')+'">'+n+' чел.</span></h3></summary>'+
-    (n?'<p class="note">Отмечены «Пришёл» в «Явке», но их нет ни в одной поданной бригаде. Подано бригад: '+brigs.length+'.</p>'+grp('rf','РФ')+grp('are','АРЕ')
+  return '<details class="ndfold nsub dtbox"'+(nsubOpen||(n>0&&n<=40)?' open':'')+' data-fold="nsub"><summary><h3 class="tbth3">Не поданы в численность бригад: <span class="'+(n?'xbad':'xok')+'">'+n+' чел.</span></h3></summary>'+
+    (n?'<p class="note">Отмечены «Пришёл» в «Явке», но их нет ни в одной поданной бригаде (ИТР не показаны). Подано бригад: '+brigs.length+'.</p>'+grp('rf','РФ')+grp('are','АРЕ')
       :'<p class="note">'+(brigs.length?'Все, кто пришёл, поданы бригадирами.':'Бригадиры ещё не подали численность.')+'</p>')+'</details>';
 }
 document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classList&&t.classList.contains('nsub')) nsubOpen=t.open; },true);
@@ -5175,7 +5179,6 @@ function bdRender(){
     var list=(dd.nums||[]).map(function(n,i){ var p=anyPerson(n), st=p?personDayStat(p,d):''; if(st==='прогул') bad++; if(!p) no++; return '<div class="xrow'+(st==='прогул'?' xbad':'')+'"><b>'+(i+1)+'.</b> '+esc(n)+' '+(p?esc(shortName(p.p.name))+' <small>'+esc(p.p.role||'')+' · '+esc(st)+'</small>':'<span class="xno">нет в табеле</span>')+'</div>'; }).join('');
     var tx=(Array.isArray(dd.tech)&&dd.tech.length?'<div class="xbrgx"><b>Техника:</b> '+esc(dd.tech.join('; '))+'</div>':'')+(Array.isArray(dd.doc)&&dd.doc.length?'<div class="xbrgx"><b>ППР:</b> '+esc(dd.doc.join('; '))+'</div>':'');
   return tx+'<details class="xmem" data-bid="'+esc(x.id)+'"'+(bdMemOpen[x.id]?' open':'')+'><summary>Состав бригады: '+(dd.nums||[]).length+' чел.'+(bad?' · <span class="xbad">прогул: '+bad+'</span>':'')+(no?' · <span class="xno">нет в табеле: '+no+'</span>':'')+'</summary><div class="xlist">'+list+'</div></details>'; }
-  h+=nsubHtml(d,brigs);
   h+='<h3 class="tbth3">2. Объекты: наряд-задания, бригады, наряд-допуски, TBT</h3>';
   var nds=ndAll(ndSt(),''), frames='', empty=[], fl=[];
   objs.forEach(function(o){
@@ -5216,7 +5219,7 @@ function bdRender(){
   });
   var LV={bad:0,warn:1,ok:2}; fl.sort(function(a,b){ return LV[a.lvl]-LV[b.lvl]||a.i-b.i; }); frames=fl.map(function(x){ return x.html; }).join('');
   h+=frames?'<div class="xobjs">'+frames+'</div>':'<p class="note">На этот день наряд-задания не выданы и численность не подана.</p>';
-  return '<div class="bdgrid"><div class="bdmain">'+h+'</div><aside class="bdside">'+dtBoardHtml(d)+'</aside></div>';
+  return '<div class="bdgrid"><div class="bdmain">'+h+'</div><aside class="bdside">'+dtBoardHtml(d)+nsubHtml(d,brigs)+'</aside></div>';
 }
 /* четыре рамки нарядов под бригадой: нажатие — новый наряд с людьми бригады и следующим номером */
 var ND_K4=[['hz','Опасные работы'],['fire','Огневые работы'],['lift','Подъёмные механизмы'],['conc','Бетонные работы']];
