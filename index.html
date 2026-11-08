@@ -846,7 +846,7 @@ body.vmonth.mq .row2 input{min-width:110px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='223';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='224';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1752,12 +1752,16 @@ function renderMonth(){
   }
   /* фильтр по графику и сортировка по статусу в выбранный день */
   var schIds={}; ppl.forEach(function(p){ schIds[p.sched||'']=1; });
-  if(ui.mSched&&!schIds[ui.mSched==='-'?'':ui.mSched]) ui.mSched='';
+  var isN=function(id){ var g=schedById(id||''); return !!(g&&g.night); };
+  var nN=ppl.filter(function(p){ return isN(p.sched); }).length, nD=ppl.length-nN;
+  if(ui.mSched&&ui.mSched!=='@d'&&ui.mSched!=='@n'&&!schIds[ui.mSched==='-'?'':ui.mSched]) ui.mSched='';
   var srt=ui.mSort&&ui.mSort.d&&ui.mSort.d.slice(0,7)===m?ui.mSort:null;
   var tools='<div class="mtools"><label for="msched">График:</label><select id="msched" aria-label="Показать людей по графику"><option value="">Все в табеле ('+ppl.length+')</option>'+
-    SCHEDS.filter(function(g){ return schIds[g.id]; }).map(function(g){ var v=g.id||'-', k=ppl.filter(function(p){ return (p.sched||'')===g.id; }).length; return '<option value="'+v+'"'+(ui.mSched===v?' selected':'')+'>'+esc(g.id?g.short:'Без графика')+' ('+k+')</option>'; }).join('')+'</select>'+
+    '<option value="@d"'+(ui.mSched==='@d'?' selected':'')+'>☀ Дневная смена ('+nD+')</option><option value="@n"'+(ui.mSched==='@n'?' selected':'')+'>☾ Ночная смена ('+nN+')</option>'+
+    [['День',false],['Ночь',true]].map(function(gr){ var L=SCHEDS.filter(function(g){ return schIds[g.id]&&!!g.night===gr[1]; }); return L.length?'<optgroup label="'+gr[0]+'">'+L.map(function(g){ var v=g.id||'-', k=ppl.filter(function(p){ return (p.sched||'')===g.id; }).length; return '<option value="'+v+'"'+(ui.mSched===v?' selected':'')+'>'+esc(g.id?g.short.replace(' (ночь)',''):'Без графика')+' ('+k+')</option>'; }).join('')+'</optgroup>':''; }).join('')+'</select>'+
     (srt?'<span class="msrt">Показаны: <b>'+MSORT_N[srt.s]+'</b> за '+Number(srt.d.slice(8))+' число <button data-a="msortx" aria-label="Показать всех">✕ всех</button></span>':'')+(canPeople(false)?'<button class="mcmpb" data-a="xcmp">📄 Сверить с файлом</button>':'')+'</div>';
-  if(ui.mSched) ppl=ppl.filter(function(p){ return (p.sched||'')===(ui.mSched==='-'?'':ui.mSched); });
+  if(ui.mSched==='@d'||ui.mSched==='@n') ppl=ppl.filter(function(p){ return isN(p.sched)===(ui.mSched==='@n'); });
+  else if(ui.mSched) ppl=ppl.filter(function(p){ return (p.sched||'')===(ui.mSched==='-'?'':ui.mSched); });
   if(srt){ var sdr=recs[srt.d]||{}; ppl=ppl.filter(function(p){ return mStat(p,srt.d,sdr[p.id])===srt.s; }); }
   var head='<tr><th class="c0">ФИО</th><th class="c1">График</th>';
   for(i=1;i<=n;i++){
