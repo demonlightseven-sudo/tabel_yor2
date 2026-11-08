@@ -846,7 +846,7 @@ body.vmonth.mq .row2 input{min-width:110px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='222';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='223';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2608,12 +2608,13 @@ function memoCfg(){
   var all=memoLoad(), c=all[root.cur]||{};
   var objs=Array.isArray(c.objs)?c.objs.filter(function(o){ return o&&typeof o==='object'; }).map(function(o){ return {obj:String(o.obj||''),works:String(o.works||'')}; }):null;
   if(!objs||!objs.length) objs=[{obj:typeof c.obj==='string'?c.obj:'',works:typeof c.works==='string'?c.works:''}];   // записка прошлой версии: один объект
+  if(Array.isArray(all._w)){ for(var wi=0;wi<all._w.length;wi++){ if(!objs[wi]) objs.push({obj:'',works:''}); objs[wi].works=String(all._w[wi]||''); } }   /* виды работ — общие для РФ и АРЕ */
   return {objs:objs,resp:typeof c.resp==='string'?c.resp:'',
     to:/^\d\d:\d\d$/.test(c.to)?c.to:'21:00',from:/^\d\d:\d\d$/.test(c.from)?c.from:(root.cur==='are'?'17:00':'16:00'),
     rfrom:/^\d\d:\d\d$/.test(c.rfrom)?c.rfrom:'07:00',rto:/^\d\d:\d\d$/.test(c.rto)?c.rto:'21:00',
     rbf:typeof c.rbf==='string'?c.rbf:'11:00',rbt:typeof c.rbt==='string'?c.rbt:'12:00'};
 }
-function memoSet(k,v){ var all=memoLoad(); all[root.cur]=all[root.cur]||{}; all[root.cur][k]=v; memoSaveAll(all); }
+function memoSet(k,v){ var all=memoLoad(); all[root.cur]=all[root.cur]||{}; all[root.cur][k]=v; if(k==='objs'&&Array.isArray(v)) all._w=v.map(function(o){ return String(o.works||''); }); memoSaveAll(all); }
 function tmin(s){ var a=String(s||'').split(':').map(Number); return a.length===2&&isFinite(a[0])&&isFinite(a[1])?a[0]*60+a[1]:NaN; }
 function tstr(m){ m=((Math.round(m)%1440)+1440)%1440; return pad(Math.floor(m/60))+':'+pad(m%60); }
 /* шапка и подписи: хранятся в Google Таблице (не на сайте), на телефоне — копия */
@@ -2647,12 +2648,13 @@ var MEMO_SHOW={ot:['addr','fromName'],rvd:['addr','fromName']};
 var SG_G=[['sign','Подписывает'],['agree','Согласовано'],['appr','Утверждает']];
 function memoSigners(t){
   var h=memoHdr(), all={}; try{ all=JSON.parse(h.signers||'{}')||{}; }catch(e){ all={}; }
-  var o=all[t];
+  var o=all[t+'_'+root.cur]||all[t];   /* у РФ и АРЕ подписи свои; пока своих нет — общие прежние */
+  if(o&&typeof o==='object') o=JSON.parse(JSON.stringify(o));
   if(!o||typeof o!=='object') o={sign:[memoOneV(h,'s1')],agree:[memoOneV(h,'s2')],appr:[memoOneV(h,t==='rvd'?'s4':'s3')]};
   SG_G.forEach(function(g){ if(!Array.isArray(o[g[0]])) o[g[0]]=[]; });
   return o;
 }
-function memoSignersSave(t,o){ var h=memoHdr(), all={}; try{ all=JSON.parse(h.signers||'{}')||{}; }catch(e){ all={}; } all[t]=o; h.signers=JSON.stringify(all); memoHdrSave(h); memoHdrPush(); }
+function memoSignersSave(t,o){ var h=memoHdr(), all={}; try{ all=JSON.parse(h.signers||'{}')||{}; }catch(e){ all={}; } all[t+'_'+root.cur]=o; h.signers=JSON.stringify(all); memoHdrSave(h); memoHdrPush(); }
 function memoSignersHtml(t){
   var sg=memoSigners(t);
   return SG_G.map(function(g){ var L=sg[g[0]];
@@ -2674,20 +2676,30 @@ function memoSplit(nameKey,text){
 function memoOneV(h,nameKey){ var pk=nameKey==='addr'?'addrPos':nameKey==='fromName'?'fromPos':nameKey+'Pos'; return memoFlat(memoFlat(memoHdrV(h,pk))+' '+(h[nameKey]||'')); }
 function memoSplitNote(k,v){ var r=memoSplit(k,v); return r.name?'В записке: '+esc(memoFlat(r.pos)||'—')+' | <b>'+esc(r.name)+'</b>':'<span class="mhw">ФИО не найдено — допишите в конце, например «И.О. Фамилия»</span>'; }
 function memoHdrV(h,k){ return typeof h[k]==='string'&&(h[k].trim()||MEMO_POS[k]==null)?h[k]:(MEMO_POS[k]!=null?MEMO_POS[k]:''); }
-function memoHdr(){ try{ var o=JSON.parse(localStorage.getItem(MEMO_HDR_KEY)||'{}'); return o&&typeof o==='object'?o:{}; }catch(e){ return {}; } }
-function memoHdrSave(o){ try{ localStorage.setItem(MEMO_HDR_KEY,JSON.stringify(o)); }catch(e){} }
+function memoHdrRaw(){ try{ var o=JSON.parse(localStorage.getItem(MEMO_HDR_KEY)||'{}'); return o&&typeof o==='object'?o:{}; }catch(e){ return {}; } }
+function memoSgAll(s){ try{ var a=JSON.parse(s||'{}'); return a&&typeof a==='object'?a:{}; }catch(e){ return {}; } }
+/* шапка у РФ и АРЕ своя: хранится в hdr_rf / hdr_are; пока своей нет — прежняя общая */
+function memoHdr(){ var o=memoHdrRaw(), v={}, a=memoSgAll(o.signers), b=a['hdr_'+root.cur];
+  Object.keys(o).forEach(function(k){ v[k]=o[k]; });
+  if(b&&typeof b==='object') MEMO_HDR_F.forEach(function(f){ if(typeof b[f[0]]==='string') v[f[0]]=b[f[0]]; });
+  return v; }
+function memoHdrSave(o){ var raw=memoHdrRaw(), a=memoSgAll(o.signers!=null?o.signers:raw.signers), b={};
+  MEMO_HDR_F.forEach(function(f){ if(typeof o[f[0]]==='string') b[f[0]]=o[f[0]]; });
+  a['hdr_'+root.cur]=b; raw.signers=JSON.stringify(a);
+  try{ localStorage.setItem(MEMO_HDR_KEY,JSON.stringify(raw)); }catch(e){} }
+function memoHdrSaveRaw(o){ try{ localStorage.setItem(MEMO_HDR_KEY,JSON.stringify(o)); }catch(e){} }
 function memoHdrFetch(){
   if(memoHdrLoaded||!syncOn()) return; memoHdrLoaded=true;
   call({action:'memocfg'}).then(function(j){
-    var c=j.cfg||{}, h=memoHdr(), ch=false;
+    var c=j.cfg||{}, h=memoHdrRaw(), ch=false;
     MEMO_HDR_F.forEach(function(f){ var k=f[0]; if(typeof c[k]==='string'&&c[k]!==h[k]){ h[k]=c[k]; ch=true; } });
     if(typeof c.signers==='string'&&c.signers!==h.signers){ h.signers=c.signers; ch=true; }
-    if(ch){ memoHdrSave(h); if(ui.view==='docs') renderDocs(); }
+    if(ch){ memoHdrSaveRaw(h); if(ui.view==='docs') renderDocs(); }
   }).catch(function(){ memoHdrLoaded=false; });
 }
 function memoHdrPush(){
   clearTimeout(memoHdrTimer);
-  memoHdrTimer=setTimeout(function(){ if(syncOn()) call({action:'memocfg',cfg:memoHdr()}).catch(function(){}); },1200);
+  memoHdrTimer=setTimeout(function(){ if(syncOn()) call({action:'memocfg',cfg:memoHdrRaw()}).catch(function(){}); },1200);
 }
 /* ответственные за организацию, безопасность работ и табель — одни и те же для РФ и АРЕ.
    На сайте только табельные номера; ФИО и должности берутся из списка людей табеля РФ на телефоне. */
@@ -2785,7 +2797,7 @@ function renderDocs(){
     '<div class="fld"><label for="m_rp">Ответственный за организацию, безопасность работ и ведение табеля</label><select id="m_rp"><option value="">Выбрать из списка…</option>'+
       ppl.map(function(p){ return '<option value="'+esc(p.id)+'">'+esc(p.name+(p.role?', '+p.role:''))+'</option>'; }).join('')+'</select>'+
       '<textarea id="m_resp" rows="2" style="margin-top:8px" placeholder="ФИО, должность, подразделение">'+esc(c.resp)+'</textarea></div>'+
-    '<details class="mhdr"'+(MEMO_NEED[memoType()].some(function(k){ return !memoHdr()[k]; })?' open':'')+'><summary>Шапка и подписи</summary><p class="note">Хранятся в вашей Google Таблице и одинаковы на всех телефонах.</p>'+
+    '<details class="mhdr"'+(MEMO_NEED[memoType()].some(function(k){ return !memoHdr()[k]; })?' open':'')+'><summary>Шапка и подписи</summary><p class="note">Хранятся на сервере и одинаковы на всех телефонах. У РФ и АРЕ — свои.</p>'+
       MEMO_ONE.filter(function(f){ return MEMO_SHOW[memoType()].indexOf(f[0])>=0; }).map(function(f){ var v=memoOneV(memoHdr(),f[0]);
         return '<div class="fld"><label for="mh_'+f[0]+'">'+f[2]+'</label><textarea id="mh_'+f[0]+'" data-mhc="'+f[0]+'" rows="'+Math.min(4,Math.max(2,Math.ceil(v.length/34)))+'" maxlength="400" placeholder="'+esc(f[3])+'">'+esc(v)+'</textarea><small class="mhp" id="mhp_'+f[0]+'">'+memoSplitNote(f[0],v)+'</small></div>'; }).join('')+
       '<h3 class="dh3">Подписи</h3>'+memoSignersHtml(memoType())+
@@ -3044,7 +3056,7 @@ function memoMake(){
   memoTemplate(mt).then(function(tpl){
     var pv=addDays(ui.date,-1).split('-');
     var blob=memoBuild(tpl,{hdr:hdr,date:date,people:people,objs:objs,resp:c.resp.trim(),sg:sg,noBreak:mt!=='rvd',rvdAre:mt==='rvd'&&root.cur==='are',prev:pv[2]+'.'+pv[1]+'.'+pv[0]});
-    var name=(mt==='rvd'?'РВД_':'Сверхурочная_работа_')+a[2]+'_'+a[1]+'_'+a[0].slice(2)+(root.cur==='are'?'_АРЕ':'')+'.docx';
+    var name=(mt==='rvd'?'РВД_':'Сверхурочная_работа_')+a[2]+'_'+a[1]+'_'+a[0].slice(2)+(root.cur==='are'?'_АРЕ':'_РФ')+'.docx';
     return saveFile(name,blob.type,blob).then(function(r){ if($('m_msg')) $('m_msg').textContent=r==='cancel'?'':'Готово: '+name+' ('+people.length+' чел.)'; reportDone(r); });
   }).catch(function(){ if($('m_msg')) $('m_msg').textContent='Не удалось загрузить образец записки. Нужен интернет при первом запуске.'; });
 }
