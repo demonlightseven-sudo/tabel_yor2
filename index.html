@@ -801,7 +801,7 @@ body.vmonth.mq .row2 input{min-width:110px}
 .abtb .f{text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
 .abtb th,.abtb td{padding:4px 3px}
 
-/* вкладка «Строительство»: заявки на поставку из Google-таблицы (v225) */
+/* вкладка «Строительство»: заявки на поставку из Google-таблицы — вид «Таблица» (v226) */
 #tabbar [data-v=zv]{display:none}
 body.r-nach #tabbar [data-v=zv],body.r-tech #tabbar [data-v=zv],body.r-prorab #tabbar [data-v=zv],body.r-techu #tabbar [data-v=zv],body.r-brigu #tabbar [data-v=zv]{display:block}
 body.vzv #hnav{display:flex}
@@ -809,32 +809,30 @@ body.vzv #hnav{display:flex}
 .zvbar .zvt{flex:1 1 220px;min-width:0;font-size:13px;color:var(--muted)}
 .zvbar .zvt.bad{color:var(--ab-t);font-weight:600}
 .zvbtn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);text-decoration:none;font-size:14px;font-weight:600}
-.zvst{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:0 0 10px}
-@media (min-width:560px){.zvst{grid-template-columns:repeat(5,minmax(0,1fr))}}
-.zvst button{text-align:left;min-height:0;padding:8px 10px;border-top:4px solid var(--line);min-width:0}
-.zvst button:first-child{grid-column:1/-1}@media (min-width:560px){.zvst button:first-child{grid-column:auto}}
-.zvst b{display:block;font-size:22px;line-height:1.15;font-variant-numeric:tabular-nums}
-.zvst span{display:block;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.zvst button[aria-pressed=true]{outline:3px solid var(--ink);outline-offset:-2px;background:var(--bg)}
-.zvst .k-no{border-top-color:var(--ab)}.zvst .k-part{border-top-color:#D9A92E}.zvst .k-ok{border-top-color:var(--work)}.zvst .k-cx{border-top-color:var(--off)}
-.zvflt{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
-.zvflt select{flex:1 1 150px;width:auto;min-width:0}
-.zvflt input{flex:2 1 220px;min-width:0;min-height:46px;padding:8px 12px;background:var(--surface);border:1px solid var(--line);border-radius:8px;font-size:16px}
-.zvnote{font-size:13px;color:var(--muted);margin:0 2px 8px}
-.zvg{border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:0 0 8px;overflow:hidden}
-.zvg>summary{cursor:pointer;list-style:none;display:flex;gap:8px;align-items:flex-start;padding:10px 12px}
-.zvg>summary::-webkit-details-marker{display:none}
-.zvg>summary::before{content:'▸';flex:0 0 auto;color:var(--muted);padding-top:1px}.zvg[open]>summary::before{content:'▾'}
-.zvgh{flex:1;min-width:0}.zvgh b{font-size:15px;overflow-wrap:anywhere}.zvgh small{display:block;font-size:13px;color:var(--muted);margin-top:2px}
-.zvgh .xchips{margin-top:5px}
-.zvi{padding:10px 12px;border-top:1px solid var(--line);border-left:6px solid var(--line)}
-.zvi.k-no{border-left-color:var(--ab)}.zvi.k-part{border-left-color:#D9A92E}.zvi.k-ok{border-left-color:var(--work)}.zvi.k-cx{border-left-color:var(--off)}
-.zvi.k-cx .zvn{text-decoration:line-through;color:var(--muted)}
-.zvn{font-weight:650;font-size:15px;overflow-wrap:anywhere}
-.zvm{display:flex;flex-wrap:wrap;gap:2px 14px;margin-top:4px;font-size:13px;color:var(--muted)}
-.zvm b{color:var(--ink);font-variant-numeric:tabular-nums}.zvm .zvsh b{color:var(--ab-t)}
-.zvx{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;margin-top:6px;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
-.xchip.off{background:var(--off-bg);color:var(--off-t)}
+.zvobjs{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 6px;margin:0 -2px 6px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.zvobjs button{flex:0 0 auto;min-height:38px;padding:0 13px;border-radius:19px;font-size:14px;font-weight:600;white-space:nowrap}
+.zvobjs button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:700}
+.zvobjs button small{font-size:12px;font-weight:700;margin-left:5px;color:var(--ab-t)}.zvobjs button[aria-pressed=true] small{color:inherit;opacity:.8}
+@media (max-width:699px){.zvobjs{-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}.zvobjs.zvend{-webkit-mask-image:none;mask-image:none}}
+@media (min-width:700px){.zvobjs{flex-wrap:wrap;overflow:visible}}
+.zvflt{display:flex;gap:6px;align-items:stretch;margin:0 0 8px}
+.zvflt input{flex:1;min-width:0;min-height:44px;padding:6px 12px;background:var(--surface);border:1px solid var(--line);border-radius:8px;font-size:16px}
+.zvflt button{flex:0 0 auto;min-height:44px;padding:0 12px;font-size:14px;font-weight:700;white-space:nowrap}
+.zvflt button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.zvsum{font-size:13px;color:var(--muted);margin:0 2px 8px}.zvsum b{color:var(--ink)}
+.zvt2{border:1px solid var(--line);border-radius:10px;background:var(--surface);overflow:hidden}
+.zvr{display:grid;grid-template-columns:minmax(0,1fr) 76px 64px 68px;gap:0 6px;padding:7px 10px;border-top:1px dashed var(--line);font-size:14px;align-items:baseline}
+.zvr>span:not(:first-child){text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.zvr .zvp{overflow-wrap:anywhere}
+.zvr .zvd{display:inline-block;width:9px;height:9px;border-radius:5px;margin-right:6px;background:var(--line);vertical-align:1px}
+.zvr.k-no .zvd{background:var(--ab)}.zvr.k-part .zvd{background:#D9A92E}.zvr.k-ok .zvd{background:var(--work)}.zvr.k-cx .zvd{background:var(--off)}
+.zvr.k-no .zvdebt{color:var(--ab-t);font-weight:700}.zvr.k-part .zvdebt{color:var(--ul-t);font-weight:700}.zvr.k-ok .zvdebt{color:var(--work-t)}
+.zvr.k-cx{color:var(--muted)}.zvr.k-cx .zvp{text-decoration:line-through}
+.zvr .zvsub{display:block;font-size:12px;color:var(--muted);margin-top:1px;text-decoration:none}
+.zvhd{position:sticky;top:0;background:var(--line);font-size:12px;font-weight:700;border-top:0;padding:8px 10px}
+.zvgr{padding:7px 10px;border-top:1px solid var(--line);background:var(--bg);font-size:12px;font-weight:700;color:var(--muted)}
+.zvt2>.zvgr:first-of-type{border-top:0}
+@media (min-width:700px){.zvr{grid-template-columns:minmax(0,1fr) 120px 100px 110px}}
 .zvempty{padding:16px 12px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:14px}
 </style>
 </head>
@@ -882,7 +880,7 @@ body.vzv #hnav{display:flex}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='225';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='226';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4250,18 +4248,18 @@ function renderX(){
   if(ui.view==='task'&&document.body.classList.contains('nws')) wsLeft();
 }
 
-/* ------------------------------------------------------------- «Строительство»: заявки на поставку
+/* ------------------------------------------------------------- «Строительство»: заявки на поставку, вид «Таблица»
    Сам список ведётся в Google-таблице «Отчёт по заявкам на поставку». Сервер табеля читает её (ссылка хранится только на сервере)
    и отдаёт вошедшим в приложение; здесь — только просмотр. Правки в таблице появляются в приложении в течение минуты. */
-var ZV_KEY='tabel-zv-v1', zv={items:null,t:0,url:'',err:'',busy:false,f:'all',obj:'',q:'',open:{}};
-try{ var zvc=JSON.parse(localStorage.getItem(ZV_KEY)||'null'); if(zvc&&Array.isArray(zvc.items)){ zv.items=zvc.items; zv.t=Number(zvc.t)||0; zv.url=zvc.url||''; } }catch(e){}
+var ZV_KEY='tabel-zv-v1', zv={items:null,t:0,url:'',err:'',busy:false,debt:false,obj:'',q:''};
+try{ var zvc=JSON.parse(localStorage.getItem(ZV_KEY)||'null'); if(zvc&&Array.isArray(zvc.items)){ zv.items=zvc.items; zv.t=Number(zvc.t)||0; zv.url=zvc.url||''; } if(zvc&&typeof zvc.obj==='string') zv.obj=zvc.obj; }catch(e){}
+function zvSave(){ try{ localStorage.setItem(ZV_KEY,JSON.stringify({items:zv.items,t:zv.t,url:zv.url,obj:zv.obj})); }catch(e){} }
 function zvFetch(force){
   if(!syncOn()||zv.busy) return;
   if(navigator.onLine===false){ zv.err='net'; if(ui.view==='zv') renderX(); return; }
   zv.busy=true; zvStatus();
   call({action:'zlist',force:force?1:0},30000).then(function(j){
-    zv.busy=false; zv.err=''; zv.items=Array.isArray(j.items)?j.items:[]; zv.t=Number(j.t)||Date.now(); zv.url=j.url||'';
-    try{ localStorage.setItem(ZV_KEY,JSON.stringify({items:zv.items,t:zv.t,url:zv.url})); }catch(e){}
+    zv.busy=false; zv.err=''; zv.items=Array.isArray(j.items)?j.items:[]; zv.t=Number(j.t)||Date.now(); zv.url=j.url||''; zvSave();
     if(ui.view==='zv') renderX();
     if(force) toast('Заявки обновлены из таблицы');
   }).catch(function(e){
@@ -4283,40 +4281,35 @@ function zvKind(x){
   if(x.q==null) return 'nq';
   var g=Number(x.got)||0; return g>=x.q?'ok':g>0?'part':'no';
 }
-var ZV_K={no:['Не поставлено','bad'],part:['Частично','warn'],ok:['Поставлено','ok'],cx:['Отменено / замена','off'],nq:['Нет количества','nil']};
-function zvChip(k){ var t=ZV_K[k]||ZV_K.nq; return '<span class="xchip '+t[1]+'">'+t[0]+'</span>'; }
-function zvObjs(){ var o={}, l=[]; (zv.items||[]).forEach(function(x){ var k=x.obj||'—'; if(!o[k]){ o[k]=1; l.push(k); } }); return l.sort(function(a,b){ return a.localeCompare(b,'ru'); }); }
+function zvOpen(x){ var k=zvKind(x); return k==='no'||k==='part'; }
+/* объекты: сначала крупные (по числу позиций), все подряд в одну строку */
+function zvObjs(){ var o={}, l=[]; (zv.items||[]).forEach(function(x){ var k=x.obj||'—'; if(!o[k]){ o[k]={n:0,d:0}; l.push(k); } o[k].n++; if(zvOpen(x)) o[k].d++; });
+  l.sort(function(a,b){ return o[b].n-o[a].n||a.localeCompare(b,'ru'); }); return l.map(function(k){ return {k:k,n:o[k].n,d:o[k].d}; }); }
 function zvBase(){ var q=zv.q.trim().toLowerCase(); return (zv.items||[]).filter(function(x){
   if(zv.obj&&(x.obj||'—')!==zv.obj) return false;
   if(q&&[x.pos,x.z,x.obj,x.code,x.note,x.place,x.u].join(' ').toLowerCase().indexOf(q)<0) return false;
   return true; }); }
-function zvStatsHtml(base){
-  var c={all:base.length,no:0,part:0,ok:0,cx:0}; base.forEach(function(x){ var k=zvKind(x); if(c[k]!=null) c[k]++; });
-  var b=function(f,cls,n,t){ return '<button type="button" class="'+cls+'" data-a="zvf" data-f="'+f+'" aria-pressed="'+(zv.f===f)+'"><b>'+n+'</b><span>'+t+'</span></button>'; };
-  return b('all','',c.all,'Всего позиций')+b('no','k-no',c.no,'Не поставлено')+b('part','k-part',c.part,'Частично')+b('ok','k-ok',c.ok,'Поставлено')+b('cx','k-cx',c.cx,'Отменено / замена');
+function zvSumHtml(base){
+  var c={no:0,part:0,ok:0,cx:0,nq:0}; base.forEach(function(x){ c[zvKind(x)]++; });
+  return '<b>'+base.length+'</b> поз. · ждём <b>'+(c.no+c.part)+'</b>'+(c.part?' (частично '+c.part+')':'')+' · поставлено <b>'+c.ok+'</b>'+(c.cx?' · отменено '+c.cx:'');
 }
-function zvItemHtml(x){
+function zvRowHtml(x){
   var k=zvKind(x), u=x.u?' '+esc(x.u):'';
-  return '<div class="zvi k-'+k+'"><div class="zvn">'+esc(x.pos)+'</div>'+
-    '<div class="zvm"><span>Заказано <b>'+zvN(x.q)+(x.q!=null?u:'')+'</b></span><span>Поставлено <b>'+zvN(x.got)+(x.got!=null?u:'')+'</b></span>'+
-    (k!=='cx'&&x.sh>0?'<span class="zvsh">Недопоставка <b>'+zvN(x.sh)+u+'</b></span>':'')+'</div>'+
-    '<div class="zvx">'+zvChip(k)+(x.code?'<span>Код '+esc(x.code)+'</span>':'')+(x.place?'<span>📍 '+esc(x.place)+'</span>':'')+(x.pr?'<span>Приоритет '+esc(x.pr)+'</span>':'')+(x.note?'<span>'+esc(x.note)+'</span>':'')+'</div></div>';
+  var debt=k==='cx'?'отм.':k==='ok'?'—':k==='nq'?'?':zvN(x.sh!=null?x.sh:(x.q-(Number(x.got)||0)));
+  var sub=[]; if(x.code) sub.push('код '+esc(x.code)); if(x.place) sub.push('📍 '+esc(x.place)); if(x.pr) sub.push('приоритет '+esc(x.pr)); if(k==='nq') sub.push('не указано количество');
+  return '<div class="zvr k-'+k+'"><span class="zvp"><span class="zvd" aria-hidden="true"></span>'+esc(x.pos)+(sub.length?'<span class="zvsub">'+sub.join(' · ')+'</span>':'')+'</span>'+
+    '<span>'+zvN(x.q)+(x.q!=null?u:'')+'</span><span>'+zvN(x.got)+'</span><span class="zvdebt">'+debt+'</span></div>';
 }
-function zvListHtml(base){
+function zvTableHtml(base){
   if(zv.items==null) return '<div class="zvempty">'+(syncOn()?'Загружаю заявки…':'Нет связи с сервером: войдите в приложение, чтобы увидеть заявки.')+'</div>';
-  var list=zv.f==='all'?base:base.filter(function(x){ return zvKind(x)===zv.f; });
-  if(!list.length) return '<div class="zvempty">'+(zv.items.length?'Ничего не найдено. Измените фильтр или поиск.':'В таблице пока нет заявок.')+'</div>';
+  var list=zv.debt?base.filter(zvOpen):base;
+  if(!list.length) return '<div class="zvempty">'+(zv.items.length?(zv.debt&&base.length?'Всё поставлено — долгов нет.':'Ничего не найдено. Выберите другой объект или измените поиск.'):'В таблице пока нет заявок.')+'</div>';
   var g={}, order=[];
-  list.forEach(function(x){ var key=(x.z||'Без номера заявки'); if(!g[key]){ g[key]=[]; order.push(key); } g[key].push(x); });
-  var auto=!!(zv.q.trim()||zv.f!=='all'||order.length<=3);
-  return order.map(function(key){
-    var it=g[key], objs={}, cnt={no:0,part:0,ok:0,cx:0,nq:0};
-    it.forEach(function(x){ objs[x.obj||'—']=1; cnt[zvKind(x)]++; });
-    var chips=['no','part','ok','cx','nq'].filter(function(k){ return cnt[k]; }).map(function(k){ return '<span class="xchip '+ZV_K[k][1]+'">'+ZV_K[k][0]+': '+cnt[k]+'</span>'; }).join('');
-    var open=zv.open[key]!=null?zv.open[key]:auto;
-    return '<details class="zvg" data-zvg="'+esc(key)+'"'+(open?' open':'')+'><summary><div class="zvgh"><b>'+esc(key)+'</b><small>'+esc(Object.keys(objs).join(', '))+' · '+it.length+' поз.</small><span class="xchips">'+chips+'</span></div></summary>'+
-      (open?it.map(zvItemHtml).join(''):'')+'</details>';
-  }).join('');
+  list.forEach(function(x){ var key=(x.z||'Без номера заявки')+'\u0001'+(zv.obj?'':(x.obj||'')); if(!g[key]){ g[key]=[]; order.push(key); } g[key].push(x); });
+  return '<div class="zvt2"><div class="zvr zvhd"><span>Позиция</span><span>Заказ</span><span>Пришло</span><span>Долг</span></div>'+
+    order.map(function(key){ var it=g[key], x=it[0], z=String(x.z||'Без номера заявки').replace(/ от (\d\d\.\d\d)\.\d{4}$/,' от $1');
+      var head=esc(z)+(zv.obj?'':' · '+esc(x.obj||'—'))+(x.note?' · '+esc(x.note):'');
+      return '<div class="zvgr">'+head+'</div>'+it.map(zvRowHtml).join(''); }).join('')+'</div>';
 }
 function zvStatusHtml(){
   var t=zv.t?pad(new Date(zv.t).getDate())+'.'+pad(new Date(zv.t).getMonth()+1)+' '+hhmm(zv.t):'';
@@ -4327,39 +4320,44 @@ function zvStatusHtml(){
   else if(zv.err==='bad_action'){ txt='Сервер ещё не умеет отдавать заявки. Сообщите администратору.'; bad=true; }
   else if(zv.err){ txt='Нет связи'+(t?': показаны данные от '+t:''); bad=true; }
   else txt='Из Google Таблицы «Отчёт по заявкам на поставку»'+(t?' · обновлено '+t:'')+(zv.busy?' · обновляю…':'');
-  return '<span class="zvt'+(bad?' bad':'')+'" id="zvst">'+esc(txt)+'</span>'+
+  return '<span class="zvt'+(bad?' bad':'')+'">'+esc(txt)+'</span>'+
     '<button type="button" class="zvbtn" data-a="zvr"'+(zv.busy?' disabled':'')+'>↻ Обновить</button>'+
     (zv.url?'<a class="zvbtn" href="'+esc(zv.url)+'" target="_blank" rel="noopener">Открыть таблицу</a>':'');
 }
-function zvObjOpts(){ return '<option value="">Все объекты</option>'+zvObjs().map(function(o){ return '<option value="'+esc(o)+'"'+(o===zv.obj?' selected':'')+'>'+esc(o)+'</option>'; }).join(''); }
+function zvObjsHtml(){
+  var l=zvObjs(); if(zv.obj&&!l.some(function(o){ return o.k===zv.obj; })) zv.obj='';
+  var b=function(k,t,d){ return '<button type="button" data-a="zvo" data-o="'+esc(k)+'" aria-pressed="'+(zv.obj===k)+'">'+esc(t)+(d?'<small>'+d+'</small>':'')+'</button>'; };
+  return b('','Все',0)+l.map(function(o){ return b(o.k,o.k,o.d); }).join('');
+}
 function zvRender(){
   if(zv.items==null&&!zv.busy) setTimeout(function(){ zvFetch(false); },0);
   var base=zvBase();
   return '<div id="zvwrap"><h2 class="dh2">Заявки на поставку</h2>'+
     '<div class="zvbar" id="zvbar">'+zvStatusHtml()+'</div>'+
-    '<div class="zvst" id="zvs">'+zvStatsHtml(base)+'</div>'+
-    '<div class="zvflt"><select id="zvobj" aria-label="Объект">'+zvObjOpts()+'</select>'+
-    '<input type="search" id="zvq" placeholder="Поиск: позиция, № заявки, примечание" value="'+esc(zv.q)+'" aria-label="Поиск по заявкам" autocomplete="off"></div>'+
-    '<p class="zvnote">Заявки, поставки и отмены вносятся в Google Таблице, здесь они появляются в течение минуты.</p>'+
-    '<div id="zvl">'+zvListHtml(base)+'</div></div>';
+    '<div class="zvobjs" id="zvobjs" role="group" aria-label="Объект">'+zvObjsHtml()+'</div>'+
+    '<div class="zvflt"><input type="search" id="zvq" placeholder="Поиск: позиция или № заявки" value="'+esc(zv.q)+'" aria-label="Поиск по заявкам" autocomplete="off">'+
+    '<button type="button" id="zvdebt" data-a="zvdebt" aria-pressed="'+zv.debt+'">Только долг</button></div>'+
+    '<div class="zvsum" id="zvsum">'+zvSumHtml(base)+'</div>'+
+    '<div id="zvl">'+zvTableHtml(base)+'</div></div>';
 }
 function zvParts(){
-  var base=zvBase(), s=$('zvs'), l=$('zvl'), o=$('zvobj'), b=$('zvbar');
+  var base=zvBase(), b=$('zvbar'), o=$('zvobjs'), s=$('zvsum'), l=$('zvl'), d=$('zvdebt');
   if(b) b.innerHTML=zvStatusHtml();
-  if(s) s.innerHTML=zvStatsHtml(base);
-  if(o&&document.activeElement!==o) o.innerHTML=zvObjOpts();
-  if(l) l.innerHTML=zvListHtml(base);
+  if(o){ var x=o.scrollLeft; o.innerHTML=zvObjsHtml(); o.scrollLeft=x; }
+  if(d) d.setAttribute('aria-pressed',String(zv.debt));
+  if(s) s.innerHTML=zvSumHtml(base);
+  if(l) l.innerHTML=zvTableHtml(base);
 }
+/* затенение справа подсказывает, что список объектов листается; у конца — убираем */
+document.addEventListener('scroll',function(e){ var t=e.target; if(t&&t.id==='zvobjs') t.classList.toggle('zvend',t.scrollLeft+t.clientWidth>=t.scrollWidth-4); },true);
 function zvStatus(){ var b=$('zvbar'); if(b&&ui.view==='zv') b.innerHTML=zvStatusHtml(); }
 function zvHead(){ var hn=$('hnav'); if(hn) hn.innerHTML='<div class="hsec">Строительство</div>'; }
 function zvClick(a,el){
-  if(a==='zvf'){ zv.f=zv.f===el.dataset.f?'all':el.dataset.f; zv.open={}; zvParts(); return; }
+  if(a==='zvo'){ zv.obj=el.dataset.o||''; zvSave(); zvParts(); return; }
+  if(a==='zvdebt'){ zv.debt=!zv.debt; zvParts(); return; }
   if(a==='zvr'){ zvFetch(true); return; }
 }
-document.addEventListener('input',function(e){ var t=e.target; if(t&&t.id==='zvq'){ zv.q=t.value; zv.open={}; clearTimeout(zv.qt); zv.qt=setTimeout(zvParts,200); } },true);
-document.addEventListener('change',function(e){ var t=e.target; if(t&&t.id==='zvobj'){ zv.obj=t.value; zv.open={}; zvParts(); } },true);
-document.addEventListener('toggle',function(e){ var t=e.target; if(!t||!t.classList||!t.classList.contains('zvg')) return; var k=t.dataset.zvg; zv.open[k]=t.open;
-  if(t.open&&!t.querySelector('.zvi')){ var it=zvBase().filter(function(x){ return (x.z||'Без номера заявки')===k&&(zv.f==='all'||zvKind(x)===zv.f); }); t.insertAdjacentHTML('beforeend',it.map(zvItemHtml).join('')); } },true);
+document.addEventListener('input',function(e){ var t=e.target; if(t&&t.id==='zvq'){ zv.q=t.value; clearTimeout(zv.qt); zv.qt=setTimeout(zvParts,200); } },true);
 /* --- бригада (бригадир) --- */
 function myBrigId(d){ return 'brig|'+d+'|'+nameKey(sync.who).slice(0,30); }
 /* пришли на работу, но ни один бригадир не подал их в численность бригады */
