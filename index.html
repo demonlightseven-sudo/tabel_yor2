@@ -477,13 +477,13 @@ body.vtask .tktop .tbtf{max-width:none}@media (min-width:1000px){.tktop{grid-tem
 
 .xack{margin-top:8px;padding:8px 10px;border-radius:8px;font-weight:700}.xack.ok{background:var(--work-bg);color:var(--work-t)}.xack.no{background:var(--ul-bg);color:var(--ul-t)}.xackbtn{margin-top:8px;width:100%}
 
-/* 6 вкладок (начальник участка, техник-помощник): на телефоне 2 низких ряда по 3, вплотную к низу экрана; на компьютере — один ряд */
+/* 7–8 вкладок (начальник участка, техник-помощник, прораб, бригадир участка): на телефоне 2 низких ряда по 4, вплотную к низу экрана; на компьютере — один ряд */
 .dshort{display:none}
 @media (max-width:700px){.dlong{display:none}.dshort{display:inline}}
 @media (max-width:700px){
-body.r-nach #tabbar,body.r-tech #tabbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;background:var(--surface);padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left)}
-body.r-nach #tabbar button,body.r-tech #tabbar button{min-height:44px;padding:3px 4px;font-size:clamp(12px,3.8vw,15px);line-height:1.1;letter-spacing:-.01em;overflow-wrap:anywhere;background:var(--surface);white-space:normal;text-align:center;border-top-width:2px;box-shadow:inset 1px 0 0 var(--line),inset 0 -1px 0 var(--line)}
-body.r-nach,body.r-tech{padding-bottom:96px}
+body.r-nach #tabbar,body.r-tech #tabbar,body.r-prorab #tabbar,body.r-brigu #tabbar,body.r-techu #tabbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;background:var(--surface);padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left)}
+body.r-nach #tabbar button,body.r-tech #tabbar button,body.r-prorab #tabbar button,body.r-brigu #tabbar button,body.r-techu #tabbar button{min-height:44px;padding:3px 3px;font-size:clamp(11px,3.5vw,15px);hyphens:manual;-webkit-hyphens:manual;line-height:1.1;letter-spacing:-.01em;overflow-wrap:anywhere;background:var(--surface);white-space:normal;text-align:center;border-top-width:2px;box-shadow:inset 1px 0 0 var(--line),inset 0 -1px 0 var(--line)}
+body.r-nach,body.r-tech,body.r-prorab,body.r-brigu,body.r-techu{padding-bottom:96px}
 }
 
 .ndcmp{display:block;margin-top:6px;padding:6px 8px;border-radius:8px;font-size:13px;line-height:1.35}.ndcmp.ok{background:var(--work-bg);color:var(--work-t)}.ndcmp.ch{background:var(--ul-bg);color:var(--ul-t)}.ndcmp.no{background:var(--off-bg);color:var(--off-t)}
@@ -800,6 +800,42 @@ body.vmonth.mq .row2 input{min-width:110px}
 .abtb td{border-bottom:1px solid var(--line);padding:4px;text-align:center;font-variant-numeric:tabular-nums}
 .abtb .f{text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
 .abtb th,.abtb td{padding:4px 3px}
+
+/* вкладка «Строительство»: заявки на поставку из Google-таблицы (v225) */
+#tabbar [data-v=zv]{display:none}
+body.r-nach #tabbar [data-v=zv],body.r-tech #tabbar [data-v=zv],body.r-prorab #tabbar [data-v=zv],body.r-techu #tabbar [data-v=zv],body.r-brigu #tabbar [data-v=zv]{display:block}
+body.vzv #hnav{display:flex}
+.zvbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:4px 0 10px}
+.zvbar .zvt{flex:1 1 220px;min-width:0;font-size:13px;color:var(--muted)}
+.zvbar .zvt.bad{color:var(--ab-t);font-weight:600}
+.zvbtn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);text-decoration:none;font-size:14px;font-weight:600}
+.zvst{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:0 0 10px}
+@media (min-width:560px){.zvst{grid-template-columns:repeat(5,minmax(0,1fr))}}
+.zvst button{text-align:left;min-height:0;padding:8px 10px;border-top:4px solid var(--line);min-width:0}
+.zvst button:first-child{grid-column:1/-1}@media (min-width:560px){.zvst button:first-child{grid-column:auto}}
+.zvst b{display:block;font-size:22px;line-height:1.15;font-variant-numeric:tabular-nums}
+.zvst span{display:block;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zvst button[aria-pressed=true]{outline:3px solid var(--ink);outline-offset:-2px;background:var(--bg)}
+.zvst .k-no{border-top-color:var(--ab)}.zvst .k-part{border-top-color:#D9A92E}.zvst .k-ok{border-top-color:var(--work)}.zvst .k-cx{border-top-color:var(--off)}
+.zvflt{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.zvflt select{flex:1 1 150px;width:auto;min-width:0}
+.zvflt input{flex:2 1 220px;min-width:0;min-height:46px;padding:8px 12px;background:var(--surface);border:1px solid var(--line);border-radius:8px;font-size:16px}
+.zvnote{font-size:13px;color:var(--muted);margin:0 2px 8px}
+.zvg{border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:0 0 8px;overflow:hidden}
+.zvg>summary{cursor:pointer;list-style:none;display:flex;gap:8px;align-items:flex-start;padding:10px 12px}
+.zvg>summary::-webkit-details-marker{display:none}
+.zvg>summary::before{content:'▸';flex:0 0 auto;color:var(--muted);padding-top:1px}.zvg[open]>summary::before{content:'▾'}
+.zvgh{flex:1;min-width:0}.zvgh b{font-size:15px;overflow-wrap:anywhere}.zvgh small{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.zvgh .xchips{margin-top:5px}
+.zvi{padding:10px 12px;border-top:1px solid var(--line);border-left:6px solid var(--line)}
+.zvi.k-no{border-left-color:var(--ab)}.zvi.k-part{border-left-color:#D9A92E}.zvi.k-ok{border-left-color:var(--work)}.zvi.k-cx{border-left-color:var(--off)}
+.zvi.k-cx .zvn{text-decoration:line-through;color:var(--muted)}
+.zvn{font-weight:650;font-size:15px;overflow-wrap:anywhere}
+.zvm{display:flex;flex-wrap:wrap;gap:2px 14px;margin-top:4px;font-size:13px;color:var(--muted)}
+.zvm b{color:var(--ink);font-variant-numeric:tabular-nums}.zvm .zvsh b{color:var(--ab-t)}
+.zvx{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;margin-top:6px;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.xchip.off{background:var(--off-bg);color:var(--off-t)}
+.zvempty{padding:16px 12px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:14px}
 </style>
 </head>
 <body>
@@ -835,7 +871,7 @@ body.vmonth.mq .row2 input{min-width:110px}
   <aside id="nwl" aria-label="Бригады"></aside><div id="wshead"></div><div id="nd"></div>
   <div id="xv"></div>
 </main>
-<nav id="tabbar" aria-label="Разделы"><button data-a="view" data-v="day">Явка</button><button data-a="view" data-v="brig">Бригада</button><button data-a="view" data-v="month">Табель</button><button data-a="view" data-v="teams">Бригады</button><button data-a="view" data-v="docs">Служебные записки</button><button data-a="view" data-v="nar">Наряды</button><button data-a="view" data-v="dtask">Задачи на день</button><button data-a="view" data-v="board">Доска руководителя</button><button data-a="view" data-v="stroy">Строительство</button></nav>
+<nav id="tabbar" aria-label="Разделы"><button data-a="view" data-v="day">Явка</button><button data-a="view" data-v="brig">Бригада</button><button data-a="view" data-v="month">Табель</button><button data-a="view" data-v="teams">Бригады</button><button data-a="view" data-v="docs">Служебные записки</button><button data-a="view" data-v="nar">Наряды</button><button data-a="view" data-v="dtask">Задачи на день</button><button data-a="view" data-v="zv">Строитель&shy;ство</button><button data-a="view" data-v="board">Доска руково&shy;дителя</button><button data-a="view" data-v="stroy">Строительство</button></nav>
 <div id="sheetWrap" hidden><div class="backdrop" data-a="close"></div><div id="sheet" role="dialog" aria-modal="true" aria-label="Окно"></div></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <input type="file" id="file" accept=".json,application/json" hidden>
@@ -846,7 +882,7 @@ body.vmonth.mq .row2 input{min-width:110px}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='224';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='225';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1065,7 +1101,7 @@ function roleClick(a,el){
 function applyRole(){
   var r=role(), c=document.body.classList;
   if(r){
-    var okv=r==='rukp'?{month:1,board:1,stroy:1}:r==='mont'?{brig:1,month:1,task:1,teams:1}:r==='brigu'?{day:1,month:1,nd:1,teams:1,task:1,dtask:1}:{day:1,month:1,docs:1,nd:1,teams:1,task:(r==='prorab'||r==='nach'||r==='tech')?1:0,board:(r==='nach'||r==='tech')?1:0,dtask:(r==='prorab'||r==='tech')?1:0};
+    var okv=r==='rukp'?{month:1,board:1,stroy:1}:r==='mont'?{brig:1,month:1,task:1,teams:1}:r==='brigu'?{day:1,month:1,nd:1,teams:1,task:1,dtask:1,zv:1}:{day:1,month:1,docs:1,nd:1,teams:1,zv:(r==='nach'||r==='tech'||r==='prorab'||r==='techu')?1:0,task:(r==='prorab'||r==='nach'||r==='tech')?1:0,board:(r==='nach'||r==='tech')?1:0,dtask:(r==='prorab'||r==='tech')?1:0};
     if(!okv[ui.view]){ ui.view=r==='mont'?'brig':r==='rukp'?'month':'day'; ui.month=ui.date.slice(0,7); }
     if(r==='mont'&&root.cur!=='rf'){ root.cur='rf'; }
   }
@@ -1490,8 +1526,8 @@ function dtView(fid,name,mime,parts){
     else saveFile(name||'файл.pdf',mime,blob);
   }).catch(function(e){ toast('Не удалось открыть: '+((e&&e.message)||'')); });
 }
-function isXv(){ return ui.view==='brig'||ui.view==='task'||ui.view==='board'||ui.view==='teams'||ui.view==='dtask'; }
-function pull(){ if(ui.view==='month') pullMonth(); else if(isXv()) bdFetch(ui.view==='task'?(tkDate||tkDef()):ui.view==='board'?(bdDate||today()):ui.view==='dtask'?(dtDate||today()):ui.view==='teams'?(tmDate||today()):today(),true); else pullDay(); }
+function isXv(){ return ui.view==='brig'||ui.view==='task'||ui.view==='board'||ui.view==='teams'||ui.view==='dtask'||ui.view==='zv'; }
+function pull(){ if(ui.view==='zv'){ zvFetch(false); return; } if(ui.view==='month') pullMonth(); else if(isXv()) bdFetch(ui.view==='task'?(tkDate||tkDef()):ui.view==='board'?(bdDate||today()):ui.view==='dtask'?(dtDate||today()):ui.view==='teams'?(tmDate||today()):today(),true); else pullDay(); }
 function pullDay(){
   if(!syncOn()||pulling||navigator.onLine===false) return;
   var b=root.cur, d=ui.date; pulling=true;
@@ -1691,6 +1727,7 @@ function render(){
   document.body.classList.toggle('vx',isXv());
   document.body.classList.toggle('vboard',ui.view==='board');
   document.body.classList.toggle('vstroy',ui.view==='stroy');
+  document.body.classList.toggle('vzv',ui.view==='zv');
   renderSiteBar();
   document.body.classList.toggle('vtask',ui.view==='task'||ui.view==='teams');
   document.body.classList.toggle('vteams',ui.view==='teams');
@@ -3725,6 +3762,7 @@ document.addEventListener('click',function(e){
   if(a==='logout'){ closeSheet(); if(auth&&auth.locked){ lockedLogout(); return; } if(confirm('Выйти и сменить уровень доступа?')) logout(''); return; }
   if(!roleClick(a,el)) return;
   if(a.indexOf('tbt')===0){ tbtClick(a,el); return; }
+  if(a.indexOf('zv')===0){ zvClick(a,el); return; }
   if(a==='ndapply'||a==='ndmanual'){ ndApplyComp(el.dataset.id,el.dataset.d,a==='ndmanual'?'manual':'file'); return; }
   if(a==='ndrenew'){ ndRenew(el.dataset.id,el.dataset.d); return; }
   if(a==='bdobj'||a==='tkack'||a==='brgsend'||a==='tksend'||a==='tkdel'||a==='tkday'||a==='bdday'||a==='tmday'||a==='ktusave'||a==='ndfrom'||a==='ndtbt'||a==='tkdone'||a==='tkdoneedit'||a==='tkrep'||a==='tkall'||a==='tkirow'||a==='tkidel'||a==='tkwadd'||a==='tkwdel'||a==='brgpick'||a==='brgpk'||a==='brgpickadd'||a==='xdpick'||a==='xdshift'||a==='xdtoday'||a==='mvcopy'||/^dt/.test(a)){ xClick(a,el); return; }
@@ -4208,9 +4246,120 @@ function objSelect(id,cur){ return '<select id="'+id+'">'+ND_OBJS.map(function(o
 function parseNums(s){ var seen={}, out=[]; String(s||'').split(/[^0-9]+/).forEach(function(x){ x=x.trim(); if(x&&!seen[normNum(x)]){ seen[normNum(x)]=1; out.push(x); } }); return out; }
 function renderX(){
   var el=$('xv'); if(!el) return;
-  if(ui.view==='brig') el.innerHTML=brgRender(); else if(ui.view==='task') el.innerHTML=tkRender(); else if(ui.view==='board') el.innerHTML=bdRender(); else if(ui.view==='teams') el.innerHTML=tmRender(); else if(ui.view==='dtask') el.innerHTML=dtRender();
+  if(ui.view==='brig') el.innerHTML=brgRender(); else if(ui.view==='task') el.innerHTML=tkRender(); else if(ui.view==='board') el.innerHTML=bdRender(); else if(ui.view==='teams') el.innerHTML=tmRender(); else if(ui.view==='dtask') el.innerHTML=dtRender(); else if(ui.view==='zv'){ if($('zvwrap')) zvParts(); else el.innerHTML=zvRender(); zvHead(); }
   if(ui.view==='task'&&document.body.classList.contains('nws')) wsLeft();
 }
+
+/* ------------------------------------------------------------- «Строительство»: заявки на поставку
+   Сам список ведётся в Google-таблице «Отчёт по заявкам на поставку». Сервер табеля читает её (ссылка хранится только на сервере)
+   и отдаёт вошедшим в приложение; здесь — только просмотр. Правки в таблице появляются в приложении в течение минуты. */
+var ZV_KEY='tabel-zv-v1', zv={items:null,t:0,url:'',err:'',busy:false,f:'all',obj:'',q:'',open:{}};
+try{ var zvc=JSON.parse(localStorage.getItem(ZV_KEY)||'null'); if(zvc&&Array.isArray(zvc.items)){ zv.items=zvc.items; zv.t=Number(zvc.t)||0; zv.url=zvc.url||''; } }catch(e){}
+function zvFetch(force){
+  if(!syncOn()||zv.busy) return;
+  if(navigator.onLine===false){ zv.err='net'; if(ui.view==='zv') renderX(); return; }
+  zv.busy=true; zvStatus();
+  call({action:'zlist',force:force?1:0},30000).then(function(j){
+    zv.busy=false; zv.err=''; zv.items=Array.isArray(j.items)?j.items:[]; zv.t=Number(j.t)||Date.now(); zv.url=j.url||'';
+    try{ localStorage.setItem(ZV_KEY,JSON.stringify({items:zv.items,t:zv.t,url:zv.url})); }catch(e){}
+    if(ui.view==='zv') renderX();
+    if(force) toast('Заявки обновлены из таблицы');
+  }).catch(function(e){
+    zv.busy=false; var m=String(e&&e.message||'');
+    zv.err=m==='zsheet_closed'||m==='zsheet_format'||m==='bad_action'||m==='bad_code'?m:'net';
+    if(m==='bad_code') syncFail(e);
+    if(ui.view==='zv') renderX();
+  });
+}
+setInterval(function(){ if(ui.view==='zv'&&!document.hidden) zvFetch(false); },60000);
+document.addEventListener('visibilitychange',function(){ if(!document.hidden&&ui.view==='zv') zvFetch(false); });
+function zvN(v){ return v==null||v===''?'—':Number(v).toLocaleString('ru-RU',{maximumFractionDigits:3}); }
+function zvKind(x){
+  if(x.cx) return 'cx';
+  var s=String(x.st||'').toLowerCase().trim();
+  if(s==='поставлено') return 'ok';
+  if(s.indexOf('частично')===0) return 'part';
+  if(s==='не поставлено') return 'no';
+  if(x.q==null) return 'nq';
+  var g=Number(x.got)||0; return g>=x.q?'ok':g>0?'part':'no';
+}
+var ZV_K={no:['Не поставлено','bad'],part:['Частично','warn'],ok:['Поставлено','ok'],cx:['Отменено / замена','off'],nq:['Нет количества','nil']};
+function zvChip(k){ var t=ZV_K[k]||ZV_K.nq; return '<span class="xchip '+t[1]+'">'+t[0]+'</span>'; }
+function zvObjs(){ var o={}, l=[]; (zv.items||[]).forEach(function(x){ var k=x.obj||'—'; if(!o[k]){ o[k]=1; l.push(k); } }); return l.sort(function(a,b){ return a.localeCompare(b,'ru'); }); }
+function zvBase(){ var q=zv.q.trim().toLowerCase(); return (zv.items||[]).filter(function(x){
+  if(zv.obj&&(x.obj||'—')!==zv.obj) return false;
+  if(q&&[x.pos,x.z,x.obj,x.code,x.note,x.place,x.u].join(' ').toLowerCase().indexOf(q)<0) return false;
+  return true; }); }
+function zvStatsHtml(base){
+  var c={all:base.length,no:0,part:0,ok:0,cx:0}; base.forEach(function(x){ var k=zvKind(x); if(c[k]!=null) c[k]++; });
+  var b=function(f,cls,n,t){ return '<button type="button" class="'+cls+'" data-a="zvf" data-f="'+f+'" aria-pressed="'+(zv.f===f)+'"><b>'+n+'</b><span>'+t+'</span></button>'; };
+  return b('all','',c.all,'Всего позиций')+b('no','k-no',c.no,'Не поставлено')+b('part','k-part',c.part,'Частично')+b('ok','k-ok',c.ok,'Поставлено')+b('cx','k-cx',c.cx,'Отменено / замена');
+}
+function zvItemHtml(x){
+  var k=zvKind(x), u=x.u?' '+esc(x.u):'';
+  return '<div class="zvi k-'+k+'"><div class="zvn">'+esc(x.pos)+'</div>'+
+    '<div class="zvm"><span>Заказано <b>'+zvN(x.q)+(x.q!=null?u:'')+'</b></span><span>Поставлено <b>'+zvN(x.got)+(x.got!=null?u:'')+'</b></span>'+
+    (k!=='cx'&&x.sh>0?'<span class="zvsh">Недопоставка <b>'+zvN(x.sh)+u+'</b></span>':'')+'</div>'+
+    '<div class="zvx">'+zvChip(k)+(x.code?'<span>Код '+esc(x.code)+'</span>':'')+(x.place?'<span>📍 '+esc(x.place)+'</span>':'')+(x.pr?'<span>Приоритет '+esc(x.pr)+'</span>':'')+(x.note?'<span>'+esc(x.note)+'</span>':'')+'</div></div>';
+}
+function zvListHtml(base){
+  if(zv.items==null) return '<div class="zvempty">'+(syncOn()?'Загружаю заявки…':'Нет связи с сервером: войдите в приложение, чтобы увидеть заявки.')+'</div>';
+  var list=zv.f==='all'?base:base.filter(function(x){ return zvKind(x)===zv.f; });
+  if(!list.length) return '<div class="zvempty">'+(zv.items.length?'Ничего не найдено. Измените фильтр или поиск.':'В таблице пока нет заявок.')+'</div>';
+  var g={}, order=[];
+  list.forEach(function(x){ var key=(x.z||'Без номера заявки'); if(!g[key]){ g[key]=[]; order.push(key); } g[key].push(x); });
+  var auto=!!(zv.q.trim()||zv.f!=='all'||order.length<=3);
+  return order.map(function(key){
+    var it=g[key], objs={}, cnt={no:0,part:0,ok:0,cx:0,nq:0};
+    it.forEach(function(x){ objs[x.obj||'—']=1; cnt[zvKind(x)]++; });
+    var chips=['no','part','ok','cx','nq'].filter(function(k){ return cnt[k]; }).map(function(k){ return '<span class="xchip '+ZV_K[k][1]+'">'+ZV_K[k][0]+': '+cnt[k]+'</span>'; }).join('');
+    var open=zv.open[key]!=null?zv.open[key]:auto;
+    return '<details class="zvg" data-zvg="'+esc(key)+'"'+(open?' open':'')+'><summary><div class="zvgh"><b>'+esc(key)+'</b><small>'+esc(Object.keys(objs).join(', '))+' · '+it.length+' поз.</small><span class="xchips">'+chips+'</span></div></summary>'+
+      (open?it.map(zvItemHtml).join(''):'')+'</details>';
+  }).join('');
+}
+function zvStatusHtml(){
+  var t=zv.t?pad(new Date(zv.t).getDate())+'.'+pad(new Date(zv.t).getMonth()+1)+' '+hhmm(zv.t):'';
+  var txt, bad=false;
+  if(zv.busy&&zv.items==null) txt='Загружаю заявки из таблицы…';
+  else if(zv.err==='zsheet_closed'){ txt='Таблица заявок закрыта для чтения. В Google Таблице: «Настройки доступа» → «Все, у кого есть ссылка» → «Читатель».'; bad=true; }
+  else if(zv.err==='zsheet_format'){ txt='В таблице не найдена строка заголовков «Номер объекта». Проверьте лист «Заявки».'; bad=true; }
+  else if(zv.err==='bad_action'){ txt='Сервер ещё не умеет отдавать заявки. Сообщите администратору.'; bad=true; }
+  else if(zv.err){ txt='Нет связи'+(t?': показаны данные от '+t:''); bad=true; }
+  else txt='Из Google Таблицы «Отчёт по заявкам на поставку»'+(t?' · обновлено '+t:'')+(zv.busy?' · обновляю…':'');
+  return '<span class="zvt'+(bad?' bad':'')+'" id="zvst">'+esc(txt)+'</span>'+
+    '<button type="button" class="zvbtn" data-a="zvr"'+(zv.busy?' disabled':'')+'>↻ Обновить</button>'+
+    (zv.url?'<a class="zvbtn" href="'+esc(zv.url)+'" target="_blank" rel="noopener">Открыть таблицу</a>':'');
+}
+function zvObjOpts(){ return '<option value="">Все объекты</option>'+zvObjs().map(function(o){ return '<option value="'+esc(o)+'"'+(o===zv.obj?' selected':'')+'>'+esc(o)+'</option>'; }).join(''); }
+function zvRender(){
+  if(zv.items==null&&!zv.busy) setTimeout(function(){ zvFetch(false); },0);
+  var base=zvBase();
+  return '<div id="zvwrap"><h2 class="dh2">Заявки на поставку</h2>'+
+    '<div class="zvbar" id="zvbar">'+zvStatusHtml()+'</div>'+
+    '<div class="zvst" id="zvs">'+zvStatsHtml(base)+'</div>'+
+    '<div class="zvflt"><select id="zvobj" aria-label="Объект">'+zvObjOpts()+'</select>'+
+    '<input type="search" id="zvq" placeholder="Поиск: позиция, № заявки, примечание" value="'+esc(zv.q)+'" aria-label="Поиск по заявкам" autocomplete="off"></div>'+
+    '<p class="zvnote">Заявки, поставки и отмены вносятся в Google Таблице, здесь они появляются в течение минуты.</p>'+
+    '<div id="zvl">'+zvListHtml(base)+'</div></div>';
+}
+function zvParts(){
+  var base=zvBase(), s=$('zvs'), l=$('zvl'), o=$('zvobj'), b=$('zvbar');
+  if(b) b.innerHTML=zvStatusHtml();
+  if(s) s.innerHTML=zvStatsHtml(base);
+  if(o&&document.activeElement!==o) o.innerHTML=zvObjOpts();
+  if(l) l.innerHTML=zvListHtml(base);
+}
+function zvStatus(){ var b=$('zvbar'); if(b&&ui.view==='zv') b.innerHTML=zvStatusHtml(); }
+function zvHead(){ var hn=$('hnav'); if(hn) hn.innerHTML='<div class="hsec">Строительство</div>'; }
+function zvClick(a,el){
+  if(a==='zvf'){ zv.f=zv.f===el.dataset.f?'all':el.dataset.f; zv.open={}; zvParts(); return; }
+  if(a==='zvr'){ zvFetch(true); return; }
+}
+document.addEventListener('input',function(e){ var t=e.target; if(t&&t.id==='zvq'){ zv.q=t.value; zv.open={}; clearTimeout(zv.qt); zv.qt=setTimeout(zvParts,200); } },true);
+document.addEventListener('change',function(e){ var t=e.target; if(t&&t.id==='zvobj'){ zv.obj=t.value; zv.open={}; zvParts(); } },true);
+document.addEventListener('toggle',function(e){ var t=e.target; if(!t||!t.classList||!t.classList.contains('zvg')) return; var k=t.dataset.zvg; zv.open[k]=t.open;
+  if(t.open&&!t.querySelector('.zvi')){ var it=zvBase().filter(function(x){ return (x.z||'Без номера заявки')===k&&(zv.f==='all'||zvKind(x)===zv.f); }); t.insertAdjacentHTML('beforeend',it.map(zvItemHtml).join('')); } },true);
 /* --- бригада (бригадир) --- */
 function myBrigId(d){ return 'brig|'+d+'|'+nameKey(sync.who).slice(0,30); }
 /* пришли на работу, но ни один бригадир не подал их в численность бригады */
