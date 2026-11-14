@@ -815,6 +815,7 @@ body.vzv #hnav{display:flex}
 .zvobjs button small{font-size:12px;font-weight:700;margin-left:5px;color:var(--ab-t)}.zvobjs button[aria-pressed=true] small{color:inherit;opacity:.8}
 .zvobjs[hidden]{display:none}.zvdirs{margin-bottom:2px}.zvdirs button{border-radius:8px;min-height:40px;font-weight:700}
 .zvdirs button.zvnone:not([aria-pressed=true]){color:var(--muted);border-style:dashed}
+.zvdirs button{border:2px solid var(--work)}.zvdirs button[aria-pressed=true]{background:var(--work);border-color:var(--work);color:#fff}
 @media (max-width:699px){.zvobjs{-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}.zvobjs.zvend{-webkit-mask-image:none;mask-image:none}}
 @media (min-width:700px){.zvobjs{flex-wrap:wrap;overflow:visible}}
 .zvflt{display:flex;gap:6px;align-items:stretch;margin:0 0 8px}
@@ -882,7 +883,7 @@ body.vzv #hnav{display:flex}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='228';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='229';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
