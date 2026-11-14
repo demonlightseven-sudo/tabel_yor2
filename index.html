@@ -880,7 +880,7 @@ body.vzv #hnav{display:flex}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='226';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='227';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4307,7 +4307,7 @@ function zvTableHtml(base){
   var g={}, order=[];
   list.forEach(function(x){ var key=(x.z||'Без номера заявки')+'\u0001'+(zv.obj?'':(x.obj||'')); if(!g[key]){ g[key]=[]; order.push(key); } g[key].push(x); });
   return '<div class="zvt2"><div class="zvr zvhd"><span>Позиция</span><span>Заказ</span><span>Пришло</span><span>Долг</span></div>'+
-    order.map(function(key){ var it=g[key], x=it[0], z=String(x.z||'Без номера заявки').replace(/ от (\d\d\.\d\d)\.\d{4}$/,' от $1');
+    order.map(function(key){ var it=g[key], x=it[0], z=String(x.z||'Без номера заявки'); /* дата заявки — полностью, с годом (дд.мм.гггг) */
       var head=esc(z)+(zv.obj?'':' · '+esc(x.obj||'—'))+(x.note?' · '+esc(x.note):'');
       return '<div class="zvgr">'+head+'</div>'+it.map(zvRowHtml).join(''); }).join('')+'</div>';
 }
