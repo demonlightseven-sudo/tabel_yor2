@@ -813,6 +813,8 @@ body.vzv #hnav{display:flex}
 .zvobjs button{flex:0 0 auto;min-height:38px;padding:0 13px;border-radius:19px;font-size:14px;font-weight:600;white-space:nowrap}
 .zvobjs button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:700}
 .zvobjs button small{font-size:12px;font-weight:700;margin-left:5px;color:var(--ab-t)}.zvobjs button[aria-pressed=true] small{color:inherit;opacity:.8}
+.zvobjs[hidden]{display:none}.zvdirs{margin-bottom:2px}.zvdirs button{border-radius:8px;min-height:40px;font-weight:700}
+.zvdirs button.zvnone:not([aria-pressed=true]){color:var(--muted);border-style:dashed}
 @media (max-width:699px){.zvobjs{-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}.zvobjs.zvend{-webkit-mask-image:none;mask-image:none}}
 @media (min-width:700px){.zvobjs{flex-wrap:wrap;overflow:visible}}
 .zvflt{display:flex;gap:6px;align-items:stretch;margin:0 0 8px}
@@ -880,7 +882,7 @@ body.vzv #hnav{display:flex}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='227';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='228';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4251,9 +4253,10 @@ function renderX(){
 /* ------------------------------------------------------------- «Строительство»: заявки на поставку, вид «Таблица»
    Сам список ведётся в Google-таблице «Отчёт по заявкам на поставку». Сервер табеля читает её (ссылка хранится только на сервере)
    и отдаёт вошедшим в приложение; здесь — только просмотр. Правки в таблице появляются в приложении в течение минуты. */
-var ZV_KEY='tabel-zv-v1', zv={items:null,t:0,url:'',err:'',busy:false,debt:false,obj:'',q:''};
-try{ var zvc=JSON.parse(localStorage.getItem(ZV_KEY)||'null'); if(zvc&&Array.isArray(zvc.items)){ zv.items=zvc.items; zv.t=Number(zvc.t)||0; zv.url=zvc.url||''; } if(zvc&&typeof zvc.obj==='string') zv.obj=zvc.obj; }catch(e){}
-function zvSave(){ try{ localStorage.setItem(ZV_KEY,JSON.stringify({items:zv.items,t:zv.t,url:zv.url,obj:zv.obj})); }catch(e){} }
+var ZV_KEY='tabel-zv-v1', zv={items:null,t:0,url:'',err:'',busy:false,debt:false,obj:'',dir:'',q:''};
+var ZV_DIRS=['ВК','ОВиК','Отделка','КЖ','Фасады'];
+try{ var zvc=JSON.parse(localStorage.getItem(ZV_KEY)||'null'); if(zvc&&Array.isArray(zvc.items)){ zv.items=zvc.items; zv.t=Number(zvc.t)||0; zv.url=zvc.url||''; } if(zvc&&typeof zvc.obj==='string') zv.obj=zvc.obj; if(zvc&&typeof zvc.dir==='string') zv.dir=zvc.dir; }catch(e){}
+function zvSave(){ try{ localStorage.setItem(ZV_KEY,JSON.stringify({items:zv.items,t:zv.t,url:zv.url,obj:zv.obj,dir:zv.dir})); }catch(e){} }
 function zvFetch(force){
   if(!syncOn()||zv.busy) return;
   if(navigator.onLine===false){ zv.err='net'; if(ui.view==='zv') renderX(); return; }
@@ -4283,9 +4286,19 @@ function zvKind(x){
 }
 function zvOpen(x){ var k=zvKind(x); return k==='no'||k==='part'; }
 /* объекты: сначала крупные (по числу позиций), все подряд в одну строку */
-function zvObjs(){ var o={}, l=[]; (zv.items||[]).forEach(function(x){ var k=x.obj||'—'; if(!o[k]){ o[k]={n:0,d:0}; l.push(k); } o[k].n++; if(zvOpen(x)) o[k].d++; });
+function zvDirOf(x){ return String(x.dir||'').trim()||'—'; }
+/* старый сервер не присылает направление — тогда строку направлений не показываем */
+function zvHasDir(){ return (zv.items||[]).some(function(x){ return x&&Object.prototype.hasOwnProperty.call(x,'dir'); }); }
+function zvInDir(x){ return !zv.dir||!zvHasDir()||zvDirOf(x)===zv.dir; }
+/* направления: всегда пять основных (даже пустые), плюс те, что встретились в таблице, и «без направления» */
+function zvDirs(){ var o={}; ZV_DIRS.forEach(function(k){ o[k]={n:0,d:0}; }); var extra=[];
+  (zv.items||[]).forEach(function(x){ var k=zvDirOf(x); if(!o[k]){ o[k]={n:0,d:0}; if(k!=='—') extra.push(k); } o[k].n++; if(zvOpen(x)) o[k].d++; });
+  var l=ZV_DIRS.concat(extra.sort(function(a,b){ return a.localeCompare(b,'ru'); })); if(o['—']&&o['—'].n) l.push('—');
+  return l.map(function(k){ return {k:k,n:o[k].n,d:o[k].d}; }); }
+function zvObjs(){ var o={}, l=[]; (zv.items||[]).filter(zvInDir).forEach(function(x){ var k=x.obj||'—'; if(!o[k]){ o[k]={n:0,d:0}; l.push(k); } o[k].n++; if(zvOpen(x)) o[k].d++; });
   l.sort(function(a,b){ return o[b].n-o[a].n||a.localeCompare(b,'ru'); }); return l.map(function(k){ return {k:k,n:o[k].n,d:o[k].d}; }); }
 function zvBase(){ var q=zv.q.trim().toLowerCase(); return (zv.items||[]).filter(function(x){
+  if(!zvInDir(x)) return false;
   if(zv.obj&&(x.obj||'—')!==zv.obj) return false;
   if(q&&[x.pos,x.z,x.obj,x.code,x.note,x.place,x.u].join(' ').toLowerCase().indexOf(q)<0) return false;
   return true; }); }
@@ -4303,12 +4316,13 @@ function zvRowHtml(x){
 function zvTableHtml(base){
   if(zv.items==null) return '<div class="zvempty">'+(syncOn()?'Загружаю заявки…':'Нет связи с сервером: войдите в приложение, чтобы увидеть заявки.')+'</div>';
   var list=zv.debt?base.filter(zvOpen):base;
+  if(!list.length&&zv.dir&&!zv.q.trim()&&!(zv.items||[]).some(zvInDir)) return '<div class="zvempty">По направлению «'+esc(zv.dir==='—'?'без направления':zv.dir)+'» заявок пока нет. Укажите его в колонке «Направление» Google Таблицы.</div>';
   if(!list.length) return '<div class="zvempty">'+(zv.items.length?(zv.debt&&base.length?'Всё поставлено — долгов нет.':'Ничего не найдено. Выберите другой объект или измените поиск.'):'В таблице пока нет заявок.')+'</div>';
   var g={}, order=[];
-  list.forEach(function(x){ var key=(x.z||'Без номера заявки')+'\u0001'+(zv.obj?'':(x.obj||'')); if(!g[key]){ g[key]=[]; order.push(key); } g[key].push(x); });
+  list.forEach(function(x){ var key=(x.z||'Без номера заявки')+'\u0001'+(zv.obj?'':(x.obj||''))+'\u0001'+(zv.dir?'':zvDirOf(x)); if(!g[key]){ g[key]=[]; order.push(key); } g[key].push(x); });
   return '<div class="zvt2"><div class="zvr zvhd"><span>Позиция</span><span>Заказ</span><span>Пришло</span><span>Долг</span></div>'+
     order.map(function(key){ var it=g[key], x=it[0], z=String(x.z||'Без номера заявки'); /* дата заявки — полностью, с годом (дд.мм.гггг) */
-      var head=esc(z)+(zv.obj?'':' · '+esc(x.obj||'—'))+(x.note?' · '+esc(x.note):'');
+      var dn=zvDirOf(x), head=esc(z)+(zv.obj?'':' · '+esc(x.obj||'—'))+(zv.dir?'':' · '+(dn==='—'?'без направления':esc(dn)))+(x.note&&x.note!==dn?' · '+esc(x.note):'');
       return '<div class="zvgr">'+head+'</div>'+it.map(zvRowHtml).join(''); }).join('')+'</div>';
 }
 function zvStatusHtml(){
@@ -4324,6 +4338,12 @@ function zvStatusHtml(){
     '<button type="button" class="zvbtn" data-a="zvr"'+(zv.busy?' disabled':'')+'>↻ Обновить</button>'+
     (zv.url?'<a class="zvbtn" href="'+esc(zv.url)+'" target="_blank" rel="noopener">Открыть таблицу</a>':'');
 }
+function zvDirsHtml(){
+  if(!zvHasDir()) return '';
+  var l=zvDirs(); if(zv.dir&&!l.some(function(o){ return o.k===zv.dir; })) zv.dir='';
+  var b=function(k,t,d,n){ return '<button type="button" data-a="zvdir" data-d="'+esc(k)+'" aria-pressed="'+(zv.dir===k)+'"'+(k&&!n?' class="zvnone"':'')+'>'+esc(t)+(d?'<small>'+d+'</small>':'')+'</button>'; };
+  return b('','Все направления',0,1)+l.map(function(o){ return b(o.k,o.k==='—'?'Без направления':o.k,o.d,o.n); }).join('');
+}
 function zvObjsHtml(){
   var l=zvObjs(); if(zv.obj&&!l.some(function(o){ return o.k===zv.obj; })) zv.obj='';
   var b=function(k,t,d){ return '<button type="button" data-a="zvo" data-o="'+esc(k)+'" aria-pressed="'+(zv.obj===k)+'">'+esc(t)+(d?'<small>'+d+'</small>':'')+'</button>'; };
@@ -4334,6 +4354,7 @@ function zvRender(){
   var base=zvBase();
   return '<div id="zvwrap"><h2 class="dh2">Заявки на поставку</h2>'+
     '<div class="zvbar" id="zvbar">'+zvStatusHtml()+'</div>'+
+    '<div class="zvobjs zvdirs" id="zvdirs" role="group" aria-label="Направление"'+(zvHasDir()?'':' hidden')+'>'+zvDirsHtml()+'</div>'+
     '<div class="zvobjs" id="zvobjs" role="group" aria-label="Объект">'+zvObjsHtml()+'</div>'+
     '<div class="zvflt"><input type="search" id="zvq" placeholder="Поиск: позиция или № заявки" value="'+esc(zv.q)+'" aria-label="Поиск по заявкам" autocomplete="off">'+
     '<button type="button" id="zvdebt" data-a="zvdebt" aria-pressed="'+zv.debt+'">Только долг</button></div>'+
@@ -4341,6 +4362,7 @@ function zvRender(){
     '<div id="zvl">'+zvTableHtml(base)+'</div></div>';
 }
 function zvParts(){
+  var dd=$('zvdirs'); if(dd){ var dx=dd.scrollLeft; dd.innerHTML=zvDirsHtml(); dd.hidden=!zvHasDir(); dd.scrollLeft=dx; }
   var base=zvBase(), b=$('zvbar'), o=$('zvobjs'), s=$('zvsum'), l=$('zvl'), d=$('zvdebt');
   if(b) b.innerHTML=zvStatusHtml();
   if(o){ var x=o.scrollLeft; o.innerHTML=zvObjsHtml(); o.scrollLeft=x; }
@@ -4349,11 +4371,12 @@ function zvParts(){
   if(l) l.innerHTML=zvTableHtml(base);
 }
 /* затенение справа подсказывает, что список объектов листается; у конца — убираем */
-document.addEventListener('scroll',function(e){ var t=e.target; if(t&&t.id==='zvobjs') t.classList.toggle('zvend',t.scrollLeft+t.clientWidth>=t.scrollWidth-4); },true);
+document.addEventListener('scroll',function(e){ var t=e.target; if(t&&(t.id==='zvobjs'||t.id==='zvdirs')) t.classList.toggle('zvend',t.scrollLeft+t.clientWidth>=t.scrollWidth-4); },true);
 function zvStatus(){ var b=$('zvbar'); if(b&&ui.view==='zv') b.innerHTML=zvStatusHtml(); }
 function zvHead(){ var hn=$('hnav'); if(hn) hn.innerHTML='<div class="hsec">Строительство</div>'; }
 function zvClick(a,el){
   if(a==='zvo'){ zv.obj=el.dataset.o||''; zvSave(); zvParts(); return; }
+  if(a==='zvdir'){ zv.dir=el.dataset.d||''; zv.obj=''; zvSave(); zvParts(); return; }
   if(a==='zvdebt'){ zv.debt=!zv.debt; zvParts(); return; }
   if(a==='zvr'){ zvFetch(true); return; }
 }
