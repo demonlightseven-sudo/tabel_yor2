@@ -883,7 +883,7 @@ body.vzv #hnav{display:flex}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='229';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='230';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -942,6 +942,8 @@ var HOL_ALL={'2026-10-08':1};
 function planCode(p,ds){ var c=SCHED_CAL[p.sched], s=c&&c[ds.slice(0,7)]; if(!s) return p.sched&&HOL_ALL[ds]?'П':''; return s.charAt(Number(ds.slice(8,10))-1)||''; }
 function planHol(p,ds){ return planCode(p,ds)==='П'; }
 function planHours(p,ds){ var c=planCode(p,ds); return /^\d$/.test(c)?Number(c):0; }
+/* часы для «Пришёл»: по графику человека (дневной и ночной — одинаково), иначе — часы по умолчанию табеля */
+function workH(p,ds){ return (p&&planHours(p,ds))||bk().defH; }
 function planOff(p,ds){
   if(!p.sched) return null;
   var pc=planCode(p,ds); if(pc) return pc==='В'||pc==='П';
@@ -2016,7 +2018,7 @@ function dropEmpty(d){ var r=bk().records; if(r[d]&&!Object.keys(r[d]).length) d
 function setStatus(id,s){ if(!canDay(true)) return; if(!isAdmin()&&s!=='work'&&s!=='ab'){ toast('Прораб отмечает только «Пришёл» или «Прогул»'); return; }
   var day=dayObj(ui.date,true), cur=day[id];
   if(cur&&cur.s===s) delete day[id];
-  else day[id]={s:s,h:s==='work'?(cur&&cur.s==='work'?cur.h:bk().defH):0,t:Date.now()};
+  else day[id]={s:s,h:s==='work'?(cur&&cur.s==='work'?cur.h:workH(mcPerson(id),ui.date)):0,t:Date.now()};
   dropEmpty(ui.date); save(); track(root.cur,ui.date,id); updateRow(id);
 }
 /* отметка прямо из «Табеля»: окно на человека и день */
@@ -2098,11 +2100,11 @@ function markPresent(hit,unknown,text,dup){
     var cur=day[p.id];
     if(cur&&cur.s==='work'){ same.push(p); return; }
     if(cur){ conflict.push([p,cur]); return; }
-    day[p.id]={s:'work',h:bk().defH,t:Date.now()}; changes.push([p.id,null]); done.push(p);
+    day[p.id]={s:'work',h:workH(p,ui.date),t:Date.now()}; changes.push([p.id,null]); done.push(p);
   });
   dropEmpty(ui.date); save(); done.forEach(function(p){ track(root.cur,ui.date,p.id); });
   var lines=[], one=hit.length===1&&!unknown.length&&!(dup&&dup.length);
-  if(one&&done.length){ lines.push('✅ <b>'+esc(done[0].num)+' '+esc(done[0].name)+'</b> — пришёл, '+fmtH(bk().defH)+' ч'); }
+  if(one&&done.length){ lines.push('✅ <b>'+esc(done[0].num)+' '+esc(done[0].name)+'</b> — пришёл, '+fmtH(day[done[0].id].h)+' ч'); }
   else if(done.length){ lines.push('✅ Отмечено: <b>'+done.length+'</b>'); }
   same.forEach(function(p){ lines.push('• '+esc(p.num)+' '+esc(p.name)+' — уже отмечен как «Пришёл»'); });
   conflict.forEach(function(c){ lines.push('⚠ '+esc(c[0].num)+' '+esc(c[0].name)+' — уже отмечен: '+LBL[c[1].s]+'. Не менял, исправьте в списке.'); });
@@ -2630,11 +2632,11 @@ function onScanned(n){
   }
   var day=dayObj(ui.date,true), cur=day[p.id];
   if(cur&&cur.s==='work'){ scanBeep(true); scanMsg('✓ '+p.num+' '+p.name+' — уже отмечен: пришёл, '+fmtH(cur.h)+' ч','ok'); return; }
-  day[p.id]={s:'work',h:bk().defH,t:now};
+  day[p.id]={s:'work',h:workH(p,ui.date),t:now};
   save(); track(root.cur,ui.date,p.id);
   scan.count++; $('scCnt').textContent=' ('+scan.count+')';
   scanBeep(true);
-  scanMsg('✓ '+p.num+' '+p.name+' — пришёл, '+fmtH(bk().defH)+' ч'+(cur?' (было: '+(LBL[cur.s]||cur.s)+')':''),'ok');
+  scanMsg('✓ '+p.num+' '+p.name+' — пришёл, '+fmtH(day[p.id].h)+' ч'+(cur?' (было: '+(LBL[cur.s]||cur.s)+')':''),'ok');
 }
 
 /* ------------------------------------------------------------- документация: служебная записка о сверхурочной работе */
