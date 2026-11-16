@@ -883,7 +883,7 @@ body.vzv #hnav{display:flex}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='231';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='232';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4411,8 +4411,9 @@ function nsubHtml(d,brigs){
 }
 document.addEventListener('toggle',function(e){ var t=e.target; if(t&&t.classList&&t.classList.contains('nsub')) nsubOpen=t.open; },true);
 /* КТУ за месяц: среднее по субботним оценкам (по табельному номеру) */
-var ktuMC={}, ktuMBusy={};
+var ktuMC=ktuMC||{}, ktuMBusy=ktuMBusy||{};
 function ktuMonth(ym){
+  if(!ktuMC) ktuMC={}; if(!ktuMBusy) ktuMBusy={};   /* «Табель» может открыться раньше, чем дошла эта строка */
   var c=ktuMC[ym];
   if((!c||Date.now()-c.at>60000)&&!ktuMBusy[ym]&&syncOn()){ ktuMBusy[ym]=1;
     call({action:'ktum',ym:ym}).then(function(j){ ktuMBusy[ym]=0; var map={};
