@@ -883,7 +883,7 @@ body.vzv #hnav{display:flex}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='232';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='233';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4257,7 +4257,7 @@ function renderX(){
    Сам список ведётся в Google-таблице «Отчёт по заявкам на поставку». Сервер табеля читает её (ссылка хранится только на сервере)
    и отдаёт вошедшим в приложение; здесь — только просмотр. Правки в таблице появляются в приложении в течение минуты. */
 var ZV_KEY='tabel-zv-v1', zv={items:null,t:0,url:'',err:'',busy:false,debt:false,obj:'',dir:'',q:''};
-var ZV_DIRS=['ВК','ОВиК','Отделка','КЖ','Фасады'];
+var ZV_DIRS=['ВК','ОВиК','КЖ','АР.Черновая','АР.Чистовая','АР.Фасады'];
 try{ var zvc=JSON.parse(localStorage.getItem(ZV_KEY)||'null'); if(zvc&&Array.isArray(zvc.items)){ zv.items=zvc.items; zv.t=Number(zvc.t)||0; zv.url=zvc.url||''; } if(zvc&&typeof zvc.obj==='string') zv.obj=zvc.obj; if(zvc&&typeof zvc.dir==='string') zv.dir=zvc.dir; }catch(e){}
 function zvSave(){ try{ localStorage.setItem(ZV_KEY,JSON.stringify({items:zv.items,t:zv.t,url:zv.url,obj:zv.obj,dir:zv.dir})); }catch(e){} }
 function zvFetch(force){
@@ -4293,7 +4293,7 @@ function zvDirOf(x){ return String(x.dir||'').trim()||'—'; }
 /* старый сервер не присылает направление — тогда строку направлений не показываем */
 function zvHasDir(){ return (zv.items||[]).some(function(x){ return x&&Object.prototype.hasOwnProperty.call(x,'dir'); }); }
 function zvInDir(x){ return !zv.dir||!zvHasDir()||zvDirOf(x)===zv.dir; }
-/* направления: всегда пять основных (даже пустые), плюс те, что встретились в таблице, и «без направления» */
+/* направления: всегда шесть основных (даже пустые), плюс те, что встретились в таблице, и «без направления» */
 function zvDirs(){ var o={}; ZV_DIRS.forEach(function(k){ o[k]={n:0,d:0}; }); var extra=[];
   (zv.items||[]).forEach(function(x){ var k=zvDirOf(x); if(!o[k]){ o[k]={n:0,d:0}; if(k!=='—') extra.push(k); } o[k].n++; if(zvOpen(x)) o[k].d++; });
   var l=ZV_DIRS.concat(extra.sort(function(a,b){ return a.localeCompare(b,'ru'); })); if(o['—']&&o['—'].n) l.push('—');
