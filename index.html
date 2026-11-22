@@ -883,7 +883,7 @@ body.vzv #hnav{display:flex}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='235';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='236';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4369,7 +4369,7 @@ function zvDirsHtml(){
   if(!zvHasDir()) return '';
   var l=zvDirs(); if(zv.dir&&!l.some(function(o){ return o.k===zv.dir; })) zv.dir='';
   var b=function(k,t,d,n){ return '<button type="button" data-a="zvdir" data-d="'+esc(k)+'" aria-pressed="'+(zv.dir===k)+'"'+(k&&!n?' class="zvnone"':'')+'>'+esc(t)+(d?'<small>'+d+'</small>':'')+'</button>'; };
-  return b('','Все направления',0,1)+l.map(function(o){ return b(o.k,o.k==='—'?'Без направления':o.k,o.d,o.n); }).join('');
+  return b('','Все',0,1)+l.map(function(o){ return b(o.k,o.k==='—'?'Без направления':o.k,o.d,o.n); }).join('');
 }
 function zvObjsHtml(){
   var l=zvObjs(); if(zv.obj&&!l.some(function(o){ return o.k===zv.obj; })) zv.obj='';
