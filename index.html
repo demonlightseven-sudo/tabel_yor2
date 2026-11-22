@@ -792,6 +792,15 @@ body.vmonth.mq .row2 input{min-width:110px}
 .abd h4{margin:0 0 8px;font-size:15px}
 .abt{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:8px}
 .abt div{border:1px solid var(--line);border-radius:8px;padding:4px 8px;min-width:0}
+.bdrow2{margin:10px 0 16px;align-items:start}.bdrow2 .bdobjs{margin:0}
+.bdrow2 .bdr{grid-template-columns:minmax(0,1fr) auto auto;gap:2px 12px;font-size:14px}.bdrow2 .bdr .bdrn{grid-column:1/4;font-size:13px}.bdrow2 .bdr .bdrn:empty{display:none}.bdrow2 .bdr.bdrh{display:none}.bdrow2 .bdtab{font-size:14px;padding:5px 9px}
+.add .abt .adlo b,.add .abt .adab b,.add .abt .adup b{color:var(--ab-t)}.add .abt .addn b{color:var(--work-t)}
+.adch{width:100%;height:auto;display:block;margin:2px 0 4px}
+.adch .adw{fill:var(--work)}.adch .ada{fill:var(--ab)}
+.adch .adn{font-size:10px;font-weight:700;fill:var(--ab-t);text-anchor:middle}
+.adch .adx{font-size:10px;fill:var(--muted);text-anchor:middle}.adch .adt{font-weight:800;fill:var(--ink)}.adch .adwe{fill:#c58b00}
+.adlg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--muted);margin-bottom:6px}.adlg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}.adlg i.adw{background:var(--work)}.adlg i.ada{background:var(--ab)}
+.adtb th:first-child{text-align:left}.adtb tbody th{text-align:left;font-weight:600;font-size:12px;padding:4px}
 .abt b{display:block;font-size:20px;line-height:1.2}
 .abt span{font-size:11px;color:var(--muted)}
 .aba{font-size:12px;background:var(--ab-bg);color:var(--ab-t);border-radius:8px;padding:6px 8px;margin-bottom:8px}
@@ -883,7 +892,7 @@ body.vzv #hnav{display:flex}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='236';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='237';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4473,6 +4482,35 @@ function abDashHtml(d){
       rows.slice(0,5).map(function(x){ return '<tr><td>'+esc(x.p.num||'')+'</td><td class="f" title="'+esc(x.p.name)+'">'+esc(shortName(x.p.name))+'</td><td>'+(x.pc||'')+'</td><td>'+(x.cc||'')+'</td><td><b>'+x.c+'</b></td><td>'+x.best+'</td></tr>'; }).join('')+'</tbody></table>'
       :'<p class="note">Прогулов нет.</p>')+'</div>';
 }
+/* дашборд посещаемости: 14 дней по выбранный день, РФ + АРЕ */
+function attDashHtml(d){
+  var N=14, days=[], i, sum=function(a,b){ var o={}; Object.keys(a).forEach(function(k){ o[k]=(a[k]||0)+(b[k]||0); }); return o; };
+  for(i=N-1;i>=0;i--){ var ds=addDays(d,-i), rf=bookDay('rf',ds), ar=bookDay('are',ds), t=sum(rf,ar); t.d=ds; t.rf=rf; t.ar=ar; days.push(t); }
+  var rate=function(x){ var b=x.work+x.ab; return b?Math.round(x.work*100/b):null; };
+  var today0=days[N-1], has=days.filter(function(x){ return x.work+x.ab>0; });
+  var avg=has.length?Math.round(has.reduce(function(s,x){ return s+rate(x); },0)/has.length):null;
+  var abSum=function(from,to){ var n=0, s=from; while(s<=to){ n+=bookDay('rf',s).ab+bookDay('are',s).ab; s=addDays(s,1); } return n; };
+  var m1=d.slice(0,8)+'01', pm=shiftMonth(d.slice(0,7),-1), dd=Number(d.slice(8,10)), pdays=daysIn(pm), pe=pm+'-'+pad(Math.min(dd,pdays));
+  var abM=abSum(m1,d), abP=abSum(pm+'-01',pe), dl=abM-abP;
+  var mx=Math.max.apply(null,days.map(function(x){ return x.work+x.ab; }).concat([1]));
+  var W=420, H=150, pl=4, pb=18, bw=(W-pl*2)/N, sc=(H-pb-14)/mx;
+  var bars=days.map(function(x,k){ var X=pl+k*bw+2, w=bw-4, hw=x.work*sc, ha=x.ab*sc, y0=H-pb, wd=parseYmd(x.d).getDay(), r=rate(x);
+    return '<g><title>'+esc(ndDmy(x.d))+': пришли '+x.work+', прогул '+x.ab+(r!=null?', явка '+r+'%':'')+'</title>'+
+      '<rect x="'+X.toFixed(1)+'" y="'+(y0-hw).toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+hw.toFixed(1)+'" rx="2" class="adw"/>'+
+      (x.ab?'<rect x="'+X.toFixed(1)+'" y="'+(y0-hw-ha).toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+Math.max(ha,1.5).toFixed(1)+'" rx="2" class="ada"/>'+
+        '<text x="'+(X+w/2).toFixed(1)+'" y="'+(y0-hw-ha-3).toFixed(1)+'" class="adn">'+x.ab+'</text>':'')+
+      '<text x="'+(X+w/2).toFixed(1)+'" y="'+(H-5)+'" class="adx'+(k===N-1?' adt':'')+(wd===5?' adwe':'')+'">'+Number(x.d.slice(8,10))+'</text></g>'; }).join('');
+  var row=function(nm,x,b){ var r=rate(x); return '<tr><th>'+nm+'</th><td>'+x.list+'</td><td>'+x.work+'</td><td class="xno">'+(x.ab||'')+'</td><td>'+(x.sick+x.pl+x.ul||'')+'</td><td><b>'+(r!=null?r+'%':'—')+'</b></td></tr>'; };
+  var t=function(v,s,cls){ return '<div'+(cls?' class="'+cls+'"':'')+'><b>'+v+'</b><span>'+s+'</span></div>'; };
+  var r0=rate(today0);
+  return '<div class="abd add"><h4>Посещаемость · '+esc(ndDmy(addDays(d,-(N-1))).slice(0,5))+'–'+esc(ndDmy(d).slice(0,5))+'</h4>'+
+    '<div class="abt">'+t(r0!=null?r0+'%':'—','явка за день',r0!=null&&r0<90?'adlo':'')+t(avg!=null?avg+'%':'—','средняя за 14 дн.')+
+      t(abM,'прогулов с 1-го','adab')+t((dl>0?'+':'')+dl,'к прошлому месяцу',dl>0?'adup':dl<0?'addn':'')+'</div>'+
+    '<svg class="adch" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Пришли и прогулы по дням">'+bars+'</svg>'+
+    '<div class="adlg"><span><i class="adw"></i>пришли</span><span><i class="ada"></i>прогул</span><span>явка = пришли ÷ (пришли + прогул)</span></div>'+
+    '<table class="abtb adtb"><thead><tr><th></th><th>В списке</th><th>Пришли</th><th>Прогул</th><th>Больн./отп.</th><th>Явка</th></tr></thead><tbody>'+
+      row('РФ',today0.rf)+row('АРЕ',today0.ar)+row('Всего',today0)+'</tbody></table></div>';
+}
 function bookDay(b,d){
   var bb=root.books[b], day=(bb.records||{})[d]||{}, norm=memoNorm(b);
   var c={list:0,work:0,ab:0,off:0,dob:0,sick:0,pl:0,ul:0,unm:0,fired:0,ot:0,wo:0};
@@ -5561,7 +5599,7 @@ function bdRender(){
   });
   var LV={bad:0,warn:1,ok:2}; fl.sort(function(a,b){ return LV[a.lvl]-LV[b.lvl]||a.i-b.i; }); var cur=fl.filter(function(x){ return x.o===bdObjSel; })[0]||fl[0];
   frames=fl.length?'<div class="bdtabs">'+fl.map(function(x){ return '<button type="button" class="bdtab'+(x===cur?' on':'')+'" data-a="bdobj" data-o="'+esc(x.o)+'"><i class="bdtd bdtd-'+x.lvl+'"></i>'+esc(x.o)+' <small>'+x.nb+' бриг · '+x.np+' чел</small></button>'; }).join('')+'</div>'+cur.html:'';
-  h+=frames?'<div class="bdobjs">'+frames+'</div>':'<p class="note">На этот день наряд-задания не выданы и численность не подана.</p>';
+  h+='<div class="xjrow bdrow2">'+(frames?'<div class="bdobjs">'+frames+'</div>':'<p class="note">На этот день наряд-задания не выданы и численность не подана.</p>')+attDashHtml(d)+'</div>';
   return '<div class="bdgrid"><div class="bdmain">'+h+'</div><aside class="bdside">'+dtBoardHtml(d)+nsubHtml(d,brigs)+'</aside></div>';
 }
 /* четыре рамки нарядов под бригадой: нажатие — новый наряд с людьми бригады и следующим номером */
