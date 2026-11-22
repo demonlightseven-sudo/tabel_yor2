@@ -883,7 +883,7 @@ body.vzv #hnav{display:flex}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='233';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='234';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2658,6 +2658,29 @@ function memoCfg(){
     rfrom:/^\d\d:\d\d$/.test(c.rfrom)?c.rfrom:'07:00',rto:/^\d\d:\d\d$/.test(c.rto)?c.rto:'21:00',
     rbf:typeof c.rbf==='string'?c.rbf:'11:00',rbt:typeof c.rbt==='string'?c.rbt:'12:00'};
 }
+/* наряд-задания дня → объекты и виды работ записки (один раз на день; дальше — как поправили) */
+function memoTaskObjs(d){
+  var ts=bdItems(d).filter(function(x){ return x.kind==='task'&&x.obj; }), by={}, ord=[];
+  ts.forEach(function(t){ var o=String(t.obj).trim(); if(!by[o]){ by[o]=[]; ord.push(o); } var dd=t.data||{}, L=by[o];
+    if(tkHasItems(t)) dd.items.forEach(function(it){ var s='- '+(it.s?String(it.s).trim()+' · ':'')+String(it.t||'').trim()+(it.v!=null&&String(it.v).trim()?' — '+String(it.v).trim()+(it.u?' '+it.u:''):''); if(String(it.t||'').trim()&&L.indexOf(s)<0) L.push(s); });
+    else String(dd.tasks||'').split(/\r?\n/).forEach(function(l){ l=l.trim(); if(l){ var s=/^[-–•]/.test(l)?l:'- '+l; if(L.indexOf(s)<0) L.push(s); } }); });
+  ord.sort(function(a,b){ var ia=ND_OBJS.indexOf(a), ib=ND_OBJS.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib)||(a<b?-1:1); });
+  return ord.filter(function(o){ return by[o].length; }).map(function(o){ return {code:o,works:by[o].join('\n')}; });
+}
+function memoObjName(all,code){ var k=code.toLowerCase(), n='';
+  [root.cur,root.cur==='rf'?'are':'rf'].forEach(function(b){ var c=all[b]||{}; (Array.isArray(c.objs)?c.objs:[]).forEach(function(o){ if(!n&&o&&String(o.obj||'').toLowerCase().indexOf(k)>=0) n=String(o.obj); }); (c.names||[]).forEach(function(x){ if(!n&&String(x).toLowerCase().indexOf(k)>=0) n=String(x); }); });
+  return n||code; }
+function memoAutoFill(force){
+  var d=ui.date; bdFetch(d,false); var L=memoTaskObjs(d); if(!L.length) return false;
+  var all=memoLoad(), c=all[root.cur]=all[root.cur]||{};
+  if(!force&&all._fillD===d&&c.fillD===d) return false;
+  var names=L.map(function(x){ return memoObjName(all,x.code); });
+  if(force||all._fillD!==d){ all._w=L.map(function(x){ return x.works; }); all._fillD=d; }
+  var keep=(Array.isArray(c.objs)?c.objs:[]).map(function(o){ return String(o&&o.obj||''); }).filter(Boolean);
+  c.names=(c.names||[]).concat(keep).filter(function(x,i,a){ return a.indexOf(x)===i; }).slice(-30);   /* запомнить полные названия объектов */
+  c.objs=names.map(function(n,i){ return {obj:n,works:all._w[i]||''}; }); c.fillD=d;
+  memoSaveAll(all); return true;
+}
 function memoSet(k,v){ var all=memoLoad(); all[root.cur]=all[root.cur]||{}; all[root.cur][k]=v; if(k==='objs'&&Array.isArray(v)) all._w=v.map(function(o){ return String(o.works||''); }); memoSaveAll(all); }
 function tmin(s){ var a=String(s||'').split(':').map(Number); return a.length===2&&isFinite(a[0])&&isFinite(a[1])?a[0]*60+a[1]:NaN; }
 function tstr(m){ m=((Math.round(m)%1440)+1440)%1440; return pad(Math.floor(m/60))+':'+pad(m%60); }
@@ -2810,7 +2833,7 @@ function absMake(){
 }
 function renderDocs(){
   if(memoType()==='abs'){ renderAbs(); return; }
-  memoHdrFetch();
+  memoHdrFetch(); memoAutoFill(false);
   var c=memoCfg(), list=memoPeople(), d=parseYmd(ui.date), n=memoNorm(root.cur), rvd=memoType()==='rvd';
   var ppl=memoResps();
   var rows=list.map(function(x){
@@ -2833,7 +2856,7 @@ function renderDocs(){
     '<div class="fld"><label for="m_from">Начало сверхурочной (для тех, у кого в табеле норма)</label><input type="time" id="m_from" value="'+c.from+'"></div></div>')+
     '<details class="ndfold" data-fold="memo'+(rvd?'r':'o')+'"'+(typeof ndFold!=='undefined'&&ndFold&&ndFold['memo'+(rvd?'r':'o')]?' open':'')+'><summary><span class="dh3">Работники</span> <span class="ndob">отмечено '+sel+' из '+list.length+'</span></summary>'+
     (list.length?'<div class="mlist">'+rows+'</div>':'<p class="note">В этот день в табеле '+BOOKS[root.cur]+' нет отметок «Пришёл». Сначала отметьте явку.</p>')+'</details>'+
-    '<h3 class="dh3">Объекты и работы</h3>'+c.objs.map(function(o,k){
+    '<h3 class="dh3">Объекты и работы</h3>'+(memoTaskObjs(ui.date).length?'<p class="note">Заполнено из наряд-заданий на '+esc(ndDmy(ui.date))+'. Объёмы можно поправить — исправления сохранятся. <button type="button" data-a="memofill">↻ Заново из наряд-заданий</button></p>':'<p class="note">Наряд-заданий на этот день пока нет — впишите работы вручную.</p>')+c.objs.map(function(o,k){
       return '<div class="mobj"><div class="mobjh"><b>Объект '+(k+1)+'</b>'+(c.objs.length>1?'<button data-a="mobjdel" data-k="'+k+'" aria-label="Убрать объект '+(k+1)+'">Убрать</button>':'')+'</div>'+
         '<div class="fld"><label for="m_obj'+k+'">Название объекта</label><input type="text" id="m_obj'+k+'" data-mo="'+k+'" data-mf="obj" maxlength="300" value="'+esc(o.obj)+'" placeholder="Центральный КПП №1 для пропуска персонала и посетителей (91UYE):"></div>'+
         '<div class="fld"><label for="m_works'+k+'">Виды работ и объёмы — каждая строка отдельно</label><textarea id="m_works'+k+'" data-mo="'+k+'" data-mf="works" rows="5" placeholder="Ось А:&#10;- Монтаж опалубки плиты перекрытия&#10;Ось 1&#10;- Монтаж лесов перекрытия усиления - 90 м²">'+esc(o.works)+'</textarea></div></div>';
@@ -3838,6 +3861,7 @@ document.addEventListener('click',function(e){
     case 'nduse': ndUse(el.dataset.id); break;
     case 'ndget': { var ge=ndFind(ndSt(),el.dataset.id); if(ge&&!ndTemplateOk(ge.kind)) break; if(ge) ndDownload(ge).catch(function(){ toast('Не удалось загрузить бланк'); }); break; }
     case 'mtype': setMemoType(el.dataset.t); renderDocs(); break;
+    case 'memofill': { memoAutoFill(true); renderDocs(); toast('Объекты и работы взяты из наряд-заданий'); break; }
     case 'mobjadd': { var os=memoCfg().objs; os.push({obj:'',works:''}); memoSet('objs',os); renderDocs(); var f=$('m_obj'+(os.length-1)); if(f) f.focus(); break; }
     case 'mobjdel': { var os2=memoCfg().objs; os2.splice(Number(el.dataset.k),1); memoSet('objs',os2.length?os2:[{obj:'',works:''}]); renderDocs(); break; }
     case 'scclose': closeScan(); break;
@@ -4221,7 +4245,7 @@ function bdFetch(d,force){
   if(!syncOn()||bdBusy[d]) return;
   if(!force&&bdCache[d]&&Date.now()-bdCache[d].at<30000) return;
   bdBusy[d]=1;
-  call({action:'bget',d:d}).then(function(j){ bdBusy[d]=0; var before=JSON.stringify(bdRaw(d)); bdCache[d]={items:j.items||[],at:Date.now()}; if(before!==JSON.stringify(bdCache[d].items)){ if(isXv()) renderX(); else if(ui.view==='nd'&&ndSt().kind==='log') renderNd(); else if(ui.view==='day'&&d===ui.date){ renderStats(); if(ui.brig) renderList(); } } })
+  call({action:'bget',d:d}).then(function(j){ bdBusy[d]=0; var before=JSON.stringify(bdRaw(d)); bdCache[d]={items:j.items||[],at:Date.now()}; if(before!==JSON.stringify(bdCache[d].items)){ if(isXv()) renderX(); else if(ui.view==='nd'&&ndSt().kind==='log') renderNd(); else if(ui.view==='day'&&d===ui.date){ renderStats(); if(ui.brig) renderList(); } else if(ui.view==='docs'&&d===ui.date&&memoType()!=='abs'){ var ae=document.activeElement; if(!(ae&&/^m_(obj|works)/.test(ae.id||''))) renderDocs(); } } })
     .catch(function(e){ bdBusy[d]=0; syncFail(e); });
 }
 function bdPut(item){ return call({action:'bput',kind:item.kind,d:item.d,obj:item.obj,id:item.id,data:item.data}); }
