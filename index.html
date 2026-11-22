@@ -883,7 +883,7 @@ body.vzv #hnav{display:flex}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='234';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='235';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3072,11 +3072,11 @@ function memoJcCenter(cell){
   else body='<w:pPr><w:jc w:val="center" /></w:pPr>'+body;
   return cell.slice(0,a)+head+body+cell.slice(end);
 }
-/* РВД, АРЕ: «Вид компенсации» — Повышенная оплата; «Согласие работника» и «С правом отказаться…» — дата предыдущего дня внизу клетки (место для подписи) */
+/* АРЕ (сверхурочная и РВД): «Вид компенсации» — Повышенная оплата; «Согласие работника» и «С правом отказаться…» — дата внизу клетки, сверху место для подписи (РВД — предыдущий день, сверхурочная — день работы) */
 function memoRvdAre(rowT,prev){
   var cs=rowT.split('</w:tc>'); if(cs.length!==14) return rowT;
   var run=memoRun(cs[4],'{{DATE}}');
-  cs[10]=memoCellPut(cs[10],run,'{{DATE}}','Повышенная оплата',false);
+  cs[10]=memoJcCenter(memoCellPut(cs[10],run,'{{DATE}}','Повышенная оплата',false));   /* по центру клетки */
   cs[11]=memoCellPut(cs[11],run,'{{DATE}}',prev,true);
   cs[12]=memoCellPut(cs[12],run,'{{DATE}}',prev,true);
   return cs.join('</w:tc>');
@@ -3122,7 +3122,7 @@ function memoMake(){
   msg.textContent='Готовлю файл…';
   memoTemplate(mt).then(function(tpl){
     var pv=addDays(ui.date,-1).split('-');
-    var blob=memoBuild(tpl,{hdr:hdr,date:date,people:people,objs:objs,resp:c.resp.trim(),sg:sg,noBreak:mt!=='rvd',rvdAre:mt==='rvd'&&root.cur==='are',prev:pv[2]+'.'+pv[1]+'.'+pv[0]});
+    var blob=memoBuild(tpl,{hdr:hdr,date:date,people:people,objs:objs,resp:c.resp.trim(),sg:sg,noBreak:mt!=='rvd',rvdAre:root.cur==='are',prev:mt==='rvd'?pv[2]+'.'+pv[1]+'.'+pv[0]:date});   /* АРЕ: «Повышенная оплата» и даты для подписи — в обеих записках */
     var name=(mt==='rvd'?'РВД_':'Сверхурочная_работа_')+a[2]+'_'+a[1]+'_'+a[0].slice(2)+(root.cur==='are'?'_АРЕ':'_РФ')+'.docx';
     return saveFile(name,blob.type,blob).then(function(r){ if($('m_msg')) $('m_msg').textContent=r==='cancel'?'':'Готово: '+name+' ('+people.length+' чел.)'; reportDone(r); });
   }).catch(function(){ if($('m_msg')) $('m_msg').textContent='Не удалось загрузить образец записки. Нужен интернет при первом запуске.'; });
