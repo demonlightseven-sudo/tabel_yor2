@@ -737,7 +737,7 @@ body.vmonth.mq .row2 input{min-width:110px}
 .mt .dsel{box-shadow:inset 0 3px 0 var(--work)}
 
 .lg-u{color:var(--ul-t)} .lg-p{color:var(--pl-t)} .lg-s{color:var(--sick-t)} .lg-a{color:var(--ab-t)}
-.mt td.uvall{text-align:center;color:var(--ab-t);background:var(--ab-bg);font-weight:800;font-size:15px;letter-spacing:.35em;cursor:default}
+.mt td.uvall{text-align:center;color:var(--ab-t);background:var(--ab-bg);font-weight:800;font-size:15px;letter-spacing:.35em;cursor:default}.mt td.uvall .uvd{letter-spacing:.04em;font-weight:700}
 .mcbs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .mcb{font-weight:700;min-height:48px}
 .mcb.on{outline:3px solid var(--ink);outline-offset:-3px}
@@ -892,7 +892,7 @@ body.vzv #hnav{display:flex}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='238';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='239';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1824,7 +1824,7 @@ function renderMonth(){
     var days=0, hrs=0, tds='';
     for(i=1;i<=n;i++){
       var ds=m+'-'+pad(i), r=(recs[ds]||{})[p.id], cls='';
-      if(firedOn(p,ds)){ tds+='<td class="uvall" colspan="'+(n-i+1)+'" title="Уволен с '+firedDmy(p)+'">УВОЛЕН</td>'; break; }
+      if(firedOn(p,ds)){ var uvw=n-i+1; tds+='<td class="uvall" colspan="'+uvw+'" title="Уволен с '+firedDmy(p)+'">УВОЛЕН'+(uvw>=7?'<span class="uvd"> с '+firedDmy(p)+'</span>':'')+'</td>'; break; }
       if(r){
         cls=MCLS[r.s];
         if(r.s==='work'&&r.h>0){ days++; hrs+=r.h; cnt[i-1]++; }
@@ -1837,7 +1837,7 @@ function renderMonth(){
       tds+='<td class="'+cls+'" data-a="mcell" data-d="'+ds+'" data-id="'+esc(p.id)+'">'+txt+'</td>';
     }
     var sg=schedById(p.sched||'');
-    return '<tr><th class="c0" scope="row" title="'+esc((p.num?p.num+' ':'')+p.name)+'">'+(p.num?'<span class="tn">'+esc(p.num)+'</span>':'')+esc(p.name)+(p.fired&&p.fired.slice(0,7)===m?'<small class="uvn">уволен с '+firedDmy(p)+'</small>':'')+'</th><td class="c1" title="'+esc(sg&&sg.id?sg.name:'График не задан')+'">'+esc(MSCH_S[p.sched||'']||'—')+'</td>'+tds+'<td class="tot ktuc" title="'+(km&&p.num&&km[normNum(p.num)]?'КТУ по неделям: '+km[normNum(p.num)].v.map(function(v){ return String(v).replace('.',','); }).join(' · '):'КТУ не проставлен')+'">'+(km&&p.num&&km[normNum(p.num)]?String(Math.round(km[normNum(p.num)].sum/km[normNum(p.num)].v.length*100)/100).replace('.',','):'')+'</td><td class="tot">'+fmtH(hrs)+'</td></tr>';
+    return '<tr><th class="c0" scope="row" title="'+esc((p.num?p.num+' ':'')+p.name)+'">'+(p.num?'<span class="tn">'+esc(p.num)+'</span>':'')+esc(p.name)+(p.fired&&p.fired.slice(0,7)===m&&n-Number(p.fired.slice(8,10))+1<7?'<small class="uvn">уволен с '+firedDmy(p)+'</small>':'')+'</th><td class="c1" title="'+esc(sg&&sg.id?sg.name:'График не задан')+'">'+esc(MSCH_S[p.sched||'']||'—')+'</td>'+tds+'<td class="tot ktuc" title="'+(km&&p.num&&km[normNum(p.num)]?'КТУ по неделям: '+km[normNum(p.num)].v.map(function(v){ return String(v).replace('.',','); }).join(' · '):'КТУ не проставлен')+'">'+(km&&p.num&&km[normNum(p.num)]?String(Math.round(km[normNum(p.num)].sum/km[normNum(p.num)].v.length*100)/100).replace('.',','):'')+'</td><td class="tot">'+fmtH(hrs)+'</td></tr>';
   }).join('');
   if(!ppl.length) body='<tr><th class="c0">Никого</th><td class="c1"></td><td colspan="'+(n+2)+'" class="mnone">'+(srt?'В этот день ни у кого нет отметки «'+MSORT_N[srt.s]+'»':'С таким графиком в табеле никого нет')+'</td></tr>';
   var E='<td class="c1"></td>', f1='<tr class="f1"><th class="c0">Явка, чел.</th>'+E, f2='<tr class="f2"><th class="c0">AB - прогул</th>'+E,
