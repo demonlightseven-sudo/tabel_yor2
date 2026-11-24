@@ -672,7 +672,13 @@ body.mon #tabbar,body.mon .books,body.mon .row2,body.mon #banner,body.mon #syncb
 
 .tksub{display:inline-block;font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-right:2px;white-space:nowrap}
 
-.mcmpb{margin-left:auto;min-height:34px;padding:0 12px;border:1px solid var(--line);border-radius:8px;font-weight:700;white-space:nowrap}
+.mcmpb{margin-left:auto;min-height:34px;padding:0 12px;border:1px solid var(--line);border-radius:8px;font-weight:700;white-space:nowrap}.mprb+.mcmpb{margin-left:0}
+.prl{max-height:38vh;overflow:auto;border:1px solid var(--line);border-radius:10px;margin:6px 0 10px}
+.prr{display:grid;grid-template-columns:26px 54px minmax(0,1fr);gap:6px;align-items:center;padding:6px 10px;border-bottom:1px solid var(--line);cursor:pointer;font-size:14px}.prr[hidden]{display:none}
+.prr input{width:20px;height:20px}.prr span small{display:block;color:var(--muted);font-size:12px}.prr:has(input:checked){background:var(--work-bg)}
+.prbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}.prbar span{margin-right:auto;font-weight:700;color:var(--ink)}.prbar button{min-height:34px;padding:0 10px}
+.prck{display:flex;gap:8px;align-items:center;margin:6px 0;font-size:14px}.prck input{width:20px;height:20px}
+#pr_q{width:100%;box-sizing:border-box;min-height:42px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font-size:15px}
 /* телефон: «Сверить с файлом» в одной строке с «Все в табеле», справа */
 @media (max-width:700px){.mtools label{display:none}.mtools select{flex:0 1 auto;min-width:0}.mcmpb{flex:none;padding:0 10px}.mtools .msrt{order:3;flex:0 0 auto}}
 .xcsum{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.xcsum span{display:flex;flex-direction:column;align-items:center;min-width:90px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;font-size:12px;color:var(--muted)}
@@ -892,7 +898,7 @@ body.vzv #hnav{display:flex}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='239';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='240';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -1098,7 +1104,7 @@ function canDay(show){ if(dayEditOk()) return true; if(show) toast(dayDenyText()
 function canPeople(show){ var r=role(); if(r==='nach'||r==='tech'||isPro(r)) return true; if(show) toast('Изменять список людей нельзя'); return false; }
 var DAY_A={set:1,hstep:1,hset:1,undo:1,go:1,scan:1,fill:1,fillok:1};
 var PEOPLE_A={padd:1,pbulk:1,pbulkok:1,pdel:1,pdelarch:1,pdelall:1,pdelok:1,pedit:1,psave:1,parch:1,imp:1,'import':1,pwgo:1,pwsheet:1,defh:1};
-var ADMIN_A={ssave:1,slink:1,lshare:1,lcopy:1,spl:1,splok:1,smonth:1,soff:1,soffok:1};
+var ADMIN_A={prop:1,prok:1,ssave:1,slink:1,lshare:1,lcopy:1,spl:1,splok:1,smonth:1,soff:1,soffok:1};
 var MONT_A={ktugo:1,dtday:1,extadd:1,brgpk:1,tmday:1,ktusave:1,tkrep:1,tkall:1,xdpick:1,xdshift:1,xdtoday:1,tkack:1,brgsend:1,brgpick:1,brgpickadd:1,tkdone:1,tkdoneedit:1,tkday:1,book:1,view:1,mnav:1,mday:1,msort:1,msortx:1,mfile:1,mfget:1,mfshare:1,mfull:1,mexp:1,mexport:1,close:1,menu:1,snow:1,install:1,doinstall:1,month:1,mshift:1};
 function roleClick(a,el){
   var r=role(); if(!r) return false;
@@ -1809,7 +1815,7 @@ function renderMonth(){
   var tools='<div class="mtools"><label for="msched">График:</label><select id="msched" aria-label="Показать людей по графику"><option value="">Все в табеле ('+ppl.length+')</option>'+
     '<option value="@d"'+(ui.mSched==='@d'?' selected':'')+'>☀ Дневная смена ('+nD+')</option><option value="@n"'+(ui.mSched==='@n'?' selected':'')+'>☾ Ночная смена ('+nN+')</option>'+
     [['День',false],['Ночь',true]].map(function(gr){ var L=SCHEDS.filter(function(g){ return schIds[g.id]&&!!g.night===gr[1]; }); return L.length?'<optgroup label="'+gr[0]+'">'+L.map(function(g){ var v=g.id||'-', k=ppl.filter(function(p){ return (p.sched||'')===g.id; }).length; return '<option value="'+v+'"'+(ui.mSched===v?' selected':'')+'>'+esc(g.id?g.short.replace(' (ночь)',''):'Без графика')+' ('+k+')</option>'; }).join('')+'</optgroup>':''; }).join('')+'</select>'+
-    (srt?'<span class="msrt">Показаны: <b>'+MSORT_N[srt.s]+'</b> за '+Number(srt.d.slice(8))+' число <button data-a="msortx" aria-label="Показать всех">✕ всех</button></span>':'')+(canPeople(false)?'<button class="mcmpb" data-a="xcmp">📄 Сверить с файлом</button>':'')+'</div>';
+    (srt?'<span class="msrt">Показаны: <b>'+MSORT_N[srt.s]+'</b> за '+Number(srt.d.slice(8))+' число <button data-a="msortx" aria-label="Показать всех">✕ всех</button></span>':'')+(isAdmin()?'<button class="mcmpb mprb" data-a="prop">📅 Отметить за период</button>':'')+(canPeople(false)?'<button class="mcmpb" data-a="xcmp">📄 Сверить с файлом</button>':'')+'</div>';
   if(ui.mSched==='@d'||ui.mSched==='@n') ppl=ppl.filter(function(p){ return isN(p.sched)===(ui.mSched==='@n'); });
   else if(ui.mSched) ppl=ppl.filter(function(p){ return (p.sched||'')===(ui.mSched==='-'?'':ui.mSched); });
   if(srt){ var sdr=recs[srt.d]||{}; ppl=ppl.filter(function(p){ return mStat(p,srt.d,sdr[p.id])===srt.s; }); }
@@ -2024,6 +2030,51 @@ function dayObj(d,create){
   if(!r[d]&&create) r[d]={};
   return r[d]||{};
 }
+/* отметка за период: отпуск, больничный и т. п. — сразу нескольким работникам с даты по дату */
+function prOpen(){
+  if(!isAdmin()){ toast('Отмечать за период может начальник участка и техник'); return; }
+  var ppl=activePeople().slice().sort(byNum), d0=ui.month===today().slice(0,7)?today():ui.month+'-01';
+  openSheet('Отметить за период · табель '+BOOKS[root.cur],
+    '<div class="prw"><div class="fld"><label for="pr_q">Работники</label><input id="pr_q" type="search" placeholder="Поиск: табельный № или фамилия" autocomplete="off"></div>'+
+    '<div class="prbar"><span id="pr_n">Выбрано: 0</span><button type="button" data-a="pral">Выбрать видимых</button><button type="button" data-a="prnone">Снять все</button></div>'+
+    '<div class="prl">'+ppl.map(function(p){ var g=schedById(p.sched||''); return '<label class="prr" data-q="'+esc(((p.num||'')+' '+p.name).toLowerCase())+'"><input type="checkbox" data-prk="'+esc(p.id)+'"><b>'+esc(p.num||'')+'</b><span>'+esc(p.name)+'<small>'+esc((p.role||'')+(g&&g.id?' · '+g.short:''))+'</small></span></label>'; }).join('')+'</div>'+
+    '<div class="dgrid"><div class="fld"><label for="pr_s">Отметка</label><select id="pr_s">'+STAT.map(function(s){ return '<option value="'+s[0]+'"'+(s[0]==='pl'?' selected':'')+'>'+s[1]+'</option>'; }).join('')+'<option value="">Очистить отметки</option></select></div>'+
+      '<div class="fld" id="pr_hw" hidden><label for="pr_h">Часы (пусто — по графику)</label><input id="pr_h" type="text" inputmode="decimal" maxlength="5" placeholder="по графику"></div></div>'+
+    '<div class="dgrid"><div class="fld"><label for="pr_from">С</label><input id="pr_from" type="date" value="'+d0+'"></div><div class="fld"><label for="pr_to">По (включительно)</label><input id="pr_to" type="date" value="'+d0+'"></div></div>'+
+    '<label class="prck"><input type="checkbox" id="pr_skip"> Пропускать выходные по графику</label>'+
+    '<label class="prck"><input type="checkbox" id="pr_keep"> Не менять дни, где отметка уже стоит</label>'+
+    '<p class="note" id="pr_msg" role="status" aria-live="polite"></p>'+
+    '<div class="acts"><button class="primary" data-a="prok">Проставить</button><button data-a="close">Отмена</button></div></div>');
+}
+function prCount(){ var n=document.querySelectorAll('[data-prk]:checked').length, e=$('pr_n'); if(e) e.textContent='Выбрано: '+n; }
+function prApply(){
+  if(!isAdmin()) return;
+  var ids=[].slice.call(document.querySelectorAll('[data-prk]:checked')).map(function(x){ return x.dataset.prk; }), msg=$('pr_msg');
+  var s=$('pr_s').value, f=$('pr_from').value, t=$('pr_to').value, skip=$('pr_skip').checked, keep=$('pr_keep').checked, hv=String($('pr_h').value||'').replace(',','.').trim(), hn=hv?Number(hv):null;
+  if(!ids.length){ msg.textContent='Отметьте хотя бы одного работника.'; return; }
+  if(!/^\d{4}-\d\d-\d\d$/.test(f)||!/^\d{4}-\d\d-\d\d$/.test(t)){ msg.textContent='Укажите даты «с» и «по».'; return; }
+  if(t<f){ msg.textContent='Дата «по» раньше даты «с».'; return; }
+  if(hv&&!(hn>0&&hn<=24)){ msg.textContent='Часы — числом от 0,5 до 24.'; return; }
+  var days=[], d=f; while(d<=t&&days.length<=92){ days.push(d); d=addDays(d,1); }
+  if(days.length>92){ msg.textContent='Слишком длинный период: не больше 3 месяцев за раз.'; return; }
+  var now=Date.now(), n=0, ppl={}; bk().people.forEach(function(p){ ppl[p.id]=p; });
+  days.forEach(function(ds){
+    ids.forEach(function(id){ var p=ppl[id]; if(!p||firedOn(p,ds)) return;
+      var day=dayObj(ds,true), cur=day[id];
+      if(keep&&cur) return;
+      if(skip&&planOff(p,ds)===true) return;
+      if(!s){ if(!cur) return; delete day[id]; }
+      else { if(cur&&cur.s===s&&(s!=='work'||!hv||cur.h===clampH(hn))) return; day[id]={s:s,h:s==='work'?(hv?clampH(hn):(planHours(p,ds)||bk().defH)):0,t:now}; }
+      n++; track(root.cur,ds,id); });
+    dropEmpty(ds); });
+  save(); closeSheet(); renderMonth();
+  var lbl=s?(STAT.filter(function(x){ return x[0]===s; })[0]||[])[1]:'очищено';
+  toast(n?'Проставлено «'+lbl+'»: '+n+' отмет. ('+ids.length+' чел., '+ndDmy(f)+'–'+ndDmy(t)+')':'Изменений нет — всё уже стоит');
+}
+document.addEventListener('input',function(e){ var t=e.target; if(t&&t.id==='pr_q'){ var q=t.value.trim().toLowerCase(); [].forEach.call(document.querySelectorAll('.prr'),function(l){ l.hidden=!!q&&l.dataset.q.indexOf(q)<0; }); } },true);
+document.addEventListener('change',function(e){ var t=e.target; if(!t) return; if(t.dataset&&t.dataset.prk!=null) prCount();
+  if(t.id==='pr_s'){ var w=$('pr_hw'); if(w) w.hidden=t.value!=='work'; var sk=$('pr_skip'); if(sk) sk.checked=t.value==='work'; }
+  if(t.id==='pr_from'){ var to=$('pr_to'); if(to&&(!to.value||to.value<t.value)) to.value=t.value; } },true);
 function dropEmpty(d){ var r=bk().records; if(r[d]&&!Object.keys(r[d]).length) delete r[d]; }
 function setStatus(id,s){ if(!canDay(true)) return; if(!isAdmin()&&s!=='work'&&s!=='ab'){ toast('Прораб отмечает только «Пришёл» или «Прогул»'); return; }
   var day=dayObj(ui.date,true), cur=day[id];
@@ -3816,6 +3867,10 @@ document.addEventListener('click',function(e){
     case 'xcmpout': xcExport(); break;
     case 'mcell': mcOpen(el.dataset.d,id); break;
     case 'mcset': mcSet(el.dataset.s); break;
+    case 'prop': prOpen(); break;
+    case 'prok': prApply(); break;
+    case 'pral': [].forEach.call(document.querySelectorAll('.prr'),function(l){ if(!l.hidden){ var c=l.querySelector('input'); if(c) c.checked=true; } }); prCount(); break;
+    case 'prnone': [].forEach.call(document.querySelectorAll('[data-prk]'),function(c){ c.checked=false; }); prCount(); break;
     case 'mchs': mcHours(null,Number(el.dataset.d)); break;
     case 'mchv': mcHours(Number(el.dataset.v)); break;
     case 'mchok': { var hi=$('mch'); if(hi) mcHours(Number(String(hi.value).replace(',','.'))); break; }
