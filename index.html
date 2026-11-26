@@ -406,6 +406,7 @@ body.r-mont #tabbar [data-v=brig],body.r-nach #tabbar [data-v=board],body.r-tech
 .ndchipw{display:inline-flex;max-width:100%;align-items:stretch}.ndchipw .ndchip{border-top-right-radius:0;border-bottom-right-radius:0}.ndchipx{min-height:32px;min-width:30px;padding:0 8px;border:1px solid var(--line);border-left:0;border-radius:0 16px 16px 0;color:var(--ab-t,#e66);font-size:16px}.ndchipw .ndchip:only-child{border-radius:16px}
 .ndmemadd{display:flex;gap:6px;width:100%;margin-top:4px}.ndmemadd input{flex:1;min-width:0}.ndmemadd button{min-height:36px;white-space:nowrap}
 .xbrgx{font-size:13px;margin-top:4px;overflow-wrap:anywhere}
+.absno{flex:none;width:22px;font-weight:700;align-self:center}.sgline input[data-absl]{flex:1;min-width:0;min-height:40px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font-size:15px}
 .sgg{margin:10px 0;padding:8px;border:1px solid var(--line);border-radius:10px}.sgh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}.sgh button{min-height:36px}.sgrow{margin:6px 0}.sgline{display:flex;gap:6px;align-items:stretch}.sgline textarea{flex:1;min-width:0}.sgdel{min-width:40px;padding:0 8px;color:var(--ab-t,#e66)}
 .xacks{padding:6px 10px;font-size:14px}
 .ndfold{margin:14px 0 8px;border:1px solid var(--line);border-radius:10px;padding:0 10px}.ndfold>summary{cursor:pointer;list-style:none;padding:10px 0;font-weight:700;font-size:16px}.ndfold>summary::-webkit-details-marker{display:none}.ndfold>summary::before{content:'▸ ';}.ndfold[open]>summary::before{content:'▾ ';}.ndfold[open]>summary{border-bottom:1px dashed var(--line);margin-bottom:8px}.ndfold>summary .dh3,.ndfold>summary .tbth3{display:inline;margin:0;font-size:inherit}
@@ -898,7 +899,7 @@ body.vzv #hnav{display:flex}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='240';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='241';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -2863,8 +2864,27 @@ function absPeople(){
   return ndPeople().filter(function(x){ var r=((root.books[x.b].records||{})[ui.date]||{})[x.p.id]; return r&&r.s==='ab'; });
 }
 function absChecked(x){ var k='abs|'+ui.date+'|'+x.key; return Object.prototype.hasOwnProperty.call(memoSel,k)?memoSel[k]:true; }
+/* акт: «в присутствии» и «достоверность сведений подтверждаем» — редактируемые списки (общие для РФ и АРЕ, хранятся на сервере) */
+var ABS_DEF=['Переводчик, Ясин Шаабан Наср','Производитель работ, Глушко Вячеслав Николаевич','Мастер, Бородин Максим Константинович'];
+function absList(g){ var a=memoSgAll(memoHdrRaw().signers)['abs_'+g]; return Array.isArray(a)?a.map(String):ABS_DEF.slice(); }
+function absListSave(g,arr){ var raw=memoHdrRaw(), a=memoSgAll(raw.signers); a['abs_'+g]=arr; raw.signers=JSON.stringify(a); memoHdrSaveRaw(raw); memoHdrPush(); }
+function absListHtml(g,title){ var L=absList(g);
+  return '<div class="sgg"><div class="sgh"><b>'+title+'</b><span>'+(g==='conf'?'<button data-a="abscopy">Как «в присутствии»</button> ':'')+'<button data-a="absadd" data-g="'+g+'">+ Добавить</button></span></div>'+
+    (L.length?L.map(function(v,i){ return '<div class="sgrow"><div class="sgline"><span class="absno">'+(i+1)+'.</span><input type="text" data-absl="'+g+'|'+i+'" maxlength="200" value="'+esc(v)+'" placeholder="Должность, Фамилия Имя Отчество"><button class="sgdel" data-a="absdel" data-g="'+g+'" data-i="'+i+'" aria-label="Убрать">✕</button></div></div>'; }).join('')
+      :'<p class="note">Никого — добавьте хотя бы одного.</p>')+'</div>'; }
+function absParas(doc,pres,conf){
+  var ps=doc.match(/<w:p[ >][\s\S]*?<\/w:p>/g)||[], txt=function(p){ return p.replace(/<[^>]+>/g,''); };
+  var P0='<w:p><w:pPr><w:rPr><w:lang w:val="ru-RU" /></w:rPr></w:pPr>', P1='<w:p><w:pPr><w:spacing w:after="0" /><w:rPr><w:lang w:val="ru-RU" /></w:rPr></w:pPr>', R=function(t){ return '<w:r><w:rPr><w:lang w:val="ru-RU" /></w:rPr><w:t xml:space="preserve">'+xesc(t)+'</w:t></w:r>'; };
+  var k=-1, m=-1, c=-1, e=-1; ps.forEach(function(p,i){ var t=txt(p); if(k<0&&t.indexOf('в присутствии')>=0) k=i; if(m<0&&t.indexOf('составлен настоящий акт')>=0) m=i; if(c<0&&t.indexOf('Достоверность сведений')>=0) c=i; if(c>=0&&t.indexOf('____/')>=0) e=i; });
+  if(k>=0&&m>k){ var a=doc.indexOf(ps[k+1]), b=doc.indexOf(ps[m]); if(k+1<m&&a>0&&b>a) doc=doc.slice(0,a)+pres.map(function(v,i){ return P0+R((i+1)+'. '+v)+'</w:p>'; }).join('')+doc.slice(b); }
+  ps=doc.match(/<w:p[ >][\s\S]*?<\/w:p>/g)||[]; c=-1; e=-1; ps.forEach(function(p,i){ var t=txt(p); if(c<0&&t.indexOf('Достоверность сведений')>=0) c=i; if(c>=0&&t.indexOf('____/')>=0) e=i; });
+  if(c>=0&&e>=c){ var a2=doc.indexOf(ps[c]), b2=doc.indexOf(ps[e])+ps[e].length;
+    doc=doc.slice(0,a2)+P1+R('Достоверность сведений подтверждаем:')+'</w:p>'+conf.map(function(v,i){ return (i?P1+'</w:p>':'')+P1+R((i+1)+'. '+v+' /____________________________/')+'</w:p>'; }).join('')+doc.slice(b2); }
+  return doc;
+}
+document.addEventListener('input',function(e){ var t=e.target; if(t&&t.dataset&&t.dataset.absl){ var q=t.dataset.absl.split('|'), L=absList(q[0]); L[Number(q[1])]=t.value; absListSave(q[0],L); } },true);
 function renderAbs(){
-  var list=absPeople(), d=parseYmd(ui.date), sel=list.filter(absChecked).length;
+  memoHdrFetch(); var list=absPeople(), d=parseYmd(ui.date), sel=list.filter(absChecked).length;
   var rows=list.map(function(x){ var on=absChecked(x);
     return '<label class="mrow'+(on?' on':'')+'"><input type="checkbox" data-ak="'+esc(x.key)+'"'+(on?' checked':'')+'>'+
       '<span class="mn">'+esc(x.p.num||'')+'</span><span class="mf"><b>'+esc(x.p.name)+'</b><small>'+esc(tbtLat(x.p.name))+'</small></span>'+
@@ -2874,19 +2894,22 @@ function renderAbs(){
     '<p class="note">'+WD_FULL[d.getDay()]+', '+d.getDate()+' '+MONTHS_G[d.getMonth()]+' '+d.getFullYear()+'. В акт сами попадают все, у кого в табеле явки (РФ и АРЕ) в этот день стоит «Прогул». ФИО латиницей — под русским. День меняется кнопкой с датой вверху.</p>'+
     '<h3 class="dh3">Отсутствовали ('+sel+' из '+list.length+')</h3>'+
     (list.length?'<div class="mlist">'+rows+'</div>':'<p class="note">В этот день ни у кого нет отметки «Прогул».</p>')+
+    absListHtml('pres','В присутствии')+absListHtml('conf','Достоверность сведений подтверждаем')+
+    '<p class="note">Пишите должность и ФИО, например «Мастер, Бородин Максим Константинович». Списки общие для РФ и АРЕ и одинаковы на всех телефонах.</p>'+
     '<div class="acts"><button class="primary" data-a="absdoc"'+(sel?'':' disabled')+'>Скачать служебную записку (Word)</button></div>'+
     '<p class="note" id="m_msg" role="status" aria-live="polite"></p></div>';
 }
 var absTpl=null;
 function absMake(){
-  var msg=$('m_msg'), list=absPeople().filter(absChecked);
+  var msg=$('m_msg'), list=absPeople().filter(absChecked), pres=absList('pres').map(function(v){ return v.trim(); }).filter(Boolean), conf=absList('conf').map(function(v){ return v.trim(); }).filter(Boolean);
   if(!list.length){ msg.textContent='Отметьте хотя бы одного работника.'; return; }
+  if(!pres.length||!conf.length){ msg.textContent='Заполните списки «В присутствии» и «Достоверность сведений подтверждаем».'; return; }
   var a=ui.date.split('-'), date=a[2]+'.'+a[1]+'.'+a[0];
   msg.textContent='Готовлю файл…';
   (absTpl?Promise.resolve(absTpl):fetch('akt-abs.json',{cache:'no-cache'}).then(function(r){ if(!r.ok) throw new Error('notpl'); return r.json(); }).then(function(j){ absTpl=j; return j; })).then(function(tpl){
     var rows=list.map(function(x,i){ var lat=tbtLat(x.p.name), row=tpl.row; if(!lat) row=row.replace('<w:r><w:br /></w:r>','');
       return row.replace('{{I}}',String(i+1)).replace('{{TN}}',function(){ return xesc(x.p.num||''); }).replace('{{RU}}',function(){ return xesc(x.p.name||''); }).replace('{{LAT}}',function(){ return xesc(lat); }); }).join('');
-    var doc=tpl.files['word/document.xml'].replace('<!--ROWS-->',function(){ return rows; }).split('{{DATE}}').join(date).replace('{{N}}',String(list.length));
+    var doc=absParas(tpl.files['word/document.xml'],pres,conf).replace('<!--ROWS-->',function(){ return rows; }).split('{{DATE}}').join(date).replace('{{N}}',String(list.length));
     var files={}; Object.keys(tpl.files).forEach(function(k){ files[k]=tpl.files[k]; }); files['word/document.xml']=doc;
     var blob=zipStore(files), name='Акт_отсутствия_'+a[2]+'_'+a[1]+'_'+a[0].slice(2)+'.docx';
     return saveFile(name,blob.type,blob).then(function(r){ if($('m_msg')) $('m_msg').textContent=r==='cancel'?'':'Готово: '+name+' ('+list.length+' чел.)'; reportDone(r); });
@@ -3897,6 +3920,9 @@ document.addEventListener('click',function(e){
     case 'sgadd': { var at=memoType(), ao=memoSigners(at); ao[el.dataset.g].push(''); memoSignersSave(at,ao); renderDocs(); var dd1=document.querySelector('.mhdr'); if(dd1) dd1.open=true; var ta=document.querySelector('[data-sg="'+el.dataset.g+'|'+(ao[el.dataset.g].length-1)+'"]'); if(ta) ta.focus(); break; }
     case 'sgdel': { var dt=memoType(), dob=memoSigners(dt), L=dob[el.dataset.g], di=Number(el.dataset.i); if(String(L[di]||'').trim()&&!confirm('Убрать из подписей?\n\n'+L[di])) break; L.splice(di,1); memoSignersSave(dt,dob); renderDocs(); var dd2=document.querySelector('.mhdr'); if(dd2) dd2.open=true; break; }
     case 'absdoc': absMake(); break;
+    case 'absadd': { var al=absList(el.dataset.g); al.push(''); absListSave(el.dataset.g,al); renderAbs(); var ai=document.querySelector('[data-absl="'+el.dataset.g+'|'+(al.length-1)+'"]'); if(ai) ai.focus(); break; }
+    case 'absdel': { var al2=absList(el.dataset.g); al2.splice(Number(el.dataset.i),1); absListSave(el.dataset.g,al2); renderAbs(); break; }
+    case 'abscopy': absListSave('conf',absList('pres')); renderAbs(); toast('Список скопирован из «В присутствии»'); break;
     case 'ndobj': { var no2=ndSt(); no2.obj=el.dataset.o; if(no2.kind==='log') no2.kind=no2.lastKind; ndSave(no2); ndQ=''; ndMsg=''; ndFetchAt=0; renderNd(); break; }
     case 'ndmem': ndMemAdd(el); break;
     case 'ndmemdel': ndMemDel(el); break;
