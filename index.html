@@ -899,7 +899,7 @@ body.vzv #hnav{display:flex}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='241';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='242';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -3206,7 +3206,7 @@ function memoMake(){
   msg.textContent='Готовлю файл…';
   memoTemplate(mt).then(function(tpl){
     var pv=addDays(ui.date,-1).split('-');
-    var blob=memoBuild(tpl,{hdr:hdr,date:date,people:people,objs:objs,resp:c.resp.trim(),sg:sg,noBreak:mt!=='rvd',rvdAre:root.cur==='are',prev:mt==='rvd'?pv[2]+'.'+pv[1]+'.'+pv[0]:date});   /* АРЕ: «Повышенная оплата» и даты для подписи — в обеих записках */
+    var blob=memoBuild(tpl,{hdr:hdr,date:date,people:people,objs:objs,resp:c.resp.trim(),sg:sg,noBreak:mt!=='rvd',rvdAre:true,prev:mt==='rvd'?pv[2]+'.'+pv[1]+'.'+pv[0]:date});   /* РФ и АРЕ: «Повышенная оплата» и даты для подписи — в обеих записках */
     var name=(mt==='rvd'?'РВД_':'Сверхурочная_работа_')+a[2]+'_'+a[1]+'_'+a[0].slice(2)+(root.cur==='are'?'_АРЕ':'_РФ')+'.docx';
     return saveFile(name,blob.type,blob).then(function(r){ if($('m_msg')) $('m_msg').textContent=r==='cancel'?'':'Готово: '+name+' ('+people.length+' чел.)'; reportDone(r); });
   }).catch(function(){ if($('m_msg')) $('m_msg').textContent='Не удалось загрузить образец записки. Нужен интернет при первом запуске.'; });
