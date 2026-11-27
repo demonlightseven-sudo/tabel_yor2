@@ -804,6 +804,8 @@ body.vmonth.mq .row2 input{min-width:110px}
 .add .abt .adlo b,.add .abt .adab b,.add .abt .adup b{color:var(--ab-t)}.add .abt .addn b{color:var(--work-t)}
 .adch{width:100%;height:auto;display:block;margin:2px 0 4px}
 .adch .adw{fill:var(--work)}.adch .ada{fill:var(--ab)}
+.adch .adg{cursor:default}.adch .adhit{stroke:transparent;stroke-width:1.5}.adch .adg:hover .adhit{stroke:var(--ink);fill:color-mix(in srgb,var(--work) 10%,transparent)}
+.adch .adwv{font-size:11px;font-weight:800;fill:var(--work-t);text-anchor:middle;opacity:0;pointer-events:none}.adch .adg:hover .adwv{opacity:1}.adch .adg:hover .adx{fill:var(--ink);font-weight:800}
 .adch .adn{font-size:10px;font-weight:700;fill:var(--ab-t);text-anchor:middle}
 .adch .adx{font-size:10px;fill:var(--muted);text-anchor:middle}.adch .adt{font-weight:800;fill:var(--ink)}.adch .adwe{fill:#c58b00}
 .adlg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--muted);margin-bottom:6px}.adlg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}.adlg i.adw{background:var(--work)}.adlg i.ada{background:var(--ab)}
@@ -899,7 +901,7 @@ body.vzv #hnav{display:flex}
 'use strict';
 
 var KEY='tabel-app-v1';
-var APP_VER='242';   /* версия приложения: та же цифра лежит в version.txt на сайте */
+var APP_VER='243';   /* версия приложения: та же цифра лежит в version.txt на сайте */
 var SEED=null;   /* __SEED__ */
 
 /* ------------------------------------------------------------- справочники */
@@ -4575,9 +4577,12 @@ function attDashHtml(d){
   var m1=d.slice(0,8)+'01', pm=shiftMonth(d.slice(0,7),-1), dd=Number(d.slice(8,10)), pdays=daysIn(pm), pe=pm+'-'+pad(Math.min(dd,pdays));
   var abM=abSum(m1,d), abP=abSum(pm+'-01',pe), dl=abM-abP;
   var mx=Math.max.apply(null,days.map(function(x){ return x.work+x.ab; }).concat([1]));
-  var W=420, H=150, pl=4, pb=18, bw=(W-pl*2)/N, sc=(H-pb-14)/mx;
+  var W=420, H=150, pl=4, pb=18, bw=(W-pl*2)/N, sc=(H-pb-28)/mx;
   var bars=days.map(function(x,k){ var X=pl+k*bw+2, w=bw-4, hw=x.work*sc, ha=x.ab*sc, y0=H-pb, wd=parseYmd(x.d).getDay(), r=rate(x);
-    return '<g><title>'+esc(ndDmy(x.d))+': пришли '+x.work+', прогул '+x.ab+(r!=null?', явка '+r+'%':'')+'</title>'+
+    var ty=y0-hw-ha-3-(x.ab?12:0);
+    return '<g class="adg"><title>'+esc(ndDmy(x.d))+': пришли '+x.work+', прогул '+x.ab+(r!=null?', явка '+r+'%':'')+'</title>'+
+      '<rect x="'+(X-1.5).toFixed(1)+'" y="2" width="'+(w+3).toFixed(1)+'" height="'+(H-pb-1)+'" rx="3" fill="transparent" class="adhit"/>'+
+      (x.work?'<text x="'+(X+w/2).toFixed(1)+'" y="'+ty.toFixed(1)+'" class="adwv">'+x.work+'</text>':'')+
       '<rect x="'+X.toFixed(1)+'" y="'+(y0-hw).toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+hw.toFixed(1)+'" rx="2" class="adw"/>'+
       (x.ab?'<rect x="'+X.toFixed(1)+'" y="'+(y0-hw-ha).toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+Math.max(ha,1.5).toFixed(1)+'" rx="2" class="ada"/>'+
         '<text x="'+(X+w/2).toFixed(1)+'" y="'+(y0-hw-ha-3).toFixed(1)+'" class="adn">'+x.ab+'</text>':'')+
